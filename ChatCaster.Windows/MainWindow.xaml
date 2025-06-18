@@ -1,0 +1,337 @@
+﻿<Window x:Class="ChatCaster.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ChatCaster - Voice Input for Gaming" 
+        Height="600" Width="900"
+        MinHeight="500" MinWidth="700"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF1E1E1E">
+    
+    <Window.Resources>
+        <!-- Современные стили -->
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF106EBE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF005A9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FF2D2D30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FFCCCCCC"/>
+        </Style>
+        
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- Темный стиль для ComboBox -->
+        <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="#FF3C3C3C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FF555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" 
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        Foreground="{TemplateBinding Foreground}"
+                                        IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}"
+                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              CornerRadius="4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition Width="20"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter Grid.Column="0" Margin="8,0,0,0" 
+                                                                VerticalAlignment="Center"/>
+                                                <Path Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" 
+                                                    Fill="White" HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            
+                            <ContentPresenter Name="ContentSite" 
+                                            IsHitTestVisible="False"
+                                            Content="{TemplateBinding SelectionBoxItem}"
+                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                            ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                            Margin="8,3,23,3"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Left"/>
+                            
+                            <Popup Name="Popup" 
+                                 Placement="Bottom"
+                                 IsOpen="{TemplateBinding IsDropDownOpen}"
+                                 AllowsTransparency="True"
+                                 Focusable="False"
+                                 PopupAnimation="Slide">
+                                <Grid Name="DropDown"
+                                    SnapsToDevicePixels="True"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="200">
+                                    <Border Background="#FF2D2D30" 
+                                          BorderBrush="#FF555555" 
+                                          BorderThickness="1"
+                                          CornerRadius="4">
+                                        <ScrollViewer SnapsToDevicePixels="True">
+                                            <StackPanel IsItemsHost="True"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль для элементов ComboBox -->
+        <Style x:Key="DarkComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border Background="{TemplateBinding Background}"
+                              Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter Property="Background" Value="#FF0078D4"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#FF106EBE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <Ellipse Width="40" Height="40" Fill="#FF0078D4" Margin="0,0,12,0">
+                <Ellipse.Effect>
+                    <DropShadowEffect Color="#FF0078D4" BlurRadius="15" ShadowDepth="0" Opacity="0.7"/>
+                </Ellipse.Effect>
+            </Ellipse>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="ChatCaster" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="Voice Input for Gaming" FontSize="12" Foreground="#FFAAAAAA"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Основной контент -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                
+                <!-- Статус записи -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🎤 Статус записи" Style="{StaticResource HeaderTextStyle}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="StatusText" Text="Готов к записи" 
+                                         Style="{StaticResource StatusTextStyle}"/>
+                                <TextBlock x:Name="DeviceText" Text="Устройство: Не выбрано" 
+                                         FontSize="12" Foreground="#FF888888" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            
+                            <Button x:Name="RecordButton" Grid.Column="1" Content="🎙️ Записать" 
+                                  Style="{StaticResource ModernButtonStyle}"
+                                  Click="RecordButton_Click" Width="120"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Настройки аудио -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🔧 Настройки аудио" Style="{StaticResource HeaderTextStyle}"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Микрофон:" 
+                                     VerticalAlignment="Center" Foreground="#FFCCCCCC"/>
+                            <ComboBox x:Name="MicrophoneComboBox" Grid.Row="0" Grid.Column="1" 
+                                    Margin="8,0" Style="{StaticResource DarkComboBoxStyle}"
+                                    ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"/>
+                            <Button x:Name="RefreshDevicesButton" Grid.Row="0" Grid.Column="2" 
+                                  Content="🔄" Width="32" Height="32"
+                                  Style="{StaticResource ModernButtonStyle}"
+                                  Click="RefreshDevicesButton_Click"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Модель Whisper:" 
+                                     VerticalAlignment="Center" Foreground="#FFCCCCCC" Margin="0,8,0,0"/>
+                            <ComboBox x:Name="WhisperModelComboBox" Grid.Row="1" Grid.Column="1" 
+                                    Margin="8,8,0,0" Style="{StaticResource DarkComboBoxStyle}"
+                                    ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Результат распознавания -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="📝 Последний результат" Style="{StaticResource HeaderTextStyle}"/>
+                        
+                        <Border Background="#FF1E1E1E" CornerRadius="4" Padding="12" 
+                              BorderBrush="#FF555555" BorderThickness="1">
+                            <TextBlock x:Name="RecognitionResultText" 
+                                     Text="Здесь появится распознанный текст..." 
+                                     Foreground="#FFAAAAAA" FontSize="14" 
+                                     TextWrapping="Wrap" MinHeight="60"/>
+                        </Border>
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock x:Name="ConfidenceText" Text="Уверенность: -" 
+                                     FontSize="12" Foreground="#FF888888"/>
+                            <TextBlock x:Name="ProcessingTimeText" Text="Время: -" 
+                                     FontSize="12" Foreground="#FF888888" Margin="20,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Логи и статистика -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="📊 Активность" Style="{StaticResource HeaderTextStyle}"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <TextBlock x:Name="RecordingsCountText" Text="0" 
+                                         FontSize="24" FontWeight="Bold" 
+                                         Foreground="#FF0078D4" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Записей" FontSize="12" Foreground="#FF888888" 
+                                         HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock x:Name="SuccessRateText" Text="-%"
+                                         FontSize="24" FontWeight="Bold" 
+                                         Foreground="#FF00D96A" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Успешность" FontSize="12" Foreground="#FF888888" 
+                                         HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <TextBlock x:Name="AvgTimeText" Text="-ms"
+                                         FontSize="24" FontWeight="Bold" 
+                                         Foreground="#FFFF6B00" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Среднее время" FontSize="12" Foreground="#FF888888" 
+                                         HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Нижняя панель -->
+        <Border Grid.Row="2" Background="#FF2D2D30" CornerRadius="4" 
+                Padding="16,8" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="Готов к работе • ChatCaster v1.0.0" 
+                         VerticalAlignment="Center" Foreground="#FF888888" FontSize="12"/>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="⚙️ Настройки" Style="{StaticResource ModernButtonStyle}" 
+                          Click="SettingsButton_Click" Margin="0,0,8,0"/>
+                    <Button Content="ℹ️ О программе" Style="{StaticResource ModernButtonStyle}" 
+                          Click="AboutButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

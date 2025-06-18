@@ -1,0 +1,86 @@
+namespace ChatCaster.Core.Models;
+
+/// <summary>
+/// Состояние записи голоса
+/// </summary>
+public class RecordingState
+{
+    public RecordingStatus Status { get; set; } = RecordingStatus.Idle;
+    public DateTime? StartTime { get; set; }
+    public TimeSpan? Duration { get; set; }
+    public float CurrentVolume { get; set; }
+    public string? LastRecognizedText { get; set; }
+    public string? ErrorMessage { get; set; }
+    public bool IsOverlayVisible { get; set; }
+}
+
+/// <summary>
+/// Информация об аудио устройстве
+/// </summary>
+public class AudioDevice
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsDefault { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public AudioDeviceType Type { get; set; }
+    public int MaxChannels { get; set; }
+    public int[] SupportedSampleRates { get; set; } = Array.Empty<int>();
+}
+
+/// <summary>
+/// Информация о геймпаде
+/// </summary>
+public class GamepadInfo
+{
+    public int Index { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public GamepadType Type { get; set; }
+    public bool IsConnected { get; set; }
+    public GamepadState State { get; set; } = new();
+}
+
+/// <summary>
+/// Состояние геймпада (кнопки и стики)
+/// </summary>
+public class GamepadState
+{
+    public Dictionary<GamepadButton, bool> Buttons { get; set; } = new();
+    public Dictionary<GamepadAxis, float> Axes { get; set; } = new();
+    public DateTime LastUpdateTime { get; set; } = DateTime.Now;
+}
+
+/// <summary>
+/// Результат обработки голоса
+/// </summary>
+public class VoiceProcessingResult
+{
+    public bool Success { get; set; }
+    public string? RecognizedText { get; set; }
+    public TimeSpan ProcessingTime { get; set; }
+    public float Confidence { get; set; }
+    public string? ErrorMessage { get; set; }
+    public byte[]? AudioData { get; set; } // Для отладки
+}
+
+/// <summary>
+/// Результат валидации конфигурации
+/// </summary>
+public class ValidationResult
+{
+    public bool IsValid { get; set; }
+    public List<string> Errors { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+
+    public void AddError(string error)
+    {
+        IsValid = false;
+        Errors.Add(error);
+    }
+
+    public void AddWarning(string warning)
+    {
+        Warnings.Add(warning);
+    }
+}

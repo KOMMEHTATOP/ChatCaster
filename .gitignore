@@ -1,0 +1,111 @@
+# Gitignore for .NET projects
+
+# Rider
+.idea/
+*.iml
+*.iws
+*.ipr
+/modules.xml
+/contentModel.xml
+/projectSettingsUpdater.xml
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.exe
+*.pdb
+*.tmp
+*.log
+*.bak
+*.cache
+*.suo
+*.user
+
+# Packages
+/packages/
+/src/packages/ # Если пакеты хранятся в подпапке src/
+
+# NuGet
+.nuget/
+*.nupkg
+*.nuget.targets
+*.nuget.props
+*.nuget.g.props
+*.nuget.g.targets
+.vs/ # Visual Studio files, полезно добавить на всякий случай
+*.user
+*.bak
+*.orig
+*.obj
+*.opt
+*.aps
+*.ncb
+*.pdb
+*.res
+*.sbr
+*.tlb
+*.tlh
+*.tmp
+*.vspscc
+*.vssscc
+*.vsw
+*.code
+*.opendata
+*.suo
+*.userprefs
+*.docstates
+*.resharper
+*.dotSettings
+*.resharper.user
+*.ncrunch*
+*.testsettings
+*.trx
+.DS_Store # macOS specific
+Thumbs.db # Windows specific
+ehthumbs.db # Windows specific
+Desktop.ini # Windows specific
+
+# Generated files
+*.Designer.cs # Если генерируются дизайнерские файлы для форм
+*.generated.cs # Если используются генераторы кода
+*.g.cs
+*.g.i.cs
+*.xaml.cs
+*.xaml.g.cs
+*.xaml.g.i.cs
+*.xproj
+*.vcxproj.filters
+*.csproj.user
+*.targets.user
+*.ruleset
+
+# VS Code specific
+.vscode/
+
+# Web projects
+/wwwroot/lib/ # Если используете Bower/NPM для client-side библиотек
+/node_modules/ # Если используете Node.js
+/npm-debug.log
+.env
+.env.*
+
+# Solution and Project files
+*.sln.docstates
+*.csproj.nuget.dgspec.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+*.csproj.nuget.cache
+*.csproj.CoreCompileInputs.cache
+*.csproj.FileListAbsolute.txt
+*.GeneratedMSBuildEditorConfig.editorconfig
+GlobalUsings.g.cs
+*.runtimeconfig.json # Добавлено для игнорирования файлов конфигурации рантайма
+*.AssemblyInfo.cs # Добавлено для игнорирования генерируемых файлов информации о сборке
