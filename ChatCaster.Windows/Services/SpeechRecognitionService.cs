@@ -28,7 +28,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
             return new VoiceProcessingResult
             {
                 Success = false,
-                ErrorMessage = "Сервис не инициализирован"
+                ErrorMessage = "Сервис не инициализирован" 
             };
         }
 
