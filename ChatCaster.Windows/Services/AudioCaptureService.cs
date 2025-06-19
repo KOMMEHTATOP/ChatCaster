@@ -141,12 +141,16 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     }
 
                     // Создаем WaveIn
+                    Console.WriteLine($"Исходный формат: {config.SampleRate}Hz, {config.BitsPerSample}bit, {config.Channels}ch");
+                    Console.WriteLine("Принудительно устанавливаем: 16000Hz, 16bit, 1ch для Whisper");
+
                     _waveIn = new WaveInEvent
                     {
                         DeviceNumber = deviceNumber,
-                        WaveFormat = new WaveFormat(config.SampleRate, config.BitsPerSample, config.Channels),
-                        BufferMilliseconds = 50 // Маленький буфер для низкой задержки
+                        WaveFormat = new WaveFormat(16000, 16, 1), // Принудительно 16kHz для Whisper
+                        BufferMilliseconds = 50
                     };
+                    Console.WriteLine($"Аудио формат: {config.SampleRate}Hz, {config.BitsPerSample}bit, {config.Channels}ch");
 
                     // Подписываемся на события
                     _waveIn.DataAvailable += OnDataAvailable;
