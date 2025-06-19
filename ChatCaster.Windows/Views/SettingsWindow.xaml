@@ -9,139 +9,11 @@
         ShowInTaskbar="False">
     
     <Window.Resources>
-        <!-- Стили из главного окна -->
-        <Style x:Key="ModernButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#FF0078D4"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF106EBE"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#FF005A9E"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#FF2D2D30"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
-        </Style>
-
-        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
-        </Style>
-
-        <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#FFCCCCCC"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="14"/>
-        </Style>
-
-        <!-- Стиль для Slider -->
-        <Style x:Key="DarkSliderStyle" TargetType="Slider">
-            <Setter Property="Background" Value="#FF3C3C3C"/>
-            <Setter Property="Foreground" Value="#FF0078D4"/>
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Slider">
-                        <Grid>
-                            <Border Background="#FF3C3C3C" CornerRadius="10" Height="4"/>
-                            <Track Name="PART_Track">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Background="#FF0078D4">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="RepeatButton">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="2" Height="4"/>
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb>
-                                        <Thumb.Template>
-                                            <ControlTemplate TargetType="Thumb">
-                                                <Ellipse Fill="#FF0078D4" Stroke="White" StrokeThickness="2" 
-                                                         Width="16" Height="16"/>
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Background="Transparent">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="RepeatButton">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="2" Height="4"/>
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Стиль для CheckBox -->
-        <Style x:Key="DarkCheckBoxStyle" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <StackPanel Orientation="Horizontal">
-                            <Border x:Name="CheckBoxBorder" 
-                                  Width="18" Height="18" 
-                                  Background="#FF3C3C3C"
-                                  BorderBrush="#FF555555"
-                                  BorderThickness="2"
-                                  CornerRadius="3">
-                                <Path x:Name="CheckMark"
-                                    Data="M 2 6 L 6 10 L 14 2"
-                                    Stroke="#FF0078D4"
-                                    StrokeThickness="2"
-                                    Visibility="Collapsed"/>
-                            </Border>
-                            <ContentPresenter Margin="8,0,0,0" 
-                                            VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FF2D2D30"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FF0078D4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="20">
@@ -297,7 +169,8 @@
                                     
                                     <TextBlock Grid.Column="0" Text="Модель:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox x:Name="WhisperModelComboBox" Grid.Column="1" 
-                                            Background="#FF3C3C3C" Foreground="White" 
+                                            Style="{StaticResource DarkComboBoxStyle}"
+                                            ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
                                             Height="32" Margin="8,0,0,0"/>
                                 </Grid>
 
@@ -309,7 +182,8 @@
                                     
                                     <TextBlock Grid.Column="0" Text="Язык:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox x:Name="LanguageComboBox" Grid.Column="1" 
-                                            Background="#FF3C3C3C" Foreground="White" 
+                                            Style="{StaticResource DarkComboBoxStyle}"
+                                            ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
                                             Height="32" Margin="8,0,0,0"/>
                                 </Grid>
                             </StackPanel>
@@ -364,7 +238,8 @@
                                     
                                     <TextBlock Grid.Column="0" Text="Позиция:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox x:Name="OverlayPositionComboBox" Grid.Column="1" 
-                                            Background="#FF3C3C3C" Foreground="White" 
+                                            Style="{StaticResource DarkComboBoxStyle}"
+                                            ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
                                             Height="32" Margin="8,0,0,0"/>
                                 </Grid>
 

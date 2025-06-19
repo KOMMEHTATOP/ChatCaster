@@ -18,6 +18,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
     private bool _isDisposed;
     private KeyboardShortcut? _registeredHotkey;
+    private int _typingDelayMs = 5; // Настраиваемая задержка между символами
 
     // WinAPI для прямого ввода текста
     [DllImport("user32.dll")]
@@ -66,6 +67,13 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                         var windowTitle = new System.Text.StringBuilder(length + 1);
                         GetWindowText(foregroundWindow, windowTitle, windowTitle.Capacity);
                         Console.WriteLine($"Активное окно: {windowTitle}");
+                    
+                        // НОВАЯ ПРОВЕРКА: Не вводим текст в собственное окно!
+                        if (windowTitle.ToString().Contains("ChatCaster"))
+                        {
+                            Console.WriteLine("Отказ: попытка ввода в собственное окно ChatCaster");
+                            return false;
+                        }
                     }
                 }
 
@@ -85,7 +93,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
             }
         });
     }
-
+    
     private void SendTextVirtualKeys(string text)
     {
         try
@@ -143,7 +151,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                         keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
                     }
 
-                    Thread.Sleep(5); // Задержка между символами
+                    Thread.Sleep(_typingDelayMs); // Настраиваемая задержка между символами
                 }
             }
 
@@ -228,6 +236,12 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 return false;
             }
         });
+    }
+
+    public void SetTypingDelay(int delayMs)
+    {
+        _typingDelayMs = Math.Max(1, delayMs); // Минимум 1ms
+        Console.WriteLine($"Задержка ввода установлена: {_typingDelayMs}ms");
     }
 
     private WpfKey ConvertKey(Core.Models.Key key)

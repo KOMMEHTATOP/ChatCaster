@@ -92,27 +92,24 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
 
     public async Task<bool> SetActiveDeviceAsync(string deviceId)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            // Останавливаем текущий захват если идет
+            if (IsCapturing)
             {
-                // Останавливаем текущий захват если идет
-                if (IsCapturing)
-                {
-                    StopCaptureAsync().Wait();
-                }
+                await StopCaptureAsync();
+            }
 
-                // Запоминаем активное устройство
-                var devices = GetAvailableDevicesAsync().Result;
-                ActiveDevice = devices.FirstOrDefault(d => d.Id == deviceId);
-                
-                return ActiveDevice != null;
-            }
-            catch (Exception ex)
-            {
-                throw new AudioException($"Ошибка установки аудио устройства {deviceId}: {ex.Message}", ex);
-            }
-        });
+            // Запоминаем активное устройство
+            var devices = await GetAvailableDevicesAsync();
+            ActiveDevice = devices.FirstOrDefault(d => d.Id == deviceId);
+            
+            return ActiveDevice != null;
+        }
+        catch (Exception ex)
+        {
+            throw new AudioException($"Ошибка установки аудио устройства {deviceId}: {ex.Message}", ex);
+        }
     }
 
     public async Task<bool> StartCaptureAsync(AudioConfig config)
@@ -140,9 +137,8 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                         }
                     }
 
-                    // Создаем WaveIn
-                    Console.WriteLine($"Исходный формат: {config.SampleRate}Hz, {config.BitsPerSample}bit, {config.Channels}ch");
-                    Console.WriteLine("Принудительно устанавливаем: 16000Hz, 16bit, 1ch для Whisper");
+                    // Создаем WaveIn - принудительно устанавливаем 16kHz для Whisper
+                    Console.WriteLine("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
 
                     _waveIn = new WaveInEvent
                     {
@@ -150,7 +146,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                         WaveFormat = new WaveFormat(16000, 16, 1), // Принудительно 16kHz для Whisper
                         BufferMilliseconds = 50
                     };
-                    Console.WriteLine($"Аудио формат: {config.SampleRate}Hz, {config.BitsPerSample}bit, {config.Channels}ch");
 
                     // Подписываемся на события
                     _waveIn.DataAvailable += OnDataAvailable;
@@ -262,50 +257,48 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     
     public async Task<bool> TestMicrophoneAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            if (ActiveDevice == null)
             {
-                if (ActiveDevice == null)
-                {
-                    Console.WriteLine("Нет активного аудио устройства для тестирования");
-                    return false;
-                }
-
-                // Пробуем кратковременный захват аудио
-                var testConfig = new AudioConfig
-                {
-                    SelectedDeviceId = ActiveDevice.Id,
-                    SampleRate = 16000,
-                    Channels = 1,
-                    BitsPerSample = 16,
-                    MaxRecordingSeconds = 1 // Тест на 1 секунду
-                };
-
-                bool captureStarted = StartCaptureAsync(testConfig).Result;
-                if (captureStarted)
-                {
-                    Thread.Sleep(500); // Записываем полсекунды
-                    StopCaptureAsync().Wait();
-                    Console.WriteLine("Тест микрофона успешен");
-                    return true;
-                }
-
-                Console.WriteLine("Не удалось запустить захват для тестирования");
+                Console.WriteLine("Нет активного аудио устройства для тестирования");
                 return false;
             }
-            catch (Exception ex)
+
+            // Пробуем кратковременный захват аудио
+            var testConfig = new AudioConfig
             {
-                Console.WriteLine($"Ошибка тестирования микрофона: {ex.Message}");
-                return false;
+                SelectedDeviceId = ActiveDevice.Id,
+                SampleRate = 16000,
+                Channels = 1,
+                BitsPerSample = 16,
+                MaxRecordingSeconds = 1 // Тест на 1 секунду
+            };
+
+            bool captureStarted = await StartCaptureAsync(testConfig);
+            if (captureStarted)
+            {
+                await Task.Delay(500); // Записываем полсекунды
+                await StopCaptureAsync();
+                Console.WriteLine("Тест микрофона успешен");
+                return true;
             }
-        });
+
+            Console.WriteLine("Не удалось запустить захват для тестирования");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка тестирования микрофона: {ex.Message}");
+            return false;
+        }
     }
     
     public void Dispose()
     {
         if (!_isDisposed)
         {
+            // В Dispose можно использовать Wait, так как это финальная очистка
             StopCaptureAsync().Wait();
             _isDisposed = true;
         }

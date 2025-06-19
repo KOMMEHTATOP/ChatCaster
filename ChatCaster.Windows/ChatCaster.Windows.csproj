@@ -40,4 +40,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  
+  <ItemGroup>
+    <Page Remove="Styles\DarkTheme.xaml" />
+    <Resource Include="Styles\DarkTheme.xaml" />
+  </ItemGroup>
 </Project>

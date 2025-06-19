@@ -48,7 +48,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Ошибка инициализации Whisper: {ex.Message}");
+            Console.WriteLine($"Ошибка инициализации Whisper: {ex.Message}");
             return false;
         }
     }
@@ -80,14 +80,13 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
             using var fileStream = File.Create(modelPath);
             await modelStream.CopyToAsync(fileStream);
 
-            System.Diagnostics.Debug.WriteLine($"Модель {model} скачана: {modelPath}");
+            Console.WriteLine($"Модель {model} скачана: {modelPath}");
         }
         catch (Exception ex)
         {
             throw new Exception($"Ошибка скачивания модели {model}: {ex.Message}", ex);
         }
     }
-
 
     private GgmlType GetGgmlType(WhisperModel model)
     {
@@ -118,8 +117,32 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
 
             Console.WriteLine($"Получено аудио данных: {audioData.Length} байт");
 
+            // Проверяем что данные не пустые
+            if (audioData == null || audioData.Length == 0)
+            {
+                Console.WriteLine("Аудио данные пустые, распознавание невозможно");
+                return new VoiceProcessingResult
+                {
+                    Success = false, 
+                    ErrorMessage = "Не получено аудио данных"
+                };
+            }
+
+            // Минимальная проверка размера (хотя бы 1 секунда на 16kHz = 32000 байт)
+            if (audioData.Length < 1000)
+            {
+                Console.WriteLine($"Слишком мало аудио данных: {audioData.Length} байт");
+                return new VoiceProcessingResult
+                {
+                    Success = false, 
+                    ErrorMessage = "Слишком короткая запись"
+                };
+            }
+
             // Создаем временный WAV файл
             var tempFile = Path.Combine(Path.GetTempPath(), $"whisper_{Guid.NewGuid()}.wav");
+
+            // Записываем WAV файл и гарантируем сохранение данных
             CreateWavFile(tempFile, audioData, 16000, 16, 1);
 
             Console.WriteLine($"Создан временный файл: {tempFile}");
@@ -127,9 +150,6 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
             // Распознаем речь из файла
             try
             {
-                // Ждем немного, чтобы файл точно записался
-                await Task.Delay(100, cancellationToken);
-
                 using var fileStream = File.OpenRead(tempFile);
 
                 await foreach (var result in _processor.ProcessAsync(fileStream, cancellationToken))
@@ -162,6 +182,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
                 }
                 catch
                 {
+                    // Игнорируем ошибки удаления временного файла
                 }
             }
         }
@@ -177,7 +198,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
 
     private void CreateWavFile(string filename, byte[] audioData, int sampleRate, int bitsPerSample, int channels)
     {
-        using var fileStream = new FileStream(filename, FileMode.Create);
+        using var fileStream = new FileStream(filename, FileMode.Create, FileAccess.Write);
         using var writer = new BinaryWriter(fileStream);
 
         var dataLength = audioData.Length;
@@ -197,7 +218,11 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
         writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
         writer.Write(dataLength);
         writer.Write(audioData);
+
+        // Принудительно сохраняем данные на диск
+        fileStream.Flush();
     }
+
     private float[] ConvertBytesToFloat(byte[] audioData)
     {
         // NAudio дает нам 16-bit PCM данные
@@ -233,7 +258,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Ошибка смены модели: {ex.Message}");
+            Console.WriteLine($"Ошибка смены модели: {ex.Message}");
             return false;
         }
     }

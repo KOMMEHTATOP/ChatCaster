@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Threading;
+using System.Windows.Media.Effects;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Events;
+using System.Diagnostics;
 
 namespace ChatCaster.Windows.Services;
 
@@ -27,119 +28,227 @@ public class OverlayService : IOverlayService, IDisposable
 
     public async Task ShowAsync(RecordingStatus status)
     {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            if (Application.Current == null) 
             {
-                if (_overlayWindow == null)
-                {
-                    CreateOverlayWindow();
-                }
+                Debug.WriteLine("Application.Current is null, cannot show overlay");
+                return;
+            }
 
-                if (_overlayWindow != null)
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                CreateOrShowOverlay(status);
+            }
+            else
+            {
+                await Application.Current.Dispatcher.InvokeAsync(() => CreateOrShowOverlay(status));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка показа overlay: {ex.Message}");
+        }
+    }
+
+    private void CreateOrShowOverlay(RecordingStatus status)
+    {
+        try
+        {
+            if (_overlayWindow == null)
+            {
+                CreateOverlayWindow();
+            }
+            
+            if (_overlayWindow != null)
+            {
+                UpdateOverlayStatus(status);
+                if (!_overlayWindow.IsVisible)
                 {
-                    UpdateOverlayStatus(status);
-                    
-                    if (!_overlayWindow.IsVisible)
-                    {
-                        _overlayWindow.Show();
-                        Console.WriteLine($"Overlay показан для статуса: {status}");
-                    }
+                    _overlayWindow.Show();
+                    Debug.WriteLine($"Overlay показан для статуса: {status}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка показа overlay: {ex.Message}");
-            }
-        });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в CreateOrShowOverlay: {ex.Message}");
+        }
     }
 
     public async Task HideAsync()
     {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            if (Application.Current == null) 
             {
-                if (_overlayWindow?.IsVisible == true)
-                {
-                    _overlayWindow.Hide();
-                    Console.WriteLine("Overlay скрыт");
-                }
+                Debug.WriteLine("Application.Current is null, cannot hide overlay");
+                return;
             }
-            catch (Exception ex)
+
+            if (Application.Current.Dispatcher.CheckAccess())
             {
-                Console.WriteLine($"Ошибка скрытия overlay: {ex.Message}");
+                HideOverlay();
             }
-        });
+            else
+            {
+                await Application.Current.Dispatcher.InvokeAsync(HideOverlay);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка скрытия overlay: {ex.Message}");
+        }
+    }
+
+    private void HideOverlay()
+    {
+        try
+        {
+            if (_overlayWindow?.IsVisible == true)
+            {
+                _overlayWindow.Hide();
+                Debug.WriteLine("Overlay скрыт");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в HideOverlay: {ex.Message}");
+        }
     }
 
     public async Task UpdateStatusAsync(RecordingStatus status, string? message = null)
     {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            if (Application.Current == null) 
             {
-                if (_overlayWindow != null)
-                {
-                    UpdateOverlayStatus(status, message);
-                }
+                Debug.WriteLine("Application.Current is null, cannot update overlay status");
+                return;
             }
-            catch (Exception ex)
+
+            if (Application.Current.Dispatcher.CheckAccess())
             {
-                Console.WriteLine($"Ошибка обновления статуса overlay: {ex.Message}");
+                UpdateOverlayStatusInternal(status, message);
             }
-        });
+            else
+            {
+                await Application.Current.Dispatcher.InvokeAsync(() => UpdateOverlayStatusInternal(status, message));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка обновления статуса overlay: {ex.Message}");
+        }
+    }
+
+    private void UpdateOverlayStatusInternal(RecordingStatus status, string? message)
+    {
+        try
+        {
+            if (_overlayWindow != null)
+            {
+                UpdateOverlayStatus(status, message);
+                Debug.WriteLine($"Overlay статус обновлен: {status}, сообщение: {message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в UpdateOverlayStatusInternal: {ex.Message}");
+        }
     }
 
     public async Task UpdatePositionAsync(int x, int y)
     {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            if (Application.Current == null) 
             {
-                if (_overlayWindow != null)
-                {
-                    _overlayWindow.Left = x;
-                    _overlayWindow.Top = y;
+                Debug.WriteLine("Application.Current is null, cannot update overlay position");
+                return;
+            }
 
-                    PositionChanged?.Invoke(this, new OverlayPositionChangedEvent
-                    {
-                        NewX = x,
-                        NewY = y,
-                        Source = "manual"
-                    });
-                }
-            }
-            catch (Exception ex)
+            if (Application.Current.Dispatcher.CheckAccess())
             {
-                Console.WriteLine($"Ошибка обновления позиции overlay: {ex.Message}");
+                UpdatePositionInternal(x, y);
             }
-        });
+            else
+            {
+                await Application.Current.Dispatcher.InvokeAsync(() => UpdatePositionInternal(x, y));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка обновления позиции overlay: {ex.Message}");
+        }
+    }
+
+    private void UpdatePositionInternal(int x, int y)
+    {
+        try
+        {
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.Left = x;
+                _overlayWindow.Top = y;
+                PositionChanged?.Invoke(this, new OverlayPositionChangedEvent
+                {
+                    NewX = x,
+                    NewY = y,
+                    Source = "manual"
+                });
+                Debug.WriteLine($"Overlay позиция обновлена: ({x}, {y})");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в UpdatePositionInternal: {ex.Message}");
+        }
     }
 
     public async Task<bool> ApplyConfigAsync(OverlayConfig config)
     {
-        return await Application.Current.Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            if (Application.Current == null) 
             {
-                _currentConfig = config;
-
-                if (_overlayWindow != null)
-                {
-                    // Применяем настройки к существующему окну
-                    ApplyConfigToWindow(_overlayWindow, config);
-                }
-
-                Console.WriteLine("Конфигурация overlay применена");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка применения конфигурации overlay: {ex.Message}");
+                Debug.WriteLine("Application.Current is null, cannot apply overlay config");
                 return false;
             }
-        });
+
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                return ApplyConfigInternal(config);
+            }
+            else
+            {
+                return await Application.Current.Dispatcher.InvokeAsync(() => ApplyConfigInternal(config));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка применения конфигурации overlay: {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool ApplyConfigInternal(OverlayConfig config)
+    {
+        try
+        {
+            _currentConfig = config;
+            if (_overlayWindow != null)
+            {
+                ApplyConfigToWindow(_overlayWindow, config);
+            }
+            Debug.WriteLine("Конфигурация overlay применена");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в ApplyConfigInternal: {ex.Message}");
+            return false;
+        }
     }
 
     private void CreateOverlayWindow()
@@ -147,15 +256,12 @@ public class OverlayService : IOverlayService, IDisposable
         try
         {
             _overlayWindow = new OverlayWindow();
-            
-            // Применяем конфигурацию если есть
             if (_currentConfig != null)
             {
                 ApplyConfigToWindow(_overlayWindow, _currentConfig);
             }
             else
             {
-                // Конфигурация по умолчанию
                 var defaultConfig = new OverlayConfig
                 {
                     Position = OverlayPosition.TopRight,
@@ -165,12 +271,11 @@ public class OverlayService : IOverlayService, IDisposable
                 };
                 ApplyConfigToWindow(_overlayWindow, defaultConfig);
             }
-
-            Console.WriteLine("Overlay окно создано");
+            Debug.WriteLine("Overlay окно создано");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка создания overlay окна: {ex.Message}");
+            Debug.WriteLine($"Ошибка создания overlay окна: {ex.Message}");
         }
     }
 
@@ -178,62 +283,59 @@ public class OverlayService : IOverlayService, IDisposable
     {
         try
         {
-            // Устанавливаем прозрачность
             window.Opacity = config.Opacity;
-
-            // Позиционирование
             var (x, y) = CalculatePosition(config.Position, config.OffsetX, config.OffsetY);
             window.Left = x;
             window.Top = y;
-
-            Console.WriteLine($"Overlay позиция: {config.Position} ({x}, {y}), прозрачность: {config.Opacity}");
+            Debug.WriteLine($"Overlay позиция: {config.Position} ({x}, {y}), прозрачность: {config.Opacity}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка применения конфигурации к окну: {ex.Message}");
+            Debug.WriteLine($"Ошибка применения конфигурации к окну: {ex.Message}");
         }
     }
 
     private (int X, int Y) CalculatePosition(OverlayPosition position, int offsetX, int offsetY)
     {
-        // Получаем размеры экрана
-        var screenWidth = (int)SystemParameters.PrimaryScreenWidth;
-        var screenHeight = (int)SystemParameters.PrimaryScreenHeight;
-        
-        // Размеры overlay окна
-        const int overlayWidth = 200;
-        const int overlayHeight = 80;
-
-        return position switch
+        try
         {
-            OverlayPosition.TopLeft => (offsetX, offsetY),
-            OverlayPosition.TopRight => (screenWidth - overlayWidth - offsetX, offsetY),
-            OverlayPosition.BottomLeft => (offsetX, screenHeight - overlayHeight - offsetY),
-            OverlayPosition.BottomRight => (screenWidth - overlayWidth - offsetX, screenHeight - overlayHeight - offsetY),
-            OverlayPosition.TopCenter => (screenWidth / 2 - overlayWidth / 2, offsetY),
-            OverlayPosition.BottomCenter => (screenWidth / 2 - overlayWidth / 2, screenHeight - overlayHeight - offsetY),
-            OverlayPosition.MiddleLeft => (offsetX, screenHeight / 2 - overlayHeight / 2),
-            OverlayPosition.MiddleRight => (screenWidth - overlayWidth - offsetX, screenHeight / 2 - overlayHeight / 2),
-            OverlayPosition.MiddleCenter => (screenWidth / 2 - overlayWidth / 2, screenHeight / 2 - overlayHeight / 2),
-            _ => (screenWidth - overlayWidth - 50, 50) // По умолчанию TopRight
-        };
+            var screenWidth = (int)SystemParameters.PrimaryScreenWidth;
+            var screenHeight = (int)SystemParameters.PrimaryScreenHeight;
+            const int overlayWidth = 200;
+            const int overlayHeight = 80;
+
+            return position switch
+            {
+                OverlayPosition.TopLeft => (offsetX, offsetY),
+                OverlayPosition.TopRight => (screenWidth - overlayWidth - offsetX, offsetY),
+                OverlayPosition.BottomLeft => (offsetX, screenHeight - overlayHeight - offsetY),
+                OverlayPosition.BottomRight => (screenWidth - overlayWidth - offsetX, screenHeight - overlayHeight - offsetY),
+                OverlayPosition.TopCenter => (screenWidth / 2 - overlayWidth / 2, offsetY),
+                OverlayPosition.BottomCenter => (screenWidth / 2 - overlayWidth / 2, screenHeight - overlayHeight - offsetY),
+                OverlayPosition.MiddleLeft => (offsetX, screenHeight / 2 - overlayHeight / 2),
+                OverlayPosition.MiddleRight => (screenWidth - overlayWidth - offsetX, screenHeight / 2 - overlayHeight / 2),
+                OverlayPosition.MiddleCenter => (screenWidth / 2 - overlayWidth / 2, screenHeight / 2 - overlayHeight / 2),
+                _ => (screenWidth - overlayWidth - 50, 50)
+            };
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка расчета позиции overlay: {ex.Message}");
+            return (50, 50); // Безопасная позиция по умолчанию
+        }
     }
 
     private void UpdateOverlayStatus(RecordingStatus status, string? customMessage = null)
     {
         if (_overlayWindow == null) return;
-
         try
         {
-            // Определяем текст и цвет по статусу
             var (text, color, icon) = GetStatusDisplay(status, customMessage);
-
-            // Обновляем UI элементы overlay
             _overlayWindow.UpdateStatus(icon, text, color);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка обновления статуса overlay: {ex.Message}");
+            Debug.WriteLine($"Ошибка обновления статуса overlay: {ex.Message}");
         }
     }
 
@@ -243,7 +345,6 @@ public class OverlayService : IOverlayService, IDisposable
         {
             return (customMessage, Brushes.White, "🎤");
         }
-
         return status switch
         {
             RecordingStatus.Idle => ("Готов", Brushes.LimeGreen, "🎤"),
@@ -260,20 +361,39 @@ public class OverlayService : IOverlayService, IDisposable
     {
         if (!_isDisposed)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            try
             {
-                try
+                if (Application.Current?.Dispatcher != null)
                 {
-                    _overlayWindow?.Close();
-                    _overlayWindow = null;
+                    if (Application.Current.Dispatcher.CheckAccess())
+                    {
+                        DisposeInternal();
+                    }
+                    else
+                    {
+                        Application.Current.Dispatcher.Invoke(DisposeInternal);
+                    }
                 }
-                catch
-                {
-                    // Игнорируем ошибки при закрытии
-                }
-            });
-
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка закрытия оверлея: {ex.Message}");
+            }
             _isDisposed = true;
+        }
+    }
+
+    private void DisposeInternal()
+    {
+        try
+        {
+            _overlayWindow?.Close();
+            _overlayWindow = null;
+            Debug.WriteLine("Overlay disposed");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в DisposeInternal: {ex.Message}");
         }
     }
 }
@@ -288,68 +408,68 @@ public class OverlayWindow : Window
 
     public OverlayWindow()
     {
-        // Настройки окна
-        WindowStyle = WindowStyle.None;
-        AllowsTransparency = true;
-        Topmost = true;
-        ShowInTaskbar = false;
-        ResizeMode = ResizeMode.NoResize;
-        SizeToContent = SizeToContent.WidthAndHeight;
-        
-        // Размеры
-        Width = 200;
-        Height = 80;
-
-        // Фон с скругленными углами
-        Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 30)); // Полупрозрачный темный
-
-        // Создаем UI
-        var border = new Border
+        try
         {
-            CornerRadius = new CornerRadius(10),
-            Background = Background,
-            Padding = new Thickness(15d),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(100, 120, 120, 120)),
-            BorderThickness = new Thickness(1)
-        };
+            WindowStyle = WindowStyle.None;
+            AllowsTransparency = true;
+            Topmost = true;
+            ShowInTaskbar = false;
+            ResizeMode = ResizeMode.NoResize;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 30));
 
-        var stackPanel = new StackPanel
+            var border = new Border
+            {
+                CornerRadius = new CornerRadius(10),
+                Background = Background,
+                Padding = new Thickness(15d),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(100, 120, 120, 120)),
+                BorderThickness = new Thickness(1)
+            };
+
+            var stackPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            _iconText = new TextBlock
+            {
+                FontSize = 20,
+                Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Text = "🎤"
+            };
+
+            _statusText = new TextBlock
+            {
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center,
+                Text = "Готов",
+                MaxWidth = 200,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            stackPanel.Children.Add(_iconText);
+            stackPanel.Children.Add(_statusText);
+            border.Child = stackPanel;
+            Content = border;
+
+            Effect = new DropShadowEffect
+            {
+                Color = Colors.Black,
+                BlurRadius = 10,
+                ShadowDepth = 3,
+                Opacity = 0.5
+            };
+        }
+        catch (Exception ex)
         {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        _iconText = new TextBlock
-        {
-            FontSize = 20,
-            Margin = new Thickness(0, 0, 10, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Text = "🎤"
-        };
-
-        _statusText = new TextBlock
-        {
-            FontSize = 14,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center,
-            Text = "Готов"
-        };
-
-        stackPanel.Children.Add(_iconText);
-        stackPanel.Children.Add(_statusText);
-        border.Child = stackPanel;
-        Content = border;
-
-        // Эффект тени
-        Effect = new System.Windows.Media.Effects.DropShadowEffect
-        {
-            Color = Colors.Black,
-            BlurRadius = 10,
-            ShadowDepth = 3,
-            Opacity = 0.5
-        };
+            Debug.WriteLine($"Ошибка создания OverlayWindow: {ex.Message}");
+        }
     }
 
     public void UpdateStatus(string icon, string text, Brush color)
@@ -362,7 +482,7 @@ public class OverlayWindow : Window
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка обновления UI overlay: {ex.Message}");
+            Debug.WriteLine($"Ошибка обновления UI overlay: {ex.Message}");
         }
     }
 }
