@@ -259,7 +259,49 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         
         return AudioDeviceType.Microphone;
     }
+    
+    public async Task<bool> TestMicrophoneAsync()
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (ActiveDevice == null)
+                {
+                    Console.WriteLine("Нет активного аудио устройства для тестирования");
+                    return false;
+                }
 
+                // Пробуем кратковременный захват аудио
+                var testConfig = new AudioConfig
+                {
+                    SelectedDeviceId = ActiveDevice.Id,
+                    SampleRate = 16000,
+                    Channels = 1,
+                    BitsPerSample = 16,
+                    MaxRecordingSeconds = 1 // Тест на 1 секунду
+                };
+
+                bool captureStarted = StartCaptureAsync(testConfig).Result;
+                if (captureStarted)
+                {
+                    Thread.Sleep(500); // Записываем полсекунды
+                    StopCaptureAsync().Wait();
+                    Console.WriteLine("Тест микрофона успешен");
+                    return true;
+                }
+
+                Console.WriteLine("Не удалось запустить захват для тестирования");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка тестирования микрофона: {ex.Message}");
+                return false;
+            }
+        });
+    }
+    
     public void Dispose()
     {
         if (!_isDisposed)
