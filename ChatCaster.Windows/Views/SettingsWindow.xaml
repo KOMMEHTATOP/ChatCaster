@@ -271,10 +271,12 @@
                                         IsChecked="True" Margin="0,0,0,8"/>
 
                                 <CheckBox x:Name="MinimizeToTrayCheckBox" 
-                                        Content="Сворачивать в трей" 
-                                        Style="{StaticResource DarkCheckBoxStyle}" 
-                                        IsChecked="True" Margin="0,0,0,8"/>
-
+                                          Content="Кнопка закрытия (X) сворачивает в трей" 
+                                          Style="{StaticResource DarkCheckBoxStyle}" 
+                                          IsChecked="True" 
+                                          Margin="0,0,0,8"
+                                          ToolTip="Если включено: кнопка X сворачивает в трей&#x0a;Если выключено: кнопка X закрывает приложение" />
+                                
                                 <CheckBox x:Name="StartWithWindowsCheckBox" 
                                         Content="Запускать с Windows" 
                                         Style="{StaticResource DarkCheckBoxStyle}" 

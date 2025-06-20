@@ -2,6 +2,7 @@ using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using System.IO;
 using System.Net.Http;
+using System.Diagnostics;
 using Whisper.net;
 using Whisper.net.Ggml;
 
@@ -12,281 +13,274 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
 {
-    private WhisperFactory? _whisperFactory;
-    private WhisperProcessor? _processor;
-    private bool _isDisposed;
+   private WhisperFactory? _whisperFactory;
+   private WhisperProcessor? _processor;
+   private bool _isDisposed;
 
-    public bool IsInitialized { get; private set; }
-    public WhisperModel CurrentModel { get; private set; } = WhisperModel.Tiny;
+   public bool IsInitialized { get; private set; }
+   public WhisperModel CurrentModel { get; private set; } = WhisperModel.Tiny;
 
-    public async Task<bool> InitializeAsync(WhisperConfig config)
-    {
-        try
-        {
-            CurrentModel = config.Model;
+   public async Task<bool> InitializeAsync(WhisperConfig config)
+   {
+       try
+       {
+           Debug.WriteLine($"[SpeechRecognition] Начало инициализации модели: {config.Model}");
+           CurrentModel = config.Model;
 
-            // Определяем путь к модели
-            string modelPath = GetModelPath(config.Model);
+           // Определяем путь к модели
+           string modelPath = GetModelPath(config.Model);
+           Debug.WriteLine($"[SpeechRecognition] Путь к модели: {modelPath}");
 
-            // Проверяем существует ли модель, если нет - скачиваем
-            if (!File.Exists(modelPath))
-            {
-                await DownloadModelAsync(config.Model, modelPath);
-            }
+           // Проверяем существует ли модель, если нет - скачиваем
+           if (!File.Exists(modelPath))
+           {
+               Debug.WriteLine($"[SpeechRecognition] Модель не найдена, начинаем скачивание...");
+               await DownloadModelAsync(config.Model, modelPath);
+           }
 
-            // Создаем WhisperFactory
-            Console.WriteLine($"Загружаем модель: {modelPath}");
-            _whisperFactory = WhisperFactory.FromPath(modelPath);
-            Console.WriteLine("WhisperFactory создан успешно");
+           // Создаем WhisperFactory
+           Debug.WriteLine($"[SpeechRecognition] Загружаем модель из файла...");
+           _whisperFactory = WhisperFactory.FromPath(modelPath);
+           Debug.WriteLine($"[SpeechRecognition] WhisperFactory создан успешно");
 
-            _processor = _whisperFactory.CreateBuilder()
-                .WithLanguage("ru") // или из config.Language
-                .Build();
+           _processor = _whisperFactory.CreateBuilder()
+               .WithLanguage("ru") // или из config.Language
+               .Build();
 
-            IsInitialized = true;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка инициализации Whisper: {ex.Message}");
-            return false;
-        }
-    }
+           IsInitialized = true;
+           Debug.WriteLine($"[SpeechRecognition] Инициализация завершена успешно");
+           return true;
+       }
+       catch (Exception ex)
+       {
+           Debug.WriteLine($"[SpeechRecognition] ОШИБКА инициализации: {ex.Message}");
+           return false;
+       }
+   }
 
-    private string GetModelPath(WhisperModel model)
-    {
-        string modelName = model.ToString().ToLower();
-        return Path.Combine("Models", $"ggml-{modelName}.bin");
-    }
+   private string GetModelPath(WhisperModel model)
+   {
+       string modelName = model.ToString().ToLower();
+       return Path.Combine("Models", $"ggml-{modelName}.bin");
+   }
 
-    private async Task DownloadModelAsync(WhisperModel model, string modelPath)
-    {
-        try
-        {
-            // Создаем папку Models если её нет
-            Directory.CreateDirectory("Models");
+   private async Task DownloadModelAsync(WhisperModel model, string modelPath)
+   {
+       try
+       {
+           Debug.WriteLine($"[SpeechRecognition] Создаем папку Models...");
+           Directory.CreateDirectory("Models");
 
-            // Whisper.net может автоматически скачать модель
-            var modelType = GetGgmlType(model);
+           var modelType = GetGgmlType(model);
+           Debug.WriteLine($"[SpeechRecognition] Тип модели для скачивания: {modelType}");
 
-            // Создаем HttpClient и загрузчик
-            using var httpClient = new HttpClient();
-            var downloader = new WhisperGgmlDownloader(httpClient);
+           // Создаем HttpClient и загрузчик
+           using var httpClient = new HttpClient();
+           var downloader = new WhisperGgmlDownloader(httpClient);
 
-            // Скачиваем модель
-            using var modelStream = await downloader.GetGgmlModelAsync(modelType);
+           Debug.WriteLine($"[SpeechRecognition] Начинаем скачивание модели...");
+           // Скачиваем модель
+           using var modelStream = await downloader.GetGgmlModelAsync(modelType);
 
-            // Сохраняем в файл
-            using var fileStream = File.Create(modelPath);
-            await modelStream.CopyToAsync(fileStream);
+           Debug.WriteLine($"[SpeechRecognition] Сохраняем модель в файл: {modelPath}");
+           // Сохраняем в файл
+           using var fileStream = File.Create(modelPath);
+           await modelStream.CopyToAsync(fileStream);
+           
+           Debug.WriteLine($"[SpeechRecognition] Модель успешно скачана и сохранена");
+       }
+       catch (Exception ex)
+       {
+           Debug.WriteLine($"[SpeechRecognition] ОШИБКА скачивания модели: {ex.Message}");
+           throw new Exception($"Ошибка скачивания модели {model}: {ex.Message}", ex);
+       }
+   }
 
-            Console.WriteLine($"Модель {model} скачана: {modelPath}");
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Ошибка скачивания модели {model}: {ex.Message}", ex);
-        }
-    }
+   private GgmlType GetGgmlType(WhisperModel model)
+   {
+       return model switch
+       {
+           WhisperModel.Tiny => GgmlType.Tiny,
+           WhisperModel.Base => GgmlType.Base,
+           WhisperModel.Small => GgmlType.Small,
+           WhisperModel.Medium => GgmlType.Medium,
+           WhisperModel.Large => GgmlType.LargeV3,
+           _ => GgmlType.Tiny
+       };
+   }
 
-    private GgmlType GetGgmlType(WhisperModel model)
-    {
-        return model switch
-        {
-            WhisperModel.Tiny => GgmlType.Tiny,
-            WhisperModel.Base => GgmlType.Base,
-            WhisperModel.Small => GgmlType.Small,
-            WhisperModel.Medium => GgmlType.Medium,
-            WhisperModel.Large => GgmlType.LargeV3,
-            _ => GgmlType.Tiny
-        };
-    }
+   public async Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default)
+   {
+       if (!IsInitialized || _processor == null)
+       {
+           Debug.WriteLine($"[SpeechRecognition] ОШИБКА: Сервис не инициализирован");
+           return new VoiceProcessingResult
+           {
+               Success = false, ErrorMessage = "Сервис не инициализирован"
+           };
+       }
 
-    public async Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default)
-    {
-        if (!IsInitialized || _processor == null)
-        {
-            return new VoiceProcessingResult
-            {
-                Success = false, ErrorMessage = "Сервис не инициализирован"
-            };
-        }
+       try
+       {
+           var startTime = DateTime.Now;
+           Debug.WriteLine($"[SpeechRecognition] Начало распознавания, размер данных: {audioData?.Length ?? 0} байт");
+           
+           // Проверяем что данные не пустые
+           if (audioData == null || audioData.Length == 0)
+           {
+               Debug.WriteLine($"[SpeechRecognition] ОШИБКА: Не получено аудио данных");
+               return new VoiceProcessingResult
+               {
+                   Success = false, 
+                   ErrorMessage = "Не получено аудио данных"
+               };
+           }
 
-        try
-        {
-            var startTime = DateTime.Now;
+           // Минимальная проверка размера (хотя бы 0.5 секунды на 16kHz = 16000 байт)
+           if (audioData.Length < 16000)
+           {
+               Debug.WriteLine($"[SpeechRecognition] ОШИБКА: Слишком короткая запись ({audioData.Length} байт)");
+               return new VoiceProcessingResult
+               {
+                   Success = false, 
+                   ErrorMessage = "Слишком короткая запись"
+               };
+           }
 
-            Console.WriteLine($"Получено аудио данных: {audioData.Length} байт");
+           Debug.WriteLine($"[SpeechRecognition] Создаем WAV поток в памяти...");
+           // Создаем WAV поток в памяти
+           using var wavStream = CreateWavMemoryStream(audioData, 16000, 16, 1);
+           Debug.WriteLine($"[SpeechRecognition] WAV поток создан, размер: {wavStream.Length} байт");
+           
+           // Сбрасываем позицию потока в начало
+           wavStream.Position = 0;
+           
+           // Распознаем речь из потока
+           Debug.WriteLine($"[SpeechRecognition] Начинаем обработку через Whisper...");
+           
+           await foreach (var result in _processor.ProcessAsync(wavStream, cancellationToken))
+           {
+               Debug.WriteLine($"[SpeechRecognition] Получен результат: '{result.Text}', начало: {result.Start}, конец: {result.End}");
+               
+               if (!string.IsNullOrWhiteSpace(result.Text))
+               {
+                   var processingTime = DateTime.Now - startTime;
+                   Debug.WriteLine($"[SpeechRecognition] УСПЕХ: Распознано за {processingTime.TotalMilliseconds:F0}мс");
+                   
+                   return new VoiceProcessingResult
+                   {
+                       Success = true,
+                       RecognizedText = result.Text.Trim(),
+                       Confidence = 0.95f,
+                       ProcessingTime = processingTime
+                   };
+               }
+           }
 
-            // Проверяем что данные не пустые
-            if (audioData == null || audioData.Length == 0)
-            {
-                Console.WriteLine("Аудио данные пустые, распознавание невозможно");
-                return new VoiceProcessingResult
-                {
-                    Success = false, 
-                    ErrorMessage = "Не получено аудио данных"
-                };
-            }
+           Debug.WriteLine($"[SpeechRecognition] ОШИБКА: Не удалось распознать речь (пустой результат)");
+           return new VoiceProcessingResult
+           {
+               Success = false, ErrorMessage = "Не удалось распознать речь"
+           };
+       }
+       catch (Exception ex)
+       {
+           Debug.WriteLine($"[SpeechRecognition] КРИТИЧЕСКАЯ ОШИБКА: {ex.Message}");
+           Debug.WriteLine($"[SpeechRecognition] Stack trace: {ex.StackTrace}");
+           return new VoiceProcessingResult
+           {
+               Success = false, ErrorMessage = $"Ошибка распознавания: {ex.Message}"
+           };
+       }
+   }
 
-            // Минимальная проверка размера (хотя бы 1 секунда на 16kHz = 32000 байт)
-            if (audioData.Length < 1000)
-            {
-                Console.WriteLine($"Слишком мало аудио данных: {audioData.Length} байт");
-                return new VoiceProcessingResult
-                {
-                    Success = false, 
-                    ErrorMessage = "Слишком короткая запись"
-                };
-            }
+   private MemoryStream CreateWavMemoryStream(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
+   {
+       Debug.WriteLine($"[SpeechRecognition] Создание WAV потока: {sampleRate}Hz, {bitsPerSample}bit, {channels}ch");
+       
+       var stream = new MemoryStream();
+       using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
 
-            // Создаем временный WAV файл
-            var tempFile = Path.Combine(Path.GetTempPath(), $"whisper_{Guid.NewGuid()}.wav");
+       var dataLength = audioData.Length;
+       var fileSize = 36 + dataLength;
 
-            // Записываем WAV файл и гарантируем сохранение данных
-            CreateWavFile(tempFile, audioData, 16000, 16, 1);
+       // WAV заголовок
+       writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+       writer.Write(fileSize);
+       writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
+       writer.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
+       writer.Write(16); // размер fmt секции
+       writer.Write((short)1); // PCM формат
+       writer.Write((short)channels);
+       writer.Write(sampleRate);
+       writer.Write(sampleRate * channels * bitsPerSample / 8); // байт в секунду
+       writer.Write((short)(channels * bitsPerSample / 8)); // байт на семпл
+       writer.Write((short)bitsPerSample);
+       writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+       writer.Write(dataLength);
+       writer.Write(audioData);
 
-            Console.WriteLine($"Создан временный файл: {tempFile}");
+       Debug.WriteLine($"[SpeechRecognition] WAV поток создан, итоговый размер: {stream.Length} байт");
+       return stream;
+   }
 
-            // Распознаем речь из файла
-            try
-            {
-                using var fileStream = File.OpenRead(tempFile);
+   public async Task<bool> ChangeModelAsync(WhisperModel model)
+   {
+       try
+       {
+           Debug.WriteLine($"[SpeechRecognition] Смена модели с {CurrentModel} на {model}");
+           
+           // Останавливаем текущий процессор
+           _processor?.Dispose();
+           _whisperFactory?.Dispose();
+           IsInitialized = false;
 
-                await foreach (var result in _processor.ProcessAsync(fileStream, cancellationToken))
-                {
-                    Console.WriteLine($"Whisper результат: '{result.Text}'");
+           CurrentModel = model;
 
-                    if (!string.IsNullOrWhiteSpace(result.Text))
-                    {
-                        return new VoiceProcessingResult
-                        {
-                            Success = true,
-                            RecognizedText = result.Text.Trim(),
-                            Confidence = 0.95f,
-                            ProcessingTime = DateTime.Now - startTime
-                        };
-                    }
-                }
+           // Инициализируем с новой моделью
+           var config = new WhisperConfig
+           {
+               Model = model
+           };
+           var result = await InitializeAsync(config);
+           
+           Debug.WriteLine($"[SpeechRecognition] Смена модели {(result ? "УСПЕШНА" : "НЕУДАЧНА")}");
+           return result;
+       }
+       catch (Exception ex)
+       {
+           Debug.WriteLine($"[SpeechRecognition] ОШИБКА смены модели: {ex.Message}");
+           return false;
+       }
+   }
 
-                return new VoiceProcessingResult
-                {
-                    Success = false, ErrorMessage = "Не удалось распознать речь"
-                };
-            }
-            finally
-            {
-                // Удаляем файл в блоке finally
-                try
-                {
-                    if (File.Exists(tempFile)) File.Delete(tempFile);
-                }
-                catch
-                {
-                    // Игнорируем ошибки удаления временного файла
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"ОШИБКА WHISPER: {ex.Message}");
-            return new VoiceProcessingResult
-            {
-                Success = false, ErrorMessage = $"Ошибка распознавания: {ex.Message}"
-            };
-        }
-    }
+   public async Task<long> GetModelSizeAsync(WhisperModel model)
+   {
+       return await Task.Run(() =>
+       {
+           // Реальные размеры моделей на основе ваших данных
+           return model switch
+           {
+               WhisperModel.Tiny => 75_871L * 1024,      // ~75.8 MB
+               WhisperModel.Base => 144_484L * 1024,     // ~144.5 MB  
+               WhisperModel.Small => 476_174L * 1024,    // ~476.2 MB
+               WhisperModel.Medium => 1_497_816L * 1024, // ~1.5 GB
+               WhisperModel.Large => 3_022_494L * 1024,  // ~3.0 GB
+               _ => 144_484L * 1024 // по умолчанию Base
+           };
+       });
+   }
 
-    private void CreateWavFile(string filename, byte[] audioData, int sampleRate, int bitsPerSample, int channels)
-    {
-        using var fileStream = new FileStream(filename, FileMode.Create, FileAccess.Write);
-        using var writer = new BinaryWriter(fileStream);
-
-        var dataLength = audioData.Length;
-
-        // WAV заголовок
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        writer.Write(36 + dataLength);
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-        writer.Write(16);
-        writer.Write((short)1); // PCM
-        writer.Write((short)channels);
-        writer.Write(sampleRate);
-        writer.Write(sampleRate * channels * bitsPerSample / 8);
-        writer.Write((short)(channels * bitsPerSample / 8));
-        writer.Write((short)bitsPerSample);
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        writer.Write(dataLength);
-        writer.Write(audioData);
-
-        // Принудительно сохраняем данные на диск
-        fileStream.Flush();
-    }
-
-    private float[] ConvertBytesToFloat(byte[] audioData)
-    {
-        // NAudio дает нам 16-bit PCM данные
-        int sampleCount = audioData.Length / 2;
-        var floatArray = new float[sampleCount];
-
-        for (int i = 0; i < sampleCount; i++)
-        {
-            // Конвертируем 16-bit signed integer в float (-1.0 to 1.0)
-            short sample = BitConverter.ToInt16(audioData, i * 2);
-            floatArray[i] = sample / 32768.0f;
-        }
-
-        return floatArray;
-    }
-
-    public async Task<bool> ChangeModelAsync(WhisperModel model)
-    {
-        try
-        {
-            // Останавливаем текущий процессор
-            _processor?.Dispose();
-            _whisperFactory?.Dispose();
-
-            CurrentModel = model;
-
-            // Инициализируем с новой моделью
-            var config = new WhisperConfig
-            {
-                Model = model
-            };
-            return await InitializeAsync(config);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка смены модели: {ex.Message}");
-            return false;
-        }
-    }
-
-    public async Task<long> GetModelSizeAsync(WhisperModel model)
-    {
-        return await Task.Run(() =>
-        {
-            return model switch
-            {
-                WhisperModel.Tiny => 39L * 1024 * 1024,
-                WhisperModel.Base => 74L * 1024 * 1024,
-                WhisperModel.Small => 244L * 1024 * 1024,
-                WhisperModel.Medium => 769L * 1024 * 1024,
-                WhisperModel.Large => 1550L * 1024 * 1024,
-                _ => 74L * 1024 * 1024
-            };
-        });
-    }
-
-    public void Dispose()
-    {
-        if (!_isDisposed)
-        {
-            _processor?.Dispose();
-            _whisperFactory?.Dispose();
-            IsInitialized = false;
-            _isDisposed = true;
-        }
-    }
+   public void Dispose()
+   {
+       if (!_isDisposed)
+       {
+           Debug.WriteLine($"[SpeechRecognition] Освобождение ресурсов...");
+           _processor?.Dispose();
+           _whisperFactory?.Dispose();
+           IsInitialized = false;
+           _isDisposed = true;
+           Debug.WriteLine($"[SpeechRecognition] Ресурсы освобождены");
+       }
+   }
 }
