@@ -70,7 +70,8 @@ public interface IGamepadService
     
     Task<IEnumerable<GamepadInfo>> GetConnectedGamepadsAsync();
     GamepadState? GetGamepadState(int index);
-    
+    GamepadInfo? GetActiveGamepadSync();
+
     bool IsMonitoring { get; }
     int ConnectedGamepadCount { get; }
 }

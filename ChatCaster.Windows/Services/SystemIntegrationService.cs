@@ -165,77 +165,135 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
     public async Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            System.Diagnostics.Debug.WriteLine($"[SYSTEM] RegisterGlobalHotkeyAsync НАЧАЛО: {shortcut.Modifiers}+{shortcut.Key}");
+            
+            // Отменяем предыдущий хоткей если есть
+            if (_registeredHotkey != null)
             {
-                // Отменяем предыдущий хоткей если есть
-                if (_registeredHotkey != null)
-                {
-                    UnregisterGlobalHotkeyAsync().Wait();
-                }
-
-                // Конвертируем модификаторы
-                var modifiers = WpfModifierKeys.None;
-                if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Control))
-                    modifiers |= WpfModifierKeys.Control;
-                if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Shift))
-                    modifiers |= WpfModifierKeys.Shift;
-                if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Alt))
-                    modifiers |= WpfModifierKeys.Alt;
-                if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Windows))
-                    modifiers |= WpfModifierKeys.Windows;
-
-                // Конвертируем клавишу
-                var key = ConvertKey(shortcut.Key);
-                if (key == WpfKey.None)
-                {
-                    Console.WriteLine($"Неподдерживаемая клавиша: {shortcut.Key}");
-                    return false;
-                }
-
-                // Регистрируем хоткей через NHotkey.Wpf
-                HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, 
-                    (sender, e) => {
-                        if (_registeredHotkey != null)
-                        {
-                            Console.WriteLine("Нажат глобальный хоткей для записи голоса");
-                            GlobalHotkeyPressed?.Invoke(this, _registeredHotkey);
-                        }
-                    });
-
-                _registeredHotkey = shortcut;
-                Console.WriteLine($"Зарегистрирован глобальный хоткей: {shortcut.Modifiers}+{shortcut.Key}");
-                return true;
+                await UnregisterGlobalHotkeyAsync();
             }
-            catch (Exception ex)
+
+            // Конвертируем модификаторы
+            var modifiers = WpfModifierKeys.None;
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Control))
+                modifiers |= WpfModifierKeys.Control;
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Shift))
+                modifiers |= WpfModifierKeys.Shift;
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Alt))
+                modifiers |= WpfModifierKeys.Alt;
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Windows))
+                modifiers |= WpfModifierKeys.Windows;
+
+            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Конвертированные модификаторы: {modifiers}");
+
+            // Конвертируем клавишу
+            var key = ConvertKey(shortcut.Key);
+            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Конвертированная клавиша: {shortcut.Key} -> {key}");
+            
+            if (key == WpfKey.None)
             {
-                Console.WriteLine($"Ошибка регистрации глобального хоткея: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА: Неподдерживаемая клавиша: {shortcut.Key}");
+                Console.WriteLine($"Неподдерживаемая клавиша: {shortcut.Key}");
                 return false;
             }
-        });
-    }
 
+            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Регистрируем хоткей: {modifiers} + {key}");
+
+            // ИСПРАВЛЕНО: Регистрируем хоткей в UI потоке
+            bool result = false;
+            if (System.Windows.Application.Current != null)
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, 
+                            (sender, e) => {
+                                System.Diagnostics.Debug.WriteLine($"[SYSTEM] ⭐ СРАБОТАЛ ХОТКЕЙ: {modifiers}+{key}");
+                                Console.WriteLine("⭐ СРАБОТАЛ ХОТКЕЙ В SYSTEM SERVICE!");
+                                
+                                if (_registeredHotkey != null)
+                                {
+                                    Console.WriteLine("Нажат глобальный хоткей для записи голоса");
+                                    GlobalHotkeyPressed?.Invoke(this, _registeredHotkey);
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine("[SYSTEM] ОШИБКА: _registeredHotkey is null!");
+                                }
+                            });
+
+                        _registeredHotkey = shortcut;
+                        result = true;
+                        System.Diagnostics.Debug.WriteLine($"[SYSTEM] Хоткей успешно зарегистрирован!");
+                        Console.WriteLine($"Зарегистрирован глобальный хоткей: {shortcut.Modifiers}+{shortcut.Key}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА регистрации в UI потоке: {ex.Message}");
+                        Console.WriteLine($"Ошибка регистрации глобального хоткея в UI потоке: {ex.Message}");
+                        result = false;
+                    }
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[SYSTEM] ОШИБКА: Application.Current is null!");
+                Console.WriteLine("Ошибка: UI поток недоступен");
+                return false;
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА регистрации: {ex.Message}");
+            Console.WriteLine($"Ошибка регистрации глобального хоткея: {ex.Message}");
+            return false;
+        }
+    }
+    
     public async Task<bool> UnregisterGlobalHotkeyAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            if (_registeredHotkey != null)
             {
-                if (_registeredHotkey != null)
+                bool result = false;
+                if (System.Windows.Application.Current != null)
                 {
-                    HotkeyManager.Current.Remove("ChatCasterVoiceInput");
-                    Console.WriteLine("Глобальный хоткей отменен");
-                    _registeredHotkey = null;
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            HotkeyManager.Current.Remove("ChatCasterVoiceInput");
+                            result = true;
+                            Console.WriteLine("Глобальный хоткей отменен");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Ошибка отмены глобального хоткея в UI потоке: {ex.Message}");
+                            result = false;
+                        }
+                    });
                 }
-                return true;
+                else
+                {
+                    result = true; // Если UI поток недоступен, считаем что хоткей уже отменен
+                }
+                
+                _registeredHotkey = null;
+                return result;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка отмены глобального хоткея: {ex.Message}");
-                return false;
-            }
-        });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка отмены глобального хоткея: {ex.Message}");
+            return false;
+        }
     }
 
     public void SetTypingDelay(int delayMs)
@@ -290,6 +348,27 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
             Core.Models.Key.Enter => WpfKey.Enter,
             Core.Models.Key.Tab => WpfKey.Tab,
             Core.Models.Key.Escape => WpfKey.Escape,
+            Core.Models.Key.D0 => WpfKey.D0,
+            Core.Models.Key.D1 => WpfKey.D1,
+            Core.Models.Key.D2 => WpfKey.D2,
+            Core.Models.Key.D3 => WpfKey.D3,
+            Core.Models.Key.D4 => WpfKey.D4,
+            Core.Models.Key.D5 => WpfKey.D5,
+            Core.Models.Key.D6 => WpfKey.D6,
+            Core.Models.Key.D7 => WpfKey.D7,
+            Core.Models.Key.D8 => WpfKey.D8,
+            Core.Models.Key.D9 => WpfKey.D9,
+            Core.Models.Key.NumPad0 => WpfKey.NumPad0,
+            Core.Models.Key.NumPad1 => WpfKey.NumPad1,
+            Core.Models.Key.NumPad2 => WpfKey.NumPad2,
+            Core.Models.Key.NumPad3 => WpfKey.NumPad3,
+            Core.Models.Key.NumPad4 => WpfKey.NumPad4,
+            Core.Models.Key.NumPad5 => WpfKey.NumPad5,
+            Core.Models.Key.NumPad6 => WpfKey.NumPad6,
+            Core.Models.Key.NumPad7 => WpfKey.NumPad7,
+            Core.Models.Key.NumPad8 => WpfKey.NumPad8,
+            Core.Models.Key.NumPad9 => WpfKey.NumPad9,
+
             _ => WpfKey.None
         };
     }

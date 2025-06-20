@@ -1,16 +1,53 @@
 namespace ChatCaster.Core.Models;
 
 /// <summary>
-/// Кнопки геймпада
+/// Кнопки геймпада (расширенная версия)
 /// </summary>
 public enum GamepadButton
 {
-    A, B, X, Y,
-    LeftBumper, RightBumper,
-    LeftTrigger, RightTrigger,
-    Back, Start, Guide,
-    LeftStick, RightStick,
-    DPadUp, DPadDown, DPadLeft, DPadRight
+    // Стандартные кнопки XInput
+    A,
+    B, 
+    X,
+    Y,
+    LeftBumper,
+    RightBumper,
+    LeftTrigger,
+    RightTrigger,
+    Back,
+    Start,
+    LeftStick,
+    RightStick,
+    DPadUp,
+    DPadDown,
+    DPadLeft,
+    DPadRight,
+    Guide,           // Xbox кнопка
+    
+    // Дополнительные кнопки Elite/Pro контроллеров
+    Paddle1,         // P1 - левая верхняя лопасть
+    Paddle2,         // P2 - левая нижняя лопасть  
+    Paddle3,         // P3 - правая верхняя лопасть
+    Paddle4,         // P4 - правая нижняя лопасть
+    
+    // Дополнительные кнопки некоторых контроллеров
+    ExtraButton1,    // M1/Extra
+    ExtraButton2,    // M2/Extra
+    ExtraButton3,    // M3/Extra
+    ExtraButton4,    // M4/Extra
+    
+    // Кнопки профилей (если поддерживаются)
+    ProfileButton,   // Переключение профилей
+    
+    // Системные кнопки
+    Share,           // Share/Capture кнопка (PS/современные Xbox)
+    Menu,            // Hamburger menu кнопка
+    
+    // Для будущего расширения
+    Custom1,
+    Custom2,
+    Custom3,
+    Custom4
 }
 
 /// <summary>
@@ -57,6 +94,9 @@ public enum ModifierKeys
 public enum Key
 {
     A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+    D0, D1, D2, D3, D4, D5, D6, D7, D8, D9,
+    NumPad0, NumPad1, NumPad2, NumPad3, NumPad4, NumPad5, NumPad6, NumPad7, NumPad8, NumPad9, // Добавьте эти строки
+    NumPadAdd, NumPadSubtract, NumPadMultiply, NumPadDivide, NumPadDecimal, NumPadEnter,
     F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
     Space, Enter, Tab, Escape,
     Insert, Delete, Home, End, PageUp, PageDown,

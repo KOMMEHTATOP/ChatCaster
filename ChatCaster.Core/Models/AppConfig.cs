@@ -1,3 +1,4 @@
+
 namespace ChatCaster.Core.Models;
 
 /// <summary>
@@ -35,7 +36,7 @@ public class InputConfig
     public GamepadShortcut GamepadShortcut { get; set; } = new();
     public KeyboardShortcut? KeyboardShortcut { get; set; }
     public bool EnableGamepadControl { get; set; } = true;
-    public bool EnableKeyboardControl { get; set; } = false;
+    public bool EnableKeyboardControl { get; set; } = true;
     public int GamepadPollingRateMs { get; set; } = 16; // ~60 FPS
 }
 
