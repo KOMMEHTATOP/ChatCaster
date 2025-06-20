@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using NHotkey.Wpf;
@@ -30,8 +29,9 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     [DllImport("user32.dll")]
     private static extern int GetWindowTextLength(IntPtr hWnd);
 
+    // SendInput API - более надежный чем keybd_event
     [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
     [DllImport("user32.dll")]
     private static extern short VkKeyScan(char ch);
@@ -39,9 +39,60 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     [DllImport("user32.dll")]
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
-    // Константы для keybd_event
-    private const int KEYEVENTF_KEYUP = 0x2;
+    // Структуры для SendInput
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion U;
+        public static int Size => Marshal.SizeOf(typeof(INPUT));
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+        [FieldOffset(0)] public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
+    // Константы для SendInput
+    private const int INPUT_KEYBOARD = 1;
+    private const int KEYEVENTF_KEYUP = 0x0002;
+    private const int KEYEVENTF_UNICODE = 0x0004;
+    private const int KEYEVENTF_SCANCODE = 0x0008;
     private const byte VK_SHIFT = 0x10;
+    private const byte VK_RETURN = 0x0D;
+    private const byte VK_TAB = 0x09;
 
     public async Task<bool> SendTextAsync(string text)
     {
@@ -78,10 +129,10 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 }
 
                 // Небольшая задержка для стабильности
-                Thread.Sleep(50);
+                Thread.Sleep(100); // Увеличил до 100ms для Steam Input
 
-                // Отправляем текст напрямую через VK коды
-                SendTextVirtualKeys(text);
+                // Отправляем текст через SendInput API
+                SendTextSendInput(text);
 
                 Console.WriteLine("Текст отправлен");
                 return true;
@@ -94,10 +145,12 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         });
     }
     
-    private void SendTextVirtualKeys(string text)
+    private void SendTextSendInput(string text)
     {
         try
         {
+            Console.WriteLine($"Отправка через SendInput: '{text}'");
+
             foreach (char c in text)
             {
                 // Пропускаем управляющие символы
@@ -107,60 +160,232 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 // Обрабатываем специальные символы
                 if (c == '\r' || c == '\n')
                 {
-                    // Enter
-                    keybd_event((byte)Keys.Return, 0, 0, UIntPtr.Zero);
-                    Thread.Sleep(10);
-                    keybd_event((byte)Keys.Return, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    Thread.Sleep(20);
+                    SendKey(VK_RETURN);
+                    Thread.Sleep(50);
                     continue;
                 }
 
                 if (c == '\t')
                 {
-                    // Tab
-                    keybd_event((byte)Keys.Tab, 0, 0, UIntPtr.Zero);
-                    Thread.Sleep(10);
-                    keybd_event((byte)Keys.Tab, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    Thread.Sleep(20);
+                    SendKey(VK_TAB);
+                    Thread.Sleep(50);
                     continue;
                 }
 
-                // Для обычных символов используем VK коды
-                var vk = VkKeyScan(c);
-                if (vk != -1)
+                // Для Unicode символов используем KEYEVENTF_UNICODE
+                if (c > 127 || char.IsLetter(c) && !IsAscii(c))
                 {
-                    byte virtualKey = (byte)(vk & 0xFF);
-                    byte shiftState = (byte)((vk >> 8) & 0xFF);
-
-                    // Если нужен Shift
-                    if ((shiftState & 1) != 0)
-                    {
-                        keybd_event(VK_SHIFT, 0, 0, UIntPtr.Zero);
-                        Thread.Sleep(10);
-                    }
-
-                    // Нажимаем клавишу
-                    keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
-                    Thread.Sleep(10);
-                    keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                    // Отпускаем Shift
-                    if ((shiftState & 1) != 0)
-                    {
-                        Thread.Sleep(10);
-                        keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    }
-
-                    Thread.Sleep(_typingDelayMs); // Настраиваемая задержка между символами
+                    SendUnicodeChar(c);
                 }
+                else
+                {
+                    // Для ASCII символов используем VK коды
+                    var vk = VkKeyScan(c);
+                    if (vk != -1)
+                    {
+                        byte virtualKey = (byte)(vk & 0xFF);
+                        byte shiftState = (byte)((vk >> 8) & 0xFF);
+
+                        // Если нужен Shift
+                        if ((shiftState & 1) != 0)
+                        {
+                            SendKeyWithShift(virtualKey);
+                        }
+                        else
+                        {
+                            SendKey(virtualKey);
+                        }
+                    }
+                    else
+                    {
+                        // Если VkKeyScan не смог преобразовать, используем Unicode
+                        SendUnicodeChar(c);
+                    }
+                }
+
+                Thread.Sleep(_typingDelayMs);
             }
 
-            Console.WriteLine("Текст отправлен через VK коды");
+            Console.WriteLine("Текст отправлен через SendInput");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка VK ввода: {ex.Message}");
+            Console.WriteLine($"Ошибка SendInput ввода: {ex.Message}");
         }
+    }
+
+    private void SendKey(byte virtualKey)
+    {
+        var inputs = new INPUT[2];
+        
+        // Key Down
+        inputs[0] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    wScan = 0,
+                    dwFlags = 0,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        // Key Up
+        inputs[1] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    wScan = 0,
+                    dwFlags = KEYEVENTF_KEYUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        uint result = SendInput(2, inputs, INPUT.Size);
+        if (result != 2)
+        {
+            Console.WriteLine($"SendInput failed for key {virtualKey}, result: {result}");
+        }
+    }
+
+    private void SendKeyWithShift(byte virtualKey)
+    {
+        var inputs = new INPUT[4];
+        
+        // Shift Down
+        inputs[0] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = VK_SHIFT,
+                    wScan = 0,
+                    dwFlags = 0,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        // Key Down
+        inputs[1] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    wScan = 0,
+                    dwFlags = 0,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        // Key Up
+        inputs[2] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    wScan = 0,
+                    dwFlags = KEYEVENTF_KEYUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        // Shift Up
+        inputs[3] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = VK_SHIFT,
+                    wScan = 0,
+                    dwFlags = KEYEVENTF_KEYUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        uint result = SendInput(4, inputs, INPUT.Size);
+        if (result != 4)
+        {
+            Console.WriteLine($"SendInput with Shift failed for key {virtualKey}, result: {result}");
+        }
+    }
+
+    private void SendUnicodeChar(char c)
+    {
+        var inputs = new INPUT[2];
+        
+        // Unicode Key Down
+        inputs[0] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = c,
+                    dwFlags = KEYEVENTF_UNICODE,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        // Unicode Key Up
+        inputs[1] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = c,
+                    dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        uint result = SendInput(2, inputs, INPUT.Size);
+        if (result != 2)
+        {
+            Console.WriteLine($"SendInput Unicode failed for char '{c}', result: {result}");
+        }
+    }
+
+    private static bool IsAscii(char c)
+    {
+        return c <= 127;
     }
 
     public async Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut)

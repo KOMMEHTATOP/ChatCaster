@@ -106,3 +106,19 @@ public class GlobalHotkeyPressedEvent : ChatCasterEvent
 {
     public KeyboardShortcut Shortcut { get; set; } = new();
 }
+
+public class ModelDownloadProgressEvent : ChatCasterEvent
+{
+    public WhisperModel Model { get; init; }
+    public long BytesReceived { get; init; }
+    public long TotalBytes { get; init; }
+    public int ProgressPercentage { get; init; }
+    public string Status { get; init; } = "";
+}
+
+public class ModelDownloadCompletedEvent : ChatCasterEvent
+{
+    public WhisperModel Model { get; init; }
+    public bool Success { get; init; }
+    public string? ErrorMessage { get; init; }
+}

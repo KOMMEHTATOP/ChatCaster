@@ -1,4 +1,3 @@
-
 namespace ChatCaster.Core.Models;
 
 /// <summary>
@@ -95,7 +94,7 @@ public class WhisperConfig
 public class SystemConfig
 {
     public bool StartWithWindows { get; set; } = true;
-    public bool StartMinimized { get; set; } = true;
+    public bool StartMinimized { get; set; } = false; // ИСПРАВЛЕНО: по умолчанию показываем главное окно
     public bool AllowCompleteExit { get; set; } = false; // Чекбокс из ТЗ
     public bool ShowNotifications { get; set; } = true;
     public LogLevel LogLevel { get; set; } = LogLevel.Info;

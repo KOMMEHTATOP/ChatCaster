@@ -50,7 +50,10 @@ public interface ISpeechRecognitionService
     Task<bool> InitializeAsync(WhisperConfig config);
     Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default);
     Task<bool> ChangeModelAsync(WhisperModel model);
-    
+    event EventHandler<ModelDownloadProgressEvent>? DownloadProgress;
+    event EventHandler<ModelDownloadCompletedEvent>? DownloadCompleted;
+    Task<bool> IsModelAvailableAsync(WhisperModel model);
+
     bool IsInitialized { get; }
     WhisperModel CurrentModel { get; }
     Task<long> GetModelSizeAsync(WhisperModel model);
