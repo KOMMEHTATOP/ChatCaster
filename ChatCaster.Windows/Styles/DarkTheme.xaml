@@ -64,7 +64,13 @@
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="Margin" Value="0,0,0,12"/>
     </Style>
-
+    <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
     <Style x:Key="StatusTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -264,5 +270,34 @@
             </Setter.Value>
         </Setter>
     </Style>
-
+    <!-- Стиль для ProgressBar -->
+    <Style x:Key="DarkProgressBarStyle" TargetType="ProgressBar">
+        <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="9"
+                            Padding="1">
+                        <Grid>
+                            <Rectangle Name="PART_Track" Fill="{TemplateBinding Background}"/>
+                            <Rectangle Name="PART_Indicator"
+                                       Fill="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Left"
+                                       RadiusX="8" RadiusY="8"/>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    
+    
 </ResourceDictionary>

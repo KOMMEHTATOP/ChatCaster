@@ -16,7 +16,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
 
     private WaveInEvent? _waveIn;
     private AudioConfig? _currentConfig;
-    private readonly object _lockObject = new();
+    private readonly Lock _lockObject = new();
     private bool _isDisposed;
 
     public bool IsCapturing { get; private set; }
