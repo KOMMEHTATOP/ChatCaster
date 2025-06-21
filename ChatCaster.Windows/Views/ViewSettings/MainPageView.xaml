@@ -63,7 +63,6 @@
                         <ui:Button x:Name="RecordButton"
                                    Grid.Column="1" 
                                    Content="Записать"
-                                   Icon="{ui:SymbolIcon Mic24}"
                                    Appearance="Primary"
                                    FontSize="14"
                                    FontWeight="SemiBold"

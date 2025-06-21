@@ -23,7 +23,7 @@
                                Foreground="White"
                                VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="Настройка комбинаций кнопок для активации записи голоса" 
+                <TextBlock Text="Кликните на поле комбинации и нажмите нужные кнопки" 
                            FontSize="14"
                            Foreground="#cccccc"/>
             </StackPanel>
@@ -42,8 +42,8 @@
                     <StackPanel>
                         
                         <!-- Геймпад секция -->
-                        <StackPanel Margin="0,0,0,15">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <StackPanel Margin="0,0,0,30">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <ui:SymbolIcon Symbol="Games20" 
                                                FontSize="18" 
                                                Foreground="#1ba1e2"
@@ -57,13 +57,15 @@
                             </StackPanel>
                             
                             <!-- Поле геймпад комбинации -->
-                            <Border Background="#404040" 
+                            <Border x:Name="GamepadComboBorder"
+                                    Background="#404040" 
                                     BorderBrush="#606060"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="15,12"
                                     Margin="0,0,0,8"
-                                    Cursor="Hand">
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="GamepadComboBorder_Click">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -80,9 +82,6 @@
                                            FontWeight="Medium"
                                            Foreground="White"
                                            HorizontalAlignment="Left"/>
-                                <Border.InputBindings>
-                                    <MouseBinding Gesture="LeftClick" Command="{Binding ChangeGamepadComboCommand}"/>
-                                </Border.InputBindings>
                             </Border>
                             
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
@@ -91,7 +90,7 @@
                                                Foreground="#888888"
                                                Margin="0,0,6,0"
                                                VerticalAlignment="Center"/>
-                                <TextBlock Text="Кликните на поле выше для изменения комбинации" 
+                                <TextBlock Text="Кликните и нажмите нужную комбинацию кнопок на геймпаде" 
                                            FontSize="13"
                                            Foreground="#888888"/>
                             </StackPanel>
@@ -99,7 +98,7 @@
                         
                         <!-- Клавиатура секция -->
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <ui:SymbolIcon Symbol="Keyboard20" 
                                                FontSize="18" 
                                                Foreground="#1ba1e2"
@@ -113,13 +112,15 @@
                             </StackPanel>
                             
                             <!-- Поле клавиатурной комбинации -->
-                            <Border Background="#404040" 
+                            <Border x:Name="KeyboardComboBorder"
+                                    Background="#404040" 
                                     BorderBrush="#606060"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="15,12"
                                     Margin="0,0,0,8"
-                                    Cursor="Hand">
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="KeyboardComboBorder_Click">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -131,14 +132,11 @@
                                     </Style>
                                 </Border.Style>
                                 <TextBlock x:Name="KeyboardComboText"
-                                           Text="Ctrl + NumPad0" 
+                                           Text="Ctrl + Shift + R" 
                                            FontSize="16"
                                            FontWeight="Medium"
                                            Foreground="White"
                                            HorizontalAlignment="Left"/>
-                                <Border.InputBindings>
-                                    <MouseBinding Gesture="LeftClick" Command="{Binding ChangeKeyboardComboCommand}"/>
-                                </Border.InputBindings>
                             </Border>
                             
                             <StackPanel Orientation="Horizontal">
@@ -147,7 +145,7 @@
                                                Foreground="#888888"
                                                Margin="0,0,6,0"
                                                VerticalAlignment="Center"/>
-                                <TextBlock Text="Кликните на поле выше для изменения комбинации" 
+                                <TextBlock Text="Кликните и нажмите нужную комбинацию клавиш" 
                                            FontSize="13"
                                            Foreground="#888888"/>
                             </StackPanel>
@@ -156,42 +154,6 @@
                     </StackPanel>
                 </Grid>
             </Border>
-
-            <!-- Кнопки действий -->
-            <Grid Margin="0,20,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <ui:Button Grid.Column="0" 
-                           Content="Сбросить"
-                           Icon="{ui:SymbolIcon ArrowReset24}"
-                           Appearance="Secondary"
-                           FontSize="14"
-                           Padding="24,12"
-                           Margin="0,0,10,0"
-                           Click="ResetButton_Click"/>
-                
-                <ui:Button Grid.Column="2" 
-                           Content="Отмена"
-                           Appearance="Secondary"
-                           FontSize="14"
-                           Padding="24,12"
-                           Margin="0,0,10,0"
-                           Click="CancelButton_Click"/>
-                
-                <ui:Button Grid.Column="3" 
-                           Content="Применить"
-                           Icon="{ui:SymbolIcon Checkmark24}"
-                           Appearance="Primary"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Padding="24,12"
-                           Click="ApplyButton_Click"/>
-            </Grid>
             
         </StackPanel>
     </ScrollViewer>

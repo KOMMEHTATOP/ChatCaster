@@ -126,8 +126,7 @@
                             <ComboBox Grid.Row="0" Grid.Column="1" 
                                          x:Name="WhisperModelComboBox"
                                          Margin="0,0,10,0"
-                                         FontSize="14"
-                                         SelectionChanged="WhisperModelComboBox_SelectionChanged">
+                                         FontSize="14">
                                 <ComboBoxItem Content="🏃 Tiny (~76 MB)" Tag="Tiny"/>
                                 <ComboBoxItem Content="⚡ Base (~145 MB)" Tag="Base" IsSelected="True"/>
                                 <ComboBoxItem Content="🎯 Small (~476 MB)" Tag="Small"/>
@@ -171,21 +170,25 @@
                             </Grid.ColumnDefinitions>
     
                             <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Длительность записи:" 
                                        FontSize="14" 
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
-                                       VerticalAlignment="Center"/>
-    
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       LineHeight="16">
+                                <Run Text="Длительность"/>
+                                <LineBreak/>
+                                <Run Text="записи:"/>
+                            </TextBlock>
+                            
                             <Slider Grid.Row="0" Grid.Column="1" 
                                     x:Name="MaxDurationSlider"
-                                    Minimum="5" 
+                                    Minimum="1" 
                                     Maximum="30" 
                                     Value="15"
-                                    TickFrequency="5"
+                                    TickFrequency="1"
                                     IsSnapToTickEnabled="True"
-                                    Margin="10,0"
-                                    ValueChanged="MaxDurationSlider_ValueChanged"/>
+                                    Margin="10,0"/>
     
                             <TextBlock Grid.Row="0" Grid.Column="2" 
                                        x:Name="MaxDurationValueText"
@@ -234,33 +237,6 @@
                     </StackPanel>
                 </Grid>
             </Border>
-
-            <!-- Кнопки действий -->
-            <Grid Margin="0,20,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <ui:Button Grid.Column="1" 
-                           Content="Отмена"
-                           Appearance="Secondary"
-                           FontSize="14"
-                           Padding="24,12"
-                           Margin="0,0,10,0"
-                           Click="CancelButton_Click"/>
-                
-                <ui:Button Grid.Column="2" 
-                           Content="Применить"
-                           Icon="{ui:SymbolIcon Checkmark24}"
-                           Appearance="Primary"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Padding="24,12"
-                           Click="ApplyButton_Click"/>
-            </Grid>
-            
         </StackPanel>
     </ScrollViewer>
 </Page>

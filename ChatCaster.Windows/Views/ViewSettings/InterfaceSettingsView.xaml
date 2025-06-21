@@ -58,9 +58,7 @@
                                   FontSize="14"
                                   Foreground="#e0e0e0"
                                   Margin="0,0,0,20"
-                                  IsChecked="True"
-                                  Checked="ShowOverlayCheckBox_CheckedChanged"
-                                  Unchecked="ShowOverlayCheckBox_CheckedChanged"/>
+                                  IsChecked="True"/>
                         
                         <!-- Позиция overlay -->
                         <Grid Margin="0,0,0,25">
@@ -105,7 +103,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" 
-                                       Text="Прозрачность:" 
+                                       Text="Видимость:" 
                                        FontSize="14" 
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
@@ -119,8 +117,7 @@
                                     TickFrequency="10"
                                     IsSnapToTickEnabled="False"
                                     Margin="10,0"
-                                    IsEnabled="{Binding IsChecked, ElementName=ShowOverlayCheckBox}"
-                                    ValueChanged="OverlayOpacitySlider_ValueChanged"/>
+                                    IsEnabled="{Binding IsChecked, ElementName=ShowOverlayCheckBox}"/>
 
                             <TextBlock Grid.Column="2" 
                                        x:Name="OverlayOpacityValueText"
@@ -162,42 +159,6 @@
                     </StackPanel>
                 </Grid>
             </Border>
-
-            <!-- Кнопки действий -->
-            <Grid Margin="0,20,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <ui:Button Grid.Column="0" 
-                           Content="Сбросить"
-                           Icon="{ui:SymbolIcon ArrowReset24}"
-                           Appearance="Secondary"
-                           FontSize="14"
-                           Padding="24,12"
-                           Margin="0,0,10,0"
-                           Click="ResetButton_Click"/>
-                
-                <ui:Button Grid.Column="2" 
-                           Content="Отмена"
-                           Appearance="Secondary"
-                           FontSize="14"
-                           Padding="24,12"
-                           Margin="0,0,10,0"
-                           Click="CancelButton_Click"/>
-                
-                <ui:Button Grid.Column="3" 
-                           Content="Применить"
-                           Icon="{ui:SymbolIcon Checkmark24}"
-                           Appearance="Primary"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Padding="24,12"
-                           Click="ApplyButton_Click"/>
-            </Grid>
             
         </StackPanel>
     </ScrollViewer>
