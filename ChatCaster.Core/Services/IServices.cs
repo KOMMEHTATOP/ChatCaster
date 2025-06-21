@@ -29,7 +29,8 @@ public interface IAudioCaptureService
 {
     event EventHandler<float>? VolumeChanged;
     event EventHandler<byte[]>? AudioDataReceived;
-    
+    Task<bool> TestMicrophoneAsync();
+
     Task<IEnumerable<AudioDevice>> GetAvailableDevicesAsync();
     Task<AudioDevice?> GetDefaultDeviceAsync();
     Task<bool> SetActiveDeviceAsync(string deviceId);

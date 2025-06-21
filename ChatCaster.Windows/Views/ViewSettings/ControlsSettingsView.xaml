@@ -1,0 +1,198 @@
+<Page x:Class="ChatCaster.Windows.Views.ViewSettings.ControlSettingsView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="600" d:DesignWidth="800">
+    
+    <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="800">
+            
+            <!-- Header секция -->
+            <StackPanel Margin="0,0,0,20">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <ui:SymbolIcon Symbol="Games24" 
+                                   FontSize="28" 
+                                   Foreground="#1ba1e2"
+                                   Margin="0,0,15,0"/>
+                    <TextBlock Text="Управление" 
+                               FontSize="24" 
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Настройка комбинаций кнопок для активации записи голоса" 
+                           FontSize="14"
+                           Foreground="#cccccc"/>
+            </StackPanel>
+
+            <!-- Настройки управления -->
+            <Border Margin="0,0,0,20" 
+                    CornerRadius="12"
+                    MinHeight="200">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2d2d30" Offset="0"/>
+                        <GradientStop Color="#3a3a3d" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid Margin="25">
+                    <StackPanel>
+                        
+                        <!-- Геймпад секция -->
+                        <StackPanel Margin="0,0,0,15">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <ui:SymbolIcon Symbol="Games20" 
+                                               FontSize="18" 
+                                               Foreground="#1ba1e2"
+                                               Margin="0,0,8,0"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="Геймпад:" 
+                                           FontSize="16" 
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Поле геймпад комбинации -->
+                            <Border Background="#404040" 
+                                    BorderBrush="#606060"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="15,12"
+                                    Margin="0,0,0,8"
+                                    Cursor="Hand">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#505050"/>
+                                                <Setter Property="BorderBrush" Value="#1ba1e2"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock x:Name="GamepadComboText"
+                                           Text="LB + RB" 
+                                           FontSize="16"
+                                           FontWeight="Medium"
+                                           Foreground="White"
+                                           HorizontalAlignment="Left"/>
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding ChangeGamepadComboCommand}"/>
+                                </Border.InputBindings>
+                            </Border>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                <ui:SymbolIcon Symbol="Info16" 
+                                               FontSize="14" 
+                                               Foreground="#888888"
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="Кликните на поле выше для изменения комбинации" 
+                                           FontSize="13"
+                                           Foreground="#888888"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Клавиатура секция -->
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <ui:SymbolIcon Symbol="Keyboard20" 
+                                               FontSize="18" 
+                                               Foreground="#1ba1e2"
+                                               Margin="0,0,8,0"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="Клавиатура:" 
+                                           FontSize="16" 
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Поле клавиатурной комбинации -->
+                            <Border Background="#404040" 
+                                    BorderBrush="#606060"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="15,12"
+                                    Margin="0,0,0,8"
+                                    Cursor="Hand">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#505050"/>
+                                                <Setter Property="BorderBrush" Value="#1ba1e2"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock x:Name="KeyboardComboText"
+                                           Text="Ctrl + NumPad0" 
+                                           FontSize="16"
+                                           FontWeight="Medium"
+                                           Foreground="White"
+                                           HorizontalAlignment="Left"/>
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding ChangeKeyboardComboCommand}"/>
+                                </Border.InputBindings>
+                            </Border>
+                            
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Info16" 
+                                               FontSize="14" 
+                                               Foreground="#888888"
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="Кликните на поле выше для изменения комбинации" 
+                                           FontSize="13"
+                                           Foreground="#888888"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Кнопки действий -->
+            <Grid Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <ui:Button Grid.Column="0" 
+                           Content="Сбросить"
+                           Icon="{ui:SymbolIcon ArrowReset24}"
+                           Appearance="Secondary"
+                           FontSize="14"
+                           Padding="24,12"
+                           Margin="0,0,10,0"
+                           Click="ResetButton_Click"/>
+                
+                <ui:Button Grid.Column="2" 
+                           Content="Отмена"
+                           Appearance="Secondary"
+                           FontSize="14"
+                           Padding="24,12"
+                           Margin="0,0,10,0"
+                           Click="CancelButton_Click"/>
+                
+                <ui:Button Grid.Column="3" 
+                           Content="Применить"
+                           Icon="{ui:SymbolIcon Checkmark24}"
+                           Appearance="Primary"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Padding="24,12"
+                           Click="ApplyButton_Click"/>
+            </Grid>
+            
+        </StackPanel>
+    </ScrollViewer>
+</Page>

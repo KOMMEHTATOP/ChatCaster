@@ -18,7 +18,10 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     private bool _isDisposed;
     private KeyboardShortcut? _registeredHotkey;
     private int _typingDelayMs = 5; // Настраиваемая задержка между символами
-
+    
+    // Дополнительные константы для веб-элементов
+    private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
+    
     // WinAPI для прямого ввода текста
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
@@ -131,9 +134,28 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 // Небольшая задержка для стабильности
                 Thread.Sleep(100); // Увеличил до 100ms для Steam Input
 
-                // Отправляем текст через SendInput API
-                SendTextSendInput(text);
+                // Проверяем тип окна и выбираем метод ввода
+                bool isSteam = false;
+                if (foregroundWindow != IntPtr.Zero)
+                {
+                    int length = GetWindowTextLength(foregroundWindow);
+                    if (length > 0)
+                    {
+                        var windowTitle = new System.Text.StringBuilder(length + 1);
+                        GetWindowText(foregroundWindow, windowTitle, windowTitle.Capacity);
+                        isSteam = IsSteamWindow(windowTitle.ToString());
+                    }
+                }
 
+                if (isSteam)
+                {
+                    Console.WriteLine("Обнаружено Steam окно - используем веб-совместимый ввод");
+                    SendTextForWebElements(text);
+                }
+                else
+                {
+                    SendTextSendInput(text);
+                }
                 Console.WriteLine("Текст отправлен");
                 return true;
             }
@@ -387,7 +409,74 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     {
         return c <= 127;
     }
-
+    
+    private bool IsSteamWindow(string windowTitle)
+    {
+        return windowTitle.ToLower().Contains("steam") || 
+               windowTitle.ToLower().Contains("store.steampowered.com");
+    }
+    
+    private void SendTextForWebElements(string text)
+    {
+        Console.WriteLine($"Используем веб-совместимый ввод для: '{text}'");
+    
+        foreach (char c in text)
+        {
+            if (char.IsControl(c)) continue;
+        
+            // Используем SCANCODE для каждого символа
+            SendCharWithScanCode(c);
+            Thread.Sleep(15); // Увеличенная задержка для веб-элементов
+        }
+    }
+    
+    private void SendCharWithScanCode(char c)
+    {
+        short vk = VkKeyScan(c);
+        if (vk == -1) return;
+    
+        byte virtualKey = (byte)(vk & 0xFF);
+        uint scanCode = MapVirtualKey(virtualKey, 0);
+    
+        var inputs = new INPUT[2];
+    
+        // Key Down с SCANCODE
+        inputs[0] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = (ushort)scanCode,
+                    dwFlags = KEYEVENTF_SCANCODE,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+    
+        // Key Up с SCANCODE
+        inputs[1] = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = (ushort)scanCode,
+                    dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+    
+        SendInput(2, inputs, INPUT.Size);
+    }
+    
     public async Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut)
     {
         try

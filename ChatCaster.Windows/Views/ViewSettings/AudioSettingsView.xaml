@@ -1,0 +1,266 @@
+<Page x:Class="ChatCaster.Windows.Views.ViewSettings.AudioSettingsView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="600" d:DesignWidth="800">
+    
+    <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="800">
+            
+            <!-- Header секция -->
+            <StackPanel Margin="0,0,0,40">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <ui:SymbolIcon Symbol="Mic24" 
+                                   FontSize="28" 
+                                   Foreground="#1ba1e2"
+                                   Margin="0,0,15,0"/>
+                    <TextBlock Text="Аудио и распознавание" 
+                               FontSize="24" 
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Настройка микрофона, модели Whisper и параметров записи" 
+                           FontSize="14"
+                           Foreground="#cccccc"/>
+            </StackPanel>
+
+            <!-- Основные настройки -->
+            <Border Margin="0,0,0,30" 
+                    CornerRadius="12"
+                    MinHeight="200">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2d2d30" Offset="0"/>
+                        <GradientStop Color="#3a3a3d" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid Margin="25">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" 
+                               Text="Основные настройки" 
+                               FontSize="18" 
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               Margin="0,0,0,25"/>
+                    
+                    <StackPanel Grid.Row="1">
+                        
+                        <!-- Микрофон -->
+                        <Grid Margin="0,0,0,25">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="Микрофон:" 
+                                       FontSize="14" 
+                                       FontWeight="Medium"
+                                       Foreground="#e0e0e0"
+                                       VerticalAlignment="Center"/>
+                            
+                            <ComboBox Grid.Row="0" Grid.Column="1" 
+                                         x:Name="MicrophoneComboBox"
+                                         Margin="0,0,10,0"
+                                         FontSize="14">
+                                <ComboBoxItem Content="Microphone (Default)" IsSelected="True"/>
+                                <ComboBoxItem Content="USB Microphone"/>
+                                <ComboBoxItem Content="Bluetooth Headset"/>
+                            </ComboBox>
+                            
+                            <ui:Button Grid.Row="0" Grid.Column="2" 
+                                       x:Name="TestMicrophoneButton"
+                                       Icon="{ui:SymbolIcon Mic24}"
+                                       Appearance="Primary"
+                                       Width="44" Height="32"
+                                       FontSize="14"
+                                       Click="TestMicrophoneButton_Click"/>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
+                                        Orientation="Horizontal" 
+                                        Margin="0,8,0,0">
+                                <Ellipse Width="10" Height="10" 
+                                         x:Name="MicrophoneStatusIcon"
+                                         Fill="#4caf50" 
+                                         Margin="0,0,8,0"/>
+                                <TextBlock x:Name="MicrophoneStatusText"
+                                           Text="Микрофон готов" 
+                                           FontSize="12"
+                                           Foreground="#4caf50"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Модель Whisper -->
+                        <Grid Margin="0,0,0,25">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="Модель Whisper:" 
+                                       FontSize="14" 
+                                       FontWeight="Medium"
+                                       Foreground="#e0e0e0"
+                                       VerticalAlignment="Center"/>
+                            
+                            <ComboBox Grid.Row="0" Grid.Column="1" 
+                                         x:Name="WhisperModelComboBox"
+                                         Margin="0,0,10,0"
+                                         FontSize="14"
+                                         SelectionChanged="WhisperModelComboBox_SelectionChanged">
+                                <ComboBoxItem Content="🏃 Tiny (~76 MB)" Tag="Tiny"/>
+                                <ComboBoxItem Content="⚡ Base (~145 MB)" Tag="Base" IsSelected="True"/>
+                                <ComboBoxItem Content="🎯 Small (~476 MB)" Tag="Small"/>
+                                <ComboBoxItem Content="🔥 Medium (~1.5 GB)" Tag="Medium"/>
+                                <ComboBoxItem Content="🚀 Large (~3.0 GB)" Tag="Large"/>
+                            </ComboBox>
+                            
+                            <ui:Button Grid.Row="0" Grid.Column="2" 
+                                       x:Name="DownloadModelButton"
+                                       Icon="{ui:SymbolIcon ArrowDownload24}"
+                                       Appearance="Secondary"
+                                       Width="44" Height="32"
+                                       FontSize="14"
+                                       Visibility="Collapsed"
+                                       Click="DownloadModelButton_Click"/>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
+                                        Orientation="Horizontal" 
+                                        Margin="0,8,0,0">
+                                <Ellipse Width="10" Height="10" 
+                                         x:Name="ModelStatusIcon"
+                                         Fill="#4caf50" 
+                                         Margin="0,0,8,0"/>
+                                <TextBlock x:Name="ModelStatusText"
+                                           Text="Модель готова" 
+                                           FontSize="12"
+                                           Foreground="#4caf50"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Длительность записи -->
+                        <Grid Margin="0,0,0,25">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="60"/>
+                            </Grid.ColumnDefinitions>
+    
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="Длительность записи:" 
+                                       FontSize="14" 
+                                       FontWeight="Medium"
+                                       Foreground="#e0e0e0"
+                                       VerticalAlignment="Center"/>
+    
+                            <Slider Grid.Row="0" Grid.Column="1" 
+                                    x:Name="MaxDurationSlider"
+                                    Minimum="5" 
+                                    Maximum="30" 
+                                    Value="15"
+                                    TickFrequency="5"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"
+                                    ValueChanged="MaxDurationSlider_ValueChanged"/>
+    
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                       x:Name="MaxDurationValueText"
+                                       Text="15с" 
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="#1ba1e2"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+    
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
+                                        Orientation="Horizontal" 
+                                        Margin="10,8,0,0">
+                                <Ellipse Width="8" Height="8" 
+                                         Fill="#ffc107"
+                                         Margin="0,2,6,0"/>
+                                <TextBlock Text="Защита от случайно незавершенной записи" 
+                                           FontSize="11"
+                                           Foreground="#999999"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Язык -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Язык:" 
+                                       FontSize="14" 
+                                       FontWeight="Medium"
+                                       Foreground="#e0e0e0"
+                                       VerticalAlignment="Center"/>
+                            
+                            <ComboBox Grid.Column="1" 
+                                         x:Name="LanguageComboBox"
+                                         FontSize="14">
+                                <ComboBoxItem Content="🇷🇺 Русский" Tag="ru" IsSelected="True"/>
+                                <ComboBoxItem Content="🇺🇸 English" Tag="en"/>
+                            </ComboBox>
+                        </Grid>
+                        
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Кнопки действий -->
+            <Grid Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <ui:Button Grid.Column="1" 
+                           Content="Отмена"
+                           Appearance="Secondary"
+                           FontSize="14"
+                           Padding="24,12"
+                           Margin="0,0,10,0"
+                           Click="CancelButton_Click"/>
+                
+                <ui:Button Grid.Column="2" 
+                           Content="Применить"
+                           Icon="{ui:SymbolIcon Checkmark24}"
+                           Appearance="Primary"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Padding="24,12"
+                           Click="ApplyButton_Click"/>
+            </Grid>
+            
+        </StackPanel>
+    </ScrollViewer>
+</Page>

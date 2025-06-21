@@ -1,0 +1,135 @@
+<Page x:Class="ChatCaster.Windows.Views.ViewSettings.MainPageView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      Title="MainPageView" 
+      d:DesignHeight="600" d:DesignWidth="920"
+      Background="Transparent">
+
+    <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="800">
+            <!-- Hero карточка статуса с градиентом -->
+            <Border Margin="0,0,0,25" 
+                    CornerRadius="12"
+                    MinHeight="140">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#1e3a5f" Offset="0"/>
+                        <GradientStop Color="#2d5a87" Offset="0.5"/>
+                        <GradientStop Color="#4a7c9e" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid Margin="25">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <StackPanel Grid.Row="0" 
+                                Orientation="Horizontal" 
+                                Margin="0,0,0,15">
+                        <ui:SymbolIcon Symbol="Mic24" 
+                                       FontSize="20" 
+                                       Foreground="White"
+                                       Margin="0,0,12,0"/>
+                        <TextBlock Text="Статус записи" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                    </StackPanel>
+                    
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock x:Name="RecordingStatusText"
+                                       Text="Готов к записи" 
+                                       FontSize="22" 
+                                       FontWeight="Medium"
+                                       Foreground="#4caf50"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock x:Name="CurrentDeviceText"
+                                       Text="Устройство: Microphone (Default)" 
+                                       FontSize="14"
+                                       Foreground="#e0e0e0"/>
+                        </StackPanel>
+                        
+                        <ui:Button x:Name="RecordButton"
+                                   Grid.Column="1" 
+                                   Content="Записать"
+                                   Icon="{ui:SymbolIcon Mic24}"
+                                   Appearance="Primary"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Padding="32,14"
+                                   Click="RecordButton_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+            
+            <!-- Карточка результата с градиентом -->
+            <Border CornerRadius="12">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2d2d30" Offset="0"/>
+                        <GradientStop Color="#3a3a3d" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid Margin="25">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <StackPanel Grid.Row="0" 
+                                Orientation="Horizontal" 
+                                Margin="0,0,0,20">
+                        <ui:SymbolIcon Symbol="Document24" 
+                                       FontSize="20" 
+                                       Foreground="#1ba1e2"
+                                       Margin="0,0,12,0"/>
+                        <TextBlock Text="Последний результат" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                    </StackPanel>
+                    
+                    <Border Grid.Row="1" 
+                            Background="#1e1e1e"
+                            CornerRadius="8"
+                            Padding="20"
+                            MinHeight="120"
+                            Margin="0,0,0,15">
+                        <TextBlock x:Name="ResultText"
+                                   Text="Здесь появится распознанный текст..."
+                                   FontFamily="Consolas"
+                                   FontSize="14"
+                                   Foreground="#666666"
+                                   FontStyle="Italic"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+                    
+                    <StackPanel Grid.Row="2" 
+                                Orientation="Horizontal">
+                        <TextBlock x:Name="ConfidenceText"
+                                   Text="Уверенность: -" 
+                                   FontSize="12"
+                                   Foreground="#999999"
+                                   Margin="0,0,25,0"/>
+                        <TextBlock x:Name="ProcessingTimeText"
+                                   Text="Время: -" 
+                                   FontSize="12"
+                                   Foreground="#999999"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

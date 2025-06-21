@@ -1,0 +1,174 @@
+<ui:FluentWindow x:Class="ChatCaster.Windows.Views.ChatCasterWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 mc:Ignorable="d"
+                 Title="ChatCaster" 
+                 Height="700" 
+                 Width="1200"
+                 WindowStartupLocation="CenterScreen"
+                 WindowBackdropType="Mica"
+                 ExtendsContentIntoTitleBar="True">
+    <DockPanel>
+        <!-- Боковое меню как Border с анимацией -->
+        <Border x:Name="SidebarBorder" 
+                DockPanel.Dock="Left" 
+                Width="280"
+                ClipToBounds="True">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#2d2d30" Offset="0"/>
+                    <GradientStop Color="#383838" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" 
+                           Text="Навигация" 
+                           Margin="20,20,20,15"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="#cccccc"/>
+                
+                <StackPanel Grid.Row="1" Margin="0,10">
+                    <ui:Button x:Name="MainPageButton"
+                               Margin="10,5" 
+                               HorizontalAlignment="Stretch"
+                               HorizontalContentAlignment="Left"
+                               Appearance="Transparent"
+                               Background="#0e639c"
+                               Padding="15,12"
+                               Click="NavigationButton_Click"
+                               Tag="Main">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Home24" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Главное" FontSize="14"/>
+                        </StackPanel>
+                    </ui:Button>
+                    
+                    <ui:Button x:Name="AudioPageButton"
+                               Margin="10,5" 
+                               HorizontalAlignment="Stretch"
+                               HorizontalContentAlignment="Left"
+                               Appearance="Transparent"
+                               Padding="15,12"
+                               Click="NavigationButton_Click"
+                               Tag="Audio">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Mic24" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Аудио и распознавание" FontSize="14"/>
+                        </StackPanel>
+                    </ui:Button>
+                    
+                    <ui:Button x:Name="InterfacePageButton"
+                               Margin="10,5" 
+                               HorizontalAlignment="Stretch"
+                               HorizontalContentAlignment="Left"
+                               Appearance="Transparent"
+                               Padding="15,12"
+                               Click="NavigationButton_Click"
+                               Tag="Interface">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Desktop24" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Интерфейс" FontSize="14"/>
+                        </StackPanel>
+                    </ui:Button>
+                    
+                    <ui:Button x:Name="ControlPageButton"
+                               Margin="10,5" 
+                               HorizontalAlignment="Stretch"
+                               HorizontalContentAlignment="Left"
+                               Appearance="Transparent"
+                               Padding="15,12"
+                               Click="NavigationButton_Click"
+                               Tag="Control">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Settings24" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Управление" FontSize="14"/>
+                        </StackPanel>
+                    </ui:Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Основная область -->
+        <Grid>
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#191919" Offset="0"/>
+                    <GradientStop Color="#2a2a2e" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Title bar с градиентом -->
+            <Grid Grid.Row="0" Height="48" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2d2d30" Offset="0"/>
+                        <GradientStop Color="#383838" Offset="1"/>
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <ui:Button Grid.Column="0" 
+                           Icon="{ui:SymbolIcon Navigation24}"
+                           Appearance="Transparent"
+                           Margin="12,0"
+                           Click="ToggleMenu_Click"/>
+                
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <Ellipse Width="32" Height="32" 
+                             Fill="#1ba1e2"
+                             Margin="0,0,12,0"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="ChatCaster" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="#1ba1e2"/>
+                        <TextBlock Text="Voice Input for Gaming" 
+                                   FontSize="12" 
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="#cccccc"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <ui:Button Icon="{ui:SymbolIcon Subtract24}" 
+                               Appearance="Transparent" 
+                               Width="46" Height="32"
+                               Click="MinimizeButton_Click"/>
+                    <ui:Button Icon="{ui:SymbolIcon Dismiss24}" 
+                               Appearance="Transparent" 
+                               Width="46" Height="32"
+                               Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+            
+            <!-- Content Frame для переключения между страницами -->
+            <Frame x:Name="ContentFrame" 
+                   Grid.Row="1" 
+                   NavigationUIVisibility="Hidden"
+                   Background="Transparent"/>
+            
+        </Grid>
+    </DockPanel>
+</ui:FluentWindow>
