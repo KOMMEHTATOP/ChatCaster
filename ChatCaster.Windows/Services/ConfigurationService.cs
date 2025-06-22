@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.Json;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services;
+using ChatCaster.Core.Events;
 using System.Text.Json.Serialization;
 
 namespace ChatCaster.Windows.Services;
@@ -8,10 +10,16 @@ namespace ChatCaster.Windows.Services;
 /// <summary>
 /// Сервис для сохранения и загрузки конфигурации приложения
 /// </summary>
-public class ConfigurationService
+public class ConfigurationService : IConfigurationService
 {
+    public event EventHandler<ConfigurationChangedEvent>? ConfigurationChanged;
+
     private readonly string _configDirectory;
     private readonly string _configFilePath;
+    private AppConfig _currentConfig = new();
+
+    public AppConfig CurrentConfig => _currentConfig;
+    public string ConfigPath => _configFilePath;
 
     public ConfigurationService()
     {
@@ -49,16 +57,21 @@ public class ConfigurationService
             if (config == null)
             {
                 System.Diagnostics.Debug.WriteLine("[CONFIG] Ошибка десериализации, используем дефолтную конфигурацию");
-                return new AppConfig();
+                _currentConfig = new AppConfig();
+                return _currentConfig;
             }
 
+            // Обновляем кеш (событие для загрузки файла не стреляем)
+            _currentConfig = config;
+
             System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно загружена");
-            return config;
+            return _currentConfig;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[CONFIG] Ошибка загрузки конфигурации: {ex.Message}");
-            return new AppConfig(); // Возвращаем дефолтную при ошибке
+            _currentConfig = new AppConfig(); // Возвращаем дефолтную при ошибке
+            return _currentConfig;
         }
     }
 
@@ -73,6 +86,9 @@ public class ConfigurationService
             
             var jsonText = JsonSerializer.Serialize(config, GetJsonOptions());
             await File.WriteAllTextAsync(_configFilePath, jsonText);
+            
+            // Обновляем кеш (без события - событие стреляется при изменении конкретных настроек)
+            _currentConfig = config;
             
             System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно сохранена");
         }
@@ -89,14 +105,6 @@ public class ConfigurationService
     public bool ConfigFileExists()
     {
         return File.Exists(_configFilePath);
-    }
-
-    /// <summary>
-    /// Получает путь к файлу конфигурации
-    /// </summary>
-    public string GetConfigFilePath()
-    {
-        return _configFilePath;
     }
 
     /// <summary>
@@ -119,6 +127,28 @@ public class ConfigurationService
         {
             System.Diagnostics.Debug.WriteLine($"[CONFIG] Ошибка создания резервной копии: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Уведомляет об изменении конкретной настройки (для использования в UI)
+    /// </summary>
+    public void NotifySettingChanged(string settingName, object? oldValue, object? newValue)
+    {
+        try
+        {
+            ConfigurationChanged?.Invoke(this, new ConfigurationChangedEvent
+            {
+                SettingName = settingName,
+                OldValue = oldValue,
+                NewValue = newValue
+            });
+            
+            System.Diagnostics.Debug.WriteLine($"[CONFIG] Настройка изменена: {settingName} = {newValue}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CONFIG] Ошибка уведомления об изменении: {ex.Message}");
         }
     }
 

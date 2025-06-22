@@ -14,6 +14,9 @@ public class ServiceContext
     public ISpeechRecognitionService? SpeechService { get; set; }
     public ISystemIntegrationService? SystemService { get; set; }
     public IOverlayService? OverlayService { get; set; }
+    public IVoiceRecordingService? VoiceRecordingService { get; set; }
+    public IConfigurationService? ConfigurationService { get; set; }
+
     public AppConfig Config { get; set; } = new();
     
     public ServiceContext(AppConfig config)

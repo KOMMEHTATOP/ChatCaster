@@ -51,6 +51,13 @@ namespace ChatCaster.Windows.Views
             _overlayService = new OverlayService();
             _configService = new ConfigurationService();
 
+            // ДОБАВИТЬ создание VoiceRecordingService:
+            var voiceRecordingService = new VoiceRecordingService(
+                _audioService, 
+                _speechService, 
+                _configService
+            );
+
             // Создаем дефолтную конфигурацию (потом загрузим из файла)
             _currentConfig = new AppConfig();
 
@@ -61,7 +68,10 @@ namespace ChatCaster.Windows.Views
                 AudioService = _audioService,
                 SpeechService = _speechService,
                 SystemService = _systemService,
-                OverlayService = _overlayService
+                OverlayService = _overlayService,
+                ConfigurationService = _configService,  
+                VoiceRecordingService = voiceRecordingService  
+
             };
 
             // Создаем TrayService
@@ -144,39 +154,124 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
-                Console.WriteLine($"🎯 [ChatCasterWindow] OnGlobalHotkeyPressed вызван!");
-                Console.WriteLine($"📝 [ChatCasterWindow] Sender: {sender?.GetType().Name}");
-                Console.WriteLine($"📝 [ChatCasterWindow] Shortcut: {FormatKeyboardShortcut(shortcut)}");
-
-                // Находим MainPageView и запускаем запись
-                if (ContentFrame.Content is MainPageView mainPage)
-                {
-                    Console.WriteLine($"📝 [ChatCasterWindow] MainPageView найден, запускаем запись");
-                    await mainPage.TriggerRecordingFromHotkey();
-                }
-                else
-                {
-                    Console.WriteLine(
-                        $"📝 [ChatCasterWindow] MainPageView НЕ найден, текущий контент: {ContentFrame.Content?.GetType().Name}");
-                    Console.WriteLine($"📝 [ChatCasterWindow] Переходим на главную страницу");
-                    await NavigateToPageAsync("Main");
-
-                    if (ContentFrame.Content is MainPageView newMainPage)
-                    {
-                        Console.WriteLine($"📝 [ChatCasterWindow] Новый MainPageView создан, запускаем запись");
-                        await newMainPage.TriggerRecordingFromHotkey();
-                    }
-                    else
-                    {
-                        Console.WriteLine($"❌ [ChatCasterWindow] Не удалось создать MainPageView");
-                    }
-                }
+                Console.WriteLine($"🎯 Глобальный хоткей: {FormatKeyboardShortcut(shortcut)}");
+        
+                // НОВОЕ: Работаем напрямую через VoiceRecordingService
+                await HandleVoiceRecordingAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [ChatCasterWindow] Ошибка в OnGlobalHotkeyPressed: {ex.Message}");
+                Console.WriteLine($"❌ Ошибка обработки хоткея: {ex.Message}");
+                _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея");
             }
         }
+        
+        
+        private async Task HandleVoiceRecordingAsync()
+{
+    try
+    {
+        var voiceService = _serviceContext.VoiceRecordingService;
+        if (voiceService == null)
+        {
+            Console.WriteLine("❌ VoiceRecordingService не инициализирован");
+            _trayService.ShowNotification("Ошибка", "Сервис записи не готов");
+            return;
+        }
+
+        if (voiceService.IsRecording)
+        {
+            Console.WriteLine("🛑 Останавливаем запись...");
+            _trayService.UpdateStatus("Обработка...");
+            
+            // Останавливаем запись и получаем результат
+            var result = await voiceService.StopRecordingAsync();
+            
+            if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
+            {
+                Console.WriteLine($"✅ Распознано: '{result.RecognizedText}'");
+                _trayService.ShowNotification("Распознано", result.RecognizedText);
+                _trayService.UpdateStatus("Готов к записи");
+                
+                // Обновляем UI только если MainPageView открыта
+                UpdateMainPageIfVisible(result.RecognizedText, false);
+            }
+            else
+            {
+                Console.WriteLine($"❌ Распознавание не удалось: {result.ErrorMessage}");
+                _trayService.ShowNotification("Ошибка", result.ErrorMessage ?? "Не удалось распознать речь");
+                _trayService.UpdateStatus("Готов к записи");
+            }
+        }
+        else
+        {
+            Console.WriteLine("🎤 Начинаем запись...");
+            
+            // Запускаем запись
+            bool started = await voiceService.StartRecordingAsync();
+            
+            if (started)
+            {
+                Console.WriteLine("✅ Запись началась");
+                _trayService.UpdateStatus("Запись...");
+                
+                // Обновляем UI только если MainPageView открыта
+                UpdateMainPageIfVisible("", true);
+            }
+            else
+            {
+                Console.WriteLine("❌ Не удалось начать запись");
+                _trayService.ShowNotification("Ошибка", "Не удалось начать запись");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Ошибка в HandleVoiceRecordingAsync: {ex.Message}");
+        _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи");
+        _trayService.UpdateStatus("Готов к записи");
+    }
+}
+
+        private void UpdateMainPageIfVisible(string recognizedText, bool isRecording)
+        {
+            try
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    // Проверяем, открыта ли MainPageView
+                    if (ContentFrame.Content is MainPageView mainPageView)
+                    {
+                        Console.WriteLine($"📱 Обновляем UI MainPageView");
+                
+                        if (isRecording)
+                        {
+                            // НАЧАЛИ запись - кнопка "Остановить"
+                            mainPageView.UpdateRecordingStatus("Запись...", "#ff9800");
+                            mainPageView.UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
+                        }
+                        else
+                        {
+                            // ЗАКОНЧИЛИ запись - кнопка "Записать"
+                            mainPageView.UpdateRecordingStatus("Готов к записи", "#4caf50");
+                            mainPageView.UpdateRecordingButton("🎙️ Записать", "Mic24");
+                            if (!string.IsNullOrEmpty(recognizedText))
+                            {
+                                mainPageView.ResultText.Text = recognizedText; // И нет метода UpdateRecognizedText
+                            }
+                        }                    }
+                    else
+                    {
+                        Console.WriteLine($"📱 MainPageView не открыта, UI не обновляем");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Ошибка обновления UI: {ex.Message}");
+            }
+        }
+        
 
 // НОВОЕ: Добавить вспомогательный метод для форматирования
         private string FormatKeyboardShortcut(KeyboardShortcut shortcut)

@@ -27,6 +27,9 @@ public class RecordingStatusChangedEvent : ChatCasterEvent
 public class VoiceRecognitionCompletedEvent : ChatCasterEvent
 {
     public VoiceProcessingResult Result { get; set; } = new();
+    public int AudioDataSize { get; set; }      // ДОБАВИТЬ
+    public DateTime Timestamp { get; set; }     // ДОБАВИТЬ
+
 }
 
 /// <summary>

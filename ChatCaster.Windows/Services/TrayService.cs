@@ -112,6 +112,23 @@ public class TrayService : IDisposable
             Console.WriteLine($"Ошибка открытия настроек: {ex.Message}");
         }
     }
+    
+    public void ShowNotification(string title, string message, int timeout = 3000)
+    {
+        try
+        {
+            if (_notifyIcon != null)
+            {
+                Console.WriteLine($"🔔 Показываем уведомление: {title} - {message}");
+                _notifyIcon.ShowBalloonTip(timeout, title, message, ToolTipIcon.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Ошибка показа уведомления: {ex.Message}");
+        }
+    }
+
 
     private void ShowAbout()
     {

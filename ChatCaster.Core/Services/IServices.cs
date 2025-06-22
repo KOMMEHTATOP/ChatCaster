@@ -124,8 +124,6 @@ public interface IConfigurationService
     
     Task<AppConfig> LoadConfigAsync();
     Task SaveConfigAsync(AppConfig config);
-    Task<T> GetSettingAsync<T>(string key, T defaultValue);
-    Task SetSettingAsync<T>(string key, T value);
     
     AppConfig CurrentConfig { get; }
     string ConfigPath { get; }
