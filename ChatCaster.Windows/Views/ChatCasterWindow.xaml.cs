@@ -301,7 +301,12 @@ namespace ChatCaster.Windows.Views
 
         private void ChatCasterWindow_Closing(object? sender, CancelEventArgs e)
         {
-            if (_currentConfig?.System?.AllowCompleteExit != true)
+            // ✅ ИСПРАВЛЕНИЕ: Логика должна быть ОБРАТНОЙ
+            // MinimizeToTrayCheckBox.IsChecked = true -> сворачивать в трей
+            // MinimizeToTrayCheckBox.IsChecked = false -> полное закрытие
+    
+            // Если чекбокс "сворачивать в трей" ВКЛЮЧЕН - НЕ разрешаем полное закрытие
+            if (_currentConfig?.System?.AllowCompleteExit != true) // т.е. чекбокс "сворачивать в трей" включен
             {
                 // Сворачиваем в трей
                 e.Cancel = true;
@@ -311,7 +316,7 @@ namespace ChatCaster.Windows.Views
             }
             else
             {
-                // Полное закрытие
+                // Полное закрытие приложения (чекбокс "сворачивать в трей" выключен)
                 _trayService.Dispose();
             }
         }
@@ -513,30 +518,44 @@ namespace ChatCaster.Windows.Views
         // Cleanup при закрытии окна
         protected override void OnClosed(EventArgs e)
         {
+            Console.WriteLine("🔥 OnClosed начат - завершаем сервисы...");
+    
             try
             {
                 // НОВОЕ: Отписываемся от событий
                 if (_systemService != null)
                 {
+                    Console.WriteLine("📝 Отписываемся от GlobalHotkeyPressed");
                     _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
                 }
 
                 // Останавливаем сервисы при закрытии окна
+                Console.WriteLine("🎮 Закрываем GamepadService...");
                 _gamepadService?.Dispose();
+        
+                Console.WriteLine("⚙️ Закрываем SystemService...");
                 _systemService?.Dispose();
+        
+                Console.WriteLine("🖥️ Закрываем OverlayService...");
                 _overlayService?.Dispose();
+        
+                Console.WriteLine("🎤 Закрываем AudioService...");
                 _audioService?.Dispose();
+        
+                Console.WriteLine("🗣️ Закрываем SpeechService...");
                 _speechService?.Dispose();
 
-                // Dispose TrayService
+                Console.WriteLine("📱 Закрываем TrayService...");
                 _trayService?.Dispose();
+        
+                Console.WriteLine("✅ Все сервисы закрыты");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Ошибка при закрытии сервисов: {ex.Message}");
+                Console.WriteLine($"❌ Ошибка при закрытии сервисов: {ex.Message}");
             }
 
+            Console.WriteLine("🔚 OnClosed завершен");
             base.OnClosed(e);
-        }
-    }
+        }    }
 }

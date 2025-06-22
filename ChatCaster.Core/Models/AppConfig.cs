@@ -92,8 +92,8 @@ public class WhisperConfig
 public class SystemConfig
 {
     public bool StartWithWindows { get; set; } = true;
-    public bool StartMinimized { get; set; } = false; // ИСПРАВЛЕНО: по умолчанию показываем главное окно
-    public bool AllowCompleteExit { get; set; } = false; // Чекбокс из ТЗ
+    public bool StartMinimized { get; set; } = false; 
+    public bool AllowCompleteExit { get; set; } = false; 
     public bool ShowNotifications { get; set; } = true;
     public LogLevel LogLevel { get; set; } = LogLevel.Info;
     public int ConfigSaveIntervalMs { get; set; } = 5000;

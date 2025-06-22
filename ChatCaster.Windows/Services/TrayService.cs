@@ -11,6 +11,12 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class TrayService : IDisposable
 {
+    private static int _instanceCounter = 0;
+    private readonly int _instanceId;
+
+
+    
+    
     private NotifyIcon? _notifyIcon;
     private readonly string _normalIconPath = "Resources/mic_normal.ico";
     private bool _hasShownTrayNotification = false;
@@ -26,7 +32,12 @@ public class TrayService : IDisposable
 
     public TrayService(Window mainWindow)
     {
+        _instanceId = ++_instanceCounter;
+
         _mainWindow = mainWindow;
+        Console.WriteLine($"[TRAY-{_instanceId}] TrayService создан");
+
+        
     }
 
     // ✅ ДОБАВЛЯЕМ: Метод для установки конфигурации
@@ -37,6 +48,8 @@ public class TrayService : IDisposable
 
     public void Initialize()
     {
+        Console.WriteLine($"[TRAY-{_instanceId}] Initialize вызван");
+
         try
         {
             _notifyIcon = new NotifyIcon
