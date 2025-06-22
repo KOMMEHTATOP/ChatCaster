@@ -15,7 +15,6 @@ namespace ChatCaster.Windows.Views
 {
     public partial class ChatCasterWindow : FluentWindow
     {
-        // Сервисы - создаем точно так же как в MainWindow
         private readonly AudioCaptureService _audioService;
         private readonly SpeechRecognitionService _speechService;
         private readonly GamepadService _gamepadService;
@@ -25,6 +24,12 @@ namespace ChatCaster.Windows.Views
         private readonly ServiceContext _serviceContext;
         private readonly TrayService _trayService;
 
+        // Добавить поля для кеширования страниц
+        private MainPageView? _cachedMainPage;
+        private AudioSettingsView? _cachedAudioPage;
+        private InterfaceSettingsView? _cachedInterfacePage;
+        private ControlSettingsView? _cachedControlPage;
+
         // Конфигурация приложения
         private AppConfig _currentConfig;
 
@@ -33,11 +38,11 @@ namespace ChatCaster.Windows.Views
         public ChatCasterWindow()
         {
             InitializeComponent();
-            
+
             // Настройка кодировки консоли для правильного отображения русских символов
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.InputEncoding = System.Text.Encoding.UTF8;
-            
+
             // Создаем сервисы точно так же как в MainWindow
             _audioService = new AudioCaptureService();
             _speechService = new SpeechRecognitionService();
@@ -45,10 +50,10 @@ namespace ChatCaster.Windows.Views
             _systemService = new SystemIntegrationService();
             _overlayService = new OverlayService();
             _configService = new ConfigurationService();
-            
+
             // Создаем дефолтную конфигурацию (потом загрузим из файла)
             _currentConfig = new AppConfig();
-            
+
             // Создаем ServiceContext для передачи в страницы настроек
             _serviceContext = new ServiceContext(_currentConfig)
             {
@@ -65,9 +70,9 @@ namespace ChatCaster.Windows.Views
 
             // Подписываемся на событие закрытия
             Closing += ChatCasterWindow_Closing;
-            
+
             LoadMainPage();
-            
+
             // Загружаем конфигурацию асинхронно после создания UI
             Loaded += ChatCasterWindow_Loaded;
         }
@@ -76,14 +81,36 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
+                Console.WriteLine($"🔥 [ChatCasterWindow] ChatCasterWindow_Loaded начат");
+
                 // Загружаем конфигурацию
                 _currentConfig = await _configService.LoadConfigAsync();
                 _serviceContext.Config = _currentConfig;
-                
+                Console.WriteLine($"📝 [ChatCasterWindow] Конфигурация загружена");
+
                 // Инициализируем Whisper с настройками из конфигурации
                 Console.WriteLine("Инициализация Whisper...");
                 await _speechService.InitializeAsync(_currentConfig.Whisper);
                 Console.WriteLine("Whisper инициализирован");
+
+                // Подписываемся на глобальные хоткеи
+                Console.WriteLine($"📝 [ChatCasterWindow] Подписываемся на GlobalHotkeyPressed");
+                _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
+                Console.WriteLine($"📝 [ChatCasterWindow] Подписка выполнена");
+
+                // ИСПРАВЛЕНИЕ: Регистрируем хоткей ТОЛЬКО один раз при запуске приложения
+                if (_currentConfig.Input.KeyboardShortcut != null)
+                {
+                    Console.WriteLine(
+                        $"📝 [ChatCasterWindow] Найден сохраненный хоткей: {FormatKeyboardShortcut(_currentConfig.Input.KeyboardShortcut)}");
+                    Console.WriteLine($"📝 [ChatCasterWindow] Регистрируем ЕДИНСТВЕННЫЙ раз при запуске приложения");
+                    bool registered = await _systemService.RegisterGlobalHotkeyAsync(_currentConfig.Input.KeyboardShortcut);
+                    Console.WriteLine($"📝 [ChatCasterWindow] Результат регистрации: {registered}");
+                }
+                else
+                {
+                    Console.WriteLine($"📝 [ChatCasterWindow] Сохраненный хоткей не найден");
+                }
 
                 // Сворачиваем в трей при запуске если включена настройка
                 if (_currentConfig.System.StartMinimized)
@@ -94,15 +121,13 @@ namespace ChatCaster.Windows.Views
                 }
 
                 _trayService.UpdateStatus("Готов к записи");
+                Console.WriteLine($"🔥 [ChatCasterWindow] ChatCasterWindow_Loaded завершен");
             }
             catch (Exception ex)
             {
-                // Логируем ошибку, но не падаем
-                System.Diagnostics.Debug.WriteLine($"Ошибка загрузки конфигурации: {ex.Message}");
-                Console.WriteLine($"Ошибка инициализации: {ex.Message}");
+                Console.WriteLine($"❌ [ChatCasterWindow] Ошибка в ChatCasterWindow_Loaded: {ex.Message}");
             }
         }
-
         public void NavigateToSettings()
         {
             try
@@ -114,6 +139,62 @@ namespace ChatCaster.Windows.Views
             {
                 Console.WriteLine($"Ошибка навигации к настройкам: {ex.Message}");
             }
+        }
+        private async void OnGlobalHotkeyPressed(object? sender, KeyboardShortcut shortcut)
+        {
+            try
+            {
+                Console.WriteLine($"🎯 [ChatCasterWindow] OnGlobalHotkeyPressed вызван!");
+                Console.WriteLine($"📝 [ChatCasterWindow] Sender: {sender?.GetType().Name}");
+                Console.WriteLine($"📝 [ChatCasterWindow] Shortcut: {FormatKeyboardShortcut(shortcut)}");
+
+                // Находим MainPageView и запускаем запись
+                if (ContentFrame.Content is MainPageView mainPage)
+                {
+                    Console.WriteLine($"📝 [ChatCasterWindow] MainPageView найден, запускаем запись");
+                    await mainPage.TriggerRecordingFromHotkey();
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"📝 [ChatCasterWindow] MainPageView НЕ найден, текущий контент: {ContentFrame.Content?.GetType().Name}");
+                    Console.WriteLine($"📝 [ChatCasterWindow] Переходим на главную страницу");
+                    await NavigateToPageAsync("Main");
+
+                    if (ContentFrame.Content is MainPageView newMainPage)
+                    {
+                        Console.WriteLine($"📝 [ChatCasterWindow] Новый MainPageView создан, запускаем запись");
+                        await newMainPage.TriggerRecordingFromHotkey();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ [ChatCasterWindow] Не удалось создать MainPageView");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [ChatCasterWindow] Ошибка в OnGlobalHotkeyPressed: {ex.Message}");
+            }
+        }
+
+// НОВОЕ: Добавить вспомогательный метод для форматирования
+        private string FormatKeyboardShortcut(KeyboardShortcut shortcut)
+        {
+            var parts = new List<string>();
+
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Control))
+                parts.Add("Ctrl");
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Shift))
+                parts.Add("Shift");
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Alt))
+                parts.Add("Alt");
+            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Windows))
+                parts.Add("Win");
+
+            parts.Add(shortcut.Key.ToString());
+
+            return string.Join(" + ", parts);
         }
 
         private void ChatCasterWindow_Closing(object? sender, CancelEventArgs e)
@@ -135,7 +216,8 @@ namespace ChatCaster.Windows.Views
 
         private void LoadMainPage()
         {
-            ContentFrame.Navigate(new MainPageView(_audioService, _speechService, _serviceContext, _overlayService));
+            _cachedMainPage ??= new MainPageView(_audioService, _speechService, _serviceContext, _overlayService);
+            ContentFrame.Navigate(_cachedMainPage);
             UpdateNavigationButtons("Main");
         }
 
@@ -157,13 +239,37 @@ namespace ChatCaster.Windows.Views
                 Duration = TimeSpan.FromMilliseconds(150),
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
-    
+
             ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeOut);
-    
-            // Ждем завершения затухания
             await Task.Delay(150);
-    
-            // Меняем контент - передаем нужные сервисы в каждую страницу
+
+            // ИСПРАВЛЕНИЕ: Используем кешированные страницы
+            Page targetPage = pageTag switch
+            {
+                "Main" => _cachedMainPage ??= new MainPageView(_audioService, _speechService, _serviceContext, _overlayService),
+                "Audio" => _cachedAudioPage ??= new AudioSettingsView(_audioService, _speechService, _configService, _serviceContext),
+                "Interface" => _cachedInterfacePage ??= new InterfaceSettingsView(_overlayService, _configService, _serviceContext),
+                "Control" => _cachedControlPage ??= new ControlSettingsView(_gamepadService, _systemService, _configService, _serviceContext),
+                _ => _cachedMainPage ??= new MainPageView(_audioService, _speechService, _serviceContext, _overlayService)
+            };
+
+            ContentFrame.Navigate(targetPage);
+
+            // Fade in новой страницы
+            var fadeIn = new DoubleAnimation
+            {
+                From = 0,
+                To = 1,
+                Duration = TimeSpan.FromMilliseconds(150),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+        }
+
+        
+        private void NavigateToPage(string pageTag)
+        {
             Page targetPage = pageTag switch
             {
                 "Main" => new MainPageView(_audioService, _speechService, _serviceContext, _overlayService),
@@ -174,33 +280,8 @@ namespace ChatCaster.Windows.Views
             };
 
             ContentFrame.Navigate(targetPage);
-    
-            // Fade in новой страницы
-            var fadeIn = new DoubleAnimation
-            {
-                From = 0,
-                To = 1,
-                Duration = TimeSpan.FromMilliseconds(150),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-    
-            ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeIn);
         }
 
-        private void NavigateToPage(string pageTag)
-        {
-            Page targetPage = pageTag switch
-            {
-                "Main" => new MainPageView(_audioService, _speechService, _serviceContext, _overlayService),
-                "Audio" => new AudioSettingsView(_audioService, _speechService, _configService, _serviceContext),
-                "Interface" => new InterfaceSettingsView(_overlayService, _configService,  _serviceContext), 
-                "Control" => new ControlSettingsView(_gamepadService, _systemService, _configService, _serviceContext),
-                _ => new MainPageView(_audioService, _speechService, _serviceContext, _overlayService)
-            };
-
-            ContentFrame.Navigate(targetPage);
-        }
-        
         private void UpdateNavigationButtons(string activePageTag)
         {
             // Сброс всех кнопок
@@ -232,17 +313,20 @@ namespace ChatCaster.Windows.Views
         private void ToggleMenu_Click(object sender, RoutedEventArgs e)
         {
             _isSidebarVisible = !_isSidebarVisible;
-    
+
             var animation = new DoubleAnimation
             {
                 To = _isSidebarVisible ? 280 : 0,
                 Duration = TimeSpan.FromMilliseconds(300),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
             };
-    
+
             SidebarBorder.BeginAnimation(Border.WidthProperty, animation);
         }
-        
+
         public class GridLengthAnimation : AnimationTimeline
         {
             public GridLength From { get; set; }
@@ -319,13 +403,19 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
+                // НОВОЕ: Отписываемся от событий
+                if (_systemService != null)
+                {
+                    _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
+                }
+
                 // Останавливаем сервисы при закрытии окна
                 _gamepadService?.Dispose();
                 _systemService?.Dispose();
                 _overlayService?.Dispose();
                 _audioService?.Dispose();
                 _speechService?.Dispose();
-                
+
                 // Dispose TrayService
                 _trayService?.Dispose();
             }
@@ -333,7 +423,7 @@ namespace ChatCaster.Windows.Views
             {
                 System.Diagnostics.Debug.WriteLine($"Ошибка при закрытии сервисов: {ex.Message}");
             }
-            
+
             base.OnClosed(e);
         }
     }

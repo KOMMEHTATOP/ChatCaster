@@ -13,15 +13,20 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 {
+    public SystemIntegrationService()
+    {
+        Console.WriteLine("🔥 SystemIntegrationService создан");
+    }
+
     public event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
 
     private bool _isDisposed;
     private KeyboardShortcut? _registeredHotkey;
     private int _typingDelayMs = 5; // Настраиваемая задержка между символами
-    
+
     // Дополнительные константы для веб-элементов
     private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
-    
+
     // WinAPI для прямого ввода текста
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
@@ -54,9 +59,12 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     [StructLayout(LayoutKind.Explicit)]
     private struct InputUnion
     {
-        [FieldOffset(0)] public MOUSEINPUT mi;
-        [FieldOffset(0)] public KEYBDINPUT ki;
-        [FieldOffset(0)] public HARDWAREINPUT hi;
+        [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -97,6 +105,9 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     private const byte VK_RETURN = 0x0D;
     private const byte VK_TAB = 0x09;
 
+    // Универсальный логгер в консоль с временем
+    private void Log(string msg) => Console.WriteLine($"[SystemIntegrationService][{DateTime.Now:HH:mm:ss.fff}] {msg}");
+
     public async Task<bool> SendTextAsync(string text)
     {
         return await Task.Run(() =>
@@ -105,27 +116,29 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
             {
                 if (string.IsNullOrWhiteSpace(text))
                 {
-                    Console.WriteLine("Текст для ввода пустой");
+                    Log("Текст для ввода пустой");
                     return false;
                 }
 
-                Console.WriteLine($"Отправляем текст: '{text}'");
+                Log($"Отправляем текст: '{text}'");
 
                 // Получаем активное окно для логирования
                 IntPtr foregroundWindow = GetForegroundWindow();
+
                 if (foregroundWindow != IntPtr.Zero)
                 {
                     int length = GetWindowTextLength(foregroundWindow);
+
                     if (length > 0)
                     {
                         var windowTitle = new System.Text.StringBuilder(length + 1);
                         GetWindowText(foregroundWindow, windowTitle, windowTitle.Capacity);
-                        Console.WriteLine($"Активное окно: {windowTitle}");
-                    
+                        Log($"Активное окно: {windowTitle}");
+
                         // НОВАЯ ПРОВЕРКА: Не вводим текст в собственное окно!
                         if (windowTitle.ToString().Contains("ChatCaster"))
                         {
-                            Console.WriteLine("Отказ: попытка ввода в собственное окно ChatCaster");
+                            Log("Отказ: попытка ввода в собственное окно ChatCaster");
                             return false;
                         }
                     }
@@ -136,9 +149,11 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
                 // Проверяем тип окна и выбираем метод ввода
                 bool isSteam = false;
+
                 if (foregroundWindow != IntPtr.Zero)
                 {
                     int length = GetWindowTextLength(foregroundWindow);
+
                     if (length > 0)
                     {
                         var windowTitle = new System.Text.StringBuilder(length + 1);
@@ -149,29 +164,30 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
                 if (isSteam)
                 {
-                    Console.WriteLine("Обнаружено Steam окно - используем веб-совместимый ввод");
+                    Log("Обнаружено Steam окно - используем веб-совместимый ввод");
                     SendTextForWebElements(text);
                 }
                 else
                 {
                     SendTextSendInput(text);
                 }
-                Console.WriteLine("Текст отправлен");
+
+                Log("Текст отправлен");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка отправки текста: {ex.Message}");
+                Log($"Ошибка отправки текста: {ex.Message}");
                 return false;
             }
         });
     }
-    
+
     private void SendTextSendInput(string text)
     {
         try
         {
-            Console.WriteLine($"Отправка через SendInput: '{text}'");
+            Log($"Отправка через SendInput: '{text}'");
 
             foreach (char c in text)
             {
@@ -203,6 +219,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 {
                     // Для ASCII символов используем VK коды
                     var vk = VkKeyScan(c);
+
                     if (vk != -1)
                     {
                         byte virtualKey = (byte)(vk & 0xFF);
@@ -228,18 +245,18 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 Thread.Sleep(_typingDelayMs);
             }
 
-            Console.WriteLine("Текст отправлен через SendInput");
+            Log("Текст отправлен через SendInput");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка SendInput ввода: {ex.Message}");
+            Log($"Ошибка SendInput ввода: {ex.Message}");
         }
     }
 
     private void SendKey(byte virtualKey)
     {
         var inputs = new INPUT[2];
-        
+
         // Key Down
         inputs[0] = new INPUT
         {
@@ -275,16 +292,17 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         };
 
         uint result = SendInput(2, inputs, INPUT.Size);
+
         if (result != 2)
         {
-            Console.WriteLine($"SendInput failed for key {virtualKey}, result: {result}");
+            Log($"SendInput failed for key {virtualKey}, result: {result}");
         }
     }
 
     private void SendKeyWithShift(byte virtualKey)
     {
         var inputs = new INPUT[4];
-        
+
         // Shift Down
         inputs[0] = new INPUT
         {
@@ -354,16 +372,17 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         };
 
         uint result = SendInput(4, inputs, INPUT.Size);
+
         if (result != 4)
         {
-            Console.WriteLine($"SendInput with Shift failed for key {virtualKey}, result: {result}");
+            Log($"SendInput with Shift failed for key {virtualKey}, result: {result}");
         }
     }
 
     private void SendUnicodeChar(char c)
     {
         var inputs = new INPUT[2];
-        
+
         // Unicode Key Down
         inputs[0] = new INPUT
         {
@@ -399,9 +418,10 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         };
 
         uint result = SendInput(2, inputs, INPUT.Size);
+
         if (result != 2)
         {
-            Console.WriteLine($"SendInput Unicode failed for char '{c}', result: {result}");
+            Log($"SendInput Unicode failed for char '{c}', result: {result}");
         }
     }
 
@@ -409,37 +429,37 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     {
         return c <= 127;
     }
-    
+
     private bool IsSteamWindow(string windowTitle)
     {
-        return windowTitle.ToLower().Contains("steam") || 
+        return windowTitle.ToLower().Contains("steam") ||
                windowTitle.ToLower().Contains("store.steampowered.com");
     }
-    
+
     private void SendTextForWebElements(string text)
     {
-        Console.WriteLine($"Используем веб-совместимый ввод для: '{text}'");
-    
+        Log($"Используем веб-совместимый ввод для: '{text}'");
+
         foreach (char c in text)
         {
             if (char.IsControl(c)) continue;
-        
+
             // Используем SCANCODE для каждого символа
             SendCharWithScanCode(c);
             Thread.Sleep(15); // Увеличенная задержка для веб-элементов
         }
     }
-    
+
     private void SendCharWithScanCode(char c)
     {
         short vk = VkKeyScan(c);
         if (vk == -1) return;
-    
+
         byte virtualKey = (byte)(vk & 0xFF);
         uint scanCode = MapVirtualKey(virtualKey, 0);
-    
+
         var inputs = new INPUT[2];
-    
+
         // Key Down с SCANCODE
         inputs[0] = new INPUT
         {
@@ -456,7 +476,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 }
             }
         };
-    
+
         // Key Up с SCANCODE
         inputs[1] = new INPUT
         {
@@ -473,22 +493,18 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                 }
             }
         };
-    
+
         SendInput(2, inputs, INPUT.Size);
     }
-    
+
+// В SystemIntegrationService.cs - ПОЛНОСТЬЮ заменить RegisterGlobalHotkeyAsync:
+
     public async Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut)
     {
+        Console.WriteLine($"[SystemIntegration] Регистрируем хоткей: {shortcut.Modifiers}+{shortcut.Key}");
+
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[SYSTEM] RegisterGlobalHotkeyAsync НАЧАЛО: {shortcut.Modifiers}+{shortcut.Key}");
-            
-            // Отменяем предыдущий хоткей если есть
-            if (_registeredHotkey != null)
-            {
-                await UnregisterGlobalHotkeyAsync();
-            }
-
             // Конвертируем модификаторы
             var modifiers = WpfModifierKeys.None;
             if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Control))
@@ -500,62 +516,73 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
             if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Windows))
                 modifiers |= WpfModifierKeys.Windows;
 
-            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Конвертированные модификаторы: {modifiers}");
-
             // Конвертируем клавишу
             var key = ConvertKey(shortcut.Key);
-            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Конвертированная клавиша: {shortcut.Key} -> {key}");
-            
+
             if (key == WpfKey.None)
             {
-                System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА: Неподдерживаемая клавиша: {shortcut.Key}");
-                Console.WriteLine($"Неподдерживаемая клавиша: {shortcut.Key}");
+                Console.WriteLine($"❌ Неподдерживаемая клавиша: {shortcut.Key}");
                 return false;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[SYSTEM] Регистрируем хоткей: {modifiers} + {key}");
-
-            // ИСПРАВЛЕНО: Регистрируем хоткей в UI потоке
             bool result = false;
+
             if (System.Windows.Application.Current != null)
             {
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     try
                     {
-                        HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, 
-                            (sender, e) => {
-                                System.Diagnostics.Debug.WriteLine($"[SYSTEM] ⭐ СРАБОТАЛ ХОТКЕЙ: {modifiers}+{key}");
-                                Console.WriteLine("⭐ СРАБОТАЛ ХОТКЕЙ В SYSTEM SERVICE!");
-                                
-                                if (_registeredHotkey != null)
-                                {
-                                    Console.WriteLine("Нажат глобальный хоткей для записи голоса");
-                                    GlobalHotkeyPressed?.Invoke(this, _registeredHotkey);
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine("[SYSTEM] ОШИБКА: _registeredHotkey is null!");
-                                }
-                            });
+                        // Быстрая очистка без логов
+                        try
+                        {
+                            HotkeyManager.Current.Remove("ChatCasterVoiceInput");
+                        }
+                        catch
+                        {
+                        }
+
+                        try
+                        {
+                            for (int i = 0; i < 100; i++)
+                                HotkeyManager.Current.Remove($"TempCapture_{i}");
+                        }
+                        catch
+                        {
+                        }
+
+                        // Минимальная задержка
+                        Thread.Sleep(100);
+
+                        // Регистрируем новый хоткей
+                        HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, (sender, e) =>
+                        {
+                            Console.WriteLine($"🎯 Хоткей сработал: {shortcut.Modifiers}+{shortcut.Key}");
+
+                            if (_registeredHotkey != null)
+                            {
+                                GlobalHotkeyPressed?.Invoke(this, _registeredHotkey);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"❌ _registeredHotkey is NULL!");
+                            }
+                        });
 
                         _registeredHotkey = shortcut;
                         result = true;
-                        System.Diagnostics.Debug.WriteLine($"[SYSTEM] Хоткей успешно зарегистрирован!");
-                        Console.WriteLine($"Зарегистрирован глобальный хоткей: {shortcut.Modifiers}+{shortcut.Key}");
+                        Console.WriteLine($"✅ Хоткей зарегистрирован успешно");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА регистрации в UI потоке: {ex.Message}");
-                        Console.WriteLine($"Ошибка регистрации глобального хоткея в UI потоке: {ex.Message}");
+                        Console.WriteLine($"❌ Ошибка регистрации: {ex.Message}");
                         result = false;
                     }
                 });
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[SYSTEM] ОШИБКА: Application.Current is null!");
-                Console.WriteLine("Ошибка: UI поток недоступен");
+                Console.WriteLine($"❌ Application.Current is NULL!");
                 return false;
             }
 
@@ -563,19 +590,23 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[SYSTEM] ОШИБКА регистрации: {ex.Message}");
-            Console.WriteLine($"Ошибка регистрации глобального хоткея: {ex.Message}");
+            Console.WriteLine($"❌ Критическая ошибка: {ex.Message}");
             return false;
         }
     }
-    
+
     public async Task<bool> UnregisterGlobalHotkeyAsync()
     {
+        Console.WriteLine($"📝 [SystemIntegration] UnregisterGlobalHotkeyAsync вызван");
+
         try
         {
             if (_registeredHotkey != null)
             {
+                Console.WriteLine(
+                    $"📝 [SystemIntegration] Есть зарегистрированный хоткей: {_registeredHotkey.Modifiers}+{_registeredHotkey.Key}");
                 bool result = false;
+
                 if (System.Windows.Application.Current != null)
                 {
                     await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
@@ -584,28 +615,32 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
                         {
                             HotkeyManager.Current.Remove("ChatCasterVoiceInput");
                             result = true;
-                            Console.WriteLine("Глобальный хоткей отменен");
+                            Console.WriteLine($"📝 [SystemIntegration] Глобальный хоткей отменен");
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Ошибка отмены глобального хоткея в UI потоке: {ex.Message}");
+                            Console.WriteLine(
+                                $"📝 [SystemIntegration] Ошибка отмены глобального хоткея в UI потоке: {ex.Message}");
                             result = false;
                         }
                     });
                 }
                 else
                 {
-                    result = true; // Если UI поток недоступен, считаем что хоткей уже отменен
+                    Console.WriteLine($"📝 [SystemIntegration] UI поток недоступен, считаем что хоткей уже отменен");
+                    result = true;
                 }
-                
+
                 _registeredHotkey = null;
                 return result;
             }
+
+            Console.WriteLine($"📝 [SystemIntegration] Зарегистрированный хоткей отсутствует, отменять нечего");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка отмены глобального хоткея: {ex.Message}");
+            Console.WriteLine($"❌ [SystemIntegration] Ошибка отмены глобального хоткея: {ex.Message}");
             return false;
         }
     }
@@ -613,7 +648,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     public void SetTypingDelay(int delayMs)
     {
         _typingDelayMs = Math.Max(1, delayMs); // Минимум 1ms
-        Console.WriteLine($"Задержка ввода установлена: {_typingDelayMs}ms");
+        Log($"Задержка ввода установлена: {_typingDelayMs}ms");
     }
 
     private WpfKey ConvertKey(Core.Models.Key key)
@@ -690,30 +725,28 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     // Упрощенные методы для совместимости с интерфейсом
     public async Task<bool> SetAutoStartAsync(bool enabled)
     {
-        // Заглушка - автозапуск управляется на уровне приложения
         await Task.CompletedTask;
-        Console.WriteLine($"Автозапуск {(enabled ? "включен" : "выключен")} (управляется приложением)");
+        Log($"Автозапуск {(enabled ? "включен" : "выключен")} (управляется приложением)");
         return true;
     }
 
     public async Task<bool> IsAutoStartEnabledAsync()
     {
-        // Заглушка - автозапуск управляется на уровне приложения
         await Task.CompletedTask;
         return false;
     }
 
     public async Task ShowNotificationAsync(string title, string message)
     {
-        // Заглушка - уведомления не нужны для геймпад-управления
         await Task.CompletedTask;
-        Console.WriteLine($"Уведомление: {title} - {message}");
+        Log($"Уведомление: {title} - {message}");
     }
 
     public void Dispose()
     {
         if (!_isDisposed)
         {
+            Log("Dispose вызван, снимаем регистрацию хоткея");
             UnregisterGlobalHotkeyAsync().Wait();
             _isDisposed = true;
         }

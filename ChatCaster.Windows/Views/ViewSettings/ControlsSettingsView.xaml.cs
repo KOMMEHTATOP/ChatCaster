@@ -26,6 +26,8 @@ public partial class ControlSettingsView : Page
 
     private bool _isLoadingUI = false; // Флаг чтобы не применять настройки во время загрузки UI
     
+    private bool _isSettingsLoaded = false;
+
     // Состояние ожидания ввода
     private bool _waitingForGamepadInput = false;
     private bool _waitingForKeyboardInput = false;
@@ -59,7 +61,12 @@ public partial class ControlSettingsView : Page
             _gamepadService.ShortcutPressed += OnGamepadShortcutPressed;
         }
         
-        _ = LoadCurrentSettings();
+        if (!_isSettingsLoaded)
+        {
+            _ = LoadCurrentSettings();
+            _isSettingsLoaded = true;
+        }
+
     }
 
     private void LoadInitialData()
@@ -73,12 +80,13 @@ public partial class ControlSettingsView : Page
         _isLoadingUI = false;
     }
 
+// И в LoadCurrentSettings() добавляем регистрацию при загрузке
     private async Task LoadCurrentSettings()
     {
         try
         {
             _isLoadingUI = true;
-            
+        
             if (_serviceContext?.Config == null) return;
 
             var config = _serviceContext.Config;
@@ -92,11 +100,13 @@ public partial class ControlSettingsView : Page
             if (keyboardShortcut != null)
             {
                 KeyboardComboText.Text = FormatKeyboardShortcut(keyboardShortcut);
+            
+                // ИСПРАВЛЕНИЕ: НЕ регистрируем хоткей здесь!
+                // Хоткей уже зарегистрирован в ChatCasterWindow_Loaded
+                Console.WriteLine($"Настройки загружены. Хоткей: {FormatKeyboardShortcut(keyboardShortcut)} (регистрация не требуется)");
             }
 
             Console.WriteLine("Настройки управления загружены");
-
-            // Проверяем статус геймпада
             await CheckGamepadStatus();
         }
         catch (Exception ex)
@@ -108,7 +118,7 @@ public partial class ControlSettingsView : Page
             _isLoadingUI = false;
         }
     }
-
+    
     // Обработчики кликов на поля комбинаций
     private async void GamepadComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
@@ -208,50 +218,57 @@ public partial class ControlSettingsView : Page
         }
     }
 
-    private async void OnTempHotkeyPressed(object? sender, HotkeyEventArgs e)
+// Также добавляем в OnTempHotkeyPressed()
+private async void OnTempHotkeyPressed(object? sender, HotkeyEventArgs e)
+{
+    if (!_waitingForKeyboardInput) return;
+
+    try
     {
-        if (!_waitingForKeyboardInput) return;
-
-        try
+        if (_registeredHotkeys.TryGetValue(e.Name, out var hotkeyInfo))
         {
-            // Получаем информацию о комбинации из нашего словаря
-            if (_registeredHotkeys.TryGetValue(e.Name, out var hotkeyInfo))
+            var keyboardShortcut = new KeyboardShortcut
             {
-                var keyboardShortcut = new KeyboardShortcut
+                Modifiers = ConvertToCore(hotkeyInfo.Modifiers),
+                Key = ConvertToCore(hotkeyInfo.Key)
+            };
+
+            var comboText = FormatKeyboardShortcut(keyboardShortcut);
+            KeyboardComboText.Text = comboText;
+            KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightGreen);
+
+            StopKeyboardCapture();
+
+            if (_serviceContext?.Config != null)
+            {
+                _serviceContext.Config.Input.KeyboardShortcut = keyboardShortcut;
+                await SaveCurrentSettingsAsync();
+                
+                // НОВОЕ: Регистрируем хоткей глобально
+                if (_systemService != null)
                 {
-                    Modifiers = ConvertToCore(hotkeyInfo.Modifiers),
-                    Key = ConvertToCore(hotkeyInfo.Key)
-                };
-
-                var comboText = FormatKeyboardShortcut(keyboardShortcut);
-                KeyboardComboText.Text = comboText;
-                KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightGreen);
-
-                // ВАЖНО: Сначала останавливаем захват (очищаем временные хоткеи)
-                StopKeyboardCapture();
-
-                // Потом сохраняем в конфигурацию
-                if (_serviceContext?.Config != null)
-                {
-                    _serviceContext.Config.Input.KeyboardShortcut = keyboardShortcut;
-                    await SaveCurrentSettingsAsync();
-                    Console.WriteLine($"Сохранена комбинация: {comboText}");
+                    Console.WriteLine($"Регистрируем глобальный хоткей: {comboText}");
+                    bool registered = await _systemService.RegisterGlobalHotkeyAsync(keyboardShortcut);
+                    Console.WriteLine(registered ? "Хоткей зарегистрирован успешно" : "Ошибка регистрации хоткея");
                 }
-
-                await Task.Delay(1000);
-                KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
+                
+                Console.WriteLine($"Сохранена комбинация: {comboText}");
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка сохранения комбинации: {ex.Message}");
-            KeyboardComboText.Text = "Ошибка сохранения";
-            KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
-            StopKeyboardCapture(); // Очищаем и при ошибке
-        }
 
-        e.Handled = true;
+            await Task.Delay(1000);
+            KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
+        }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ошибка сохранения комбинации: {ex.Message}");
+        KeyboardComboText.Text = "Ошибка сохранения";
+        KeyboardComboText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
+        StopKeyboardCapture();
+    }
+
+    e.Handled = true;
+}
 
     private async Task StartGamepadCapture()
     {
@@ -349,6 +366,7 @@ public partial class ControlSettingsView : Page
         e.Handled = true;
     }
 
+// В методе AcceptKeyboardCapture() добавляем регистрацию хоткея
     private async void AcceptKeyboardCapture()
     {
         try
@@ -367,6 +385,14 @@ public partial class ControlSettingsView : Page
             {
                 _serviceContext.Config.Input.KeyboardShortcut = keyboardShortcut;
                 await SaveCurrentSettingsAsync();
+            
+                // НОВОЕ: Регистрируем хоткей глобально
+                if (_systemService != null)
+                {
+                    Console.WriteLine($"Регистрируем глобальный хоткей: {FormatKeyboardShortcut(keyboardShortcut)}");
+                    bool registered = await _systemService.RegisterGlobalHotkeyAsync(keyboardShortcut);
+                    Console.WriteLine(registered ? "Хоткей зарегистрирован успешно" : "Ошибка регистрации хоткея");
+                }
             }
 
             await Task.Delay(1000);
@@ -381,7 +407,7 @@ public partial class ControlSettingsView : Page
             StopKeyboardCapture();
         }
     }
-
+    
     private void StopKeyboardCapture()
     {
         _waitingForKeyboardInput = false;
@@ -504,8 +530,12 @@ public partial class ControlSettingsView : Page
             // Сохраняем конфигурацию
             await _configurationService.SaveConfigAsync(config);
 
-            // Применяем к сервисам (геймпад и клавиатура всегда включены)
-            await ApplyToServicesAsync(config);
+            // Применяем к сервисам только геймпад, если это нужно
+            if (_gamepadService != null)
+            {
+                await _gamepadService.StopMonitoringAsync();
+                await _gamepadService.StartMonitoringAsync(config.Input);
+            }
 
             Console.WriteLine("Настройки управления сохранены и применены");
         }
@@ -514,39 +544,7 @@ public partial class ControlSettingsView : Page
             Console.WriteLine($"Ошибка сохранения настроек: {ex.Message}");
         }
     }
-
-    private async Task ApplyToServicesAsync(AppConfig config)
-    {
-        try
-        {
-            // Применяем настройки клавиатуры
-            if (_systemService != null)
-            {
-                // Отменяем старый хоткей
-                await _systemService.UnregisterGlobalHotkeyAsync();
-                
-                // Регистрируем новый если есть комбинация
-                if (config.Input.KeyboardShortcut != null)
-                {
-                    await _systemService.RegisterGlobalHotkeyAsync(config.Input.KeyboardShortcut);
-                }
-            }
-
-            // Применяем настройки геймпада
-            if (_gamepadService != null)
-            {
-                await _gamepadService.StopMonitoringAsync();
-                await _gamepadService.StartMonitoringAsync(config.Input);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка применения настроек к сервисам: {ex.Message}");
-        }
-    }
-
-
-
+    
     private async Task CheckGamepadStatus()
     {
         try
