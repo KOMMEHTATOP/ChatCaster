@@ -744,11 +744,22 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        try 
         {
-            Log("Dispose вызван, снимаем регистрацию хоткея");
-            UnregisterGlobalHotkeyAsync().Wait();
-            _isDisposed = true;
+            // ✅ С таймаутом
+            var task = UnregisterGlobalHotkeyAsync();
+            if (task.Wait(1000)) // Ждем максимум 1 секунду
+            {
+                Console.WriteLine("✅ Хоткей снят успешно");
+            }
+            else
+            {
+                Console.WriteLine("⚠️ Таймаут снятия хоткея, принудительно завершаем");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Ошибка снятия хоткея: {ex.Message}");
         }
     }
 }

@@ -551,9 +551,35 @@ public class GamepadService : IGamepadService, IDisposable
     {
         if (!_isDisposed)
         {
-            // В Dispose можно использовать GetAwaiter().GetResult()
-            StopMonitoringAsync().GetAwaiter().GetResult();
-            _isDisposed = true;
+            try
+            {
+                // ✅ ИСПРАВЛЕНИЕ: Синхронная остановка без async/await
+                lock (_lockObject)
+                {
+                    IsMonitoring = false;
+                
+                    if (_monitoringTimer != null)
+                    {
+                        _monitoringTimer.Stop();
+                        _monitoringTimer.Dispose();
+                        _monitoringTimer = null;
+                    }
+                
+                    _activeController = null;
+                    _activeControllerIndex = -1;
+                    _previousState = null;
+                    _wasConnected = false;
+                
+                    Console.WriteLine("GamepadService Dispose завершен");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка в GamepadService.Dispose: {ex.Message}");
+            }
+            finally
+            {
+                _isDisposed = true;
+            }
         }
-    }
-}
+    }}

@@ -298,9 +298,39 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     {
         if (!_isDisposed)
         {
-            // В Dispose можно использовать Wait, так как это финальная очистка
-            StopCaptureAsync().Wait();
-            _isDisposed = true;
+            try
+            {
+                Console.WriteLine("AudioCaptureService Dispose начат");
+            
+                lock (_lockObject)
+                {
+                    // ✅ ИСПРАВЛЕНИЕ: Останавливаем захват синхронно
+                    if (_waveIn != null && IsCapturing)
+                    {
+                        Console.WriteLine("Останавливаем WaveIn...");
+                        _waveIn.StopRecording();
+                        _waveIn.DataAvailable -= OnDataAvailable;
+                        _waveIn.RecordingStopped -= OnRecordingStopped;
+                        _waveIn.Dispose();
+                        _waveIn = null;
+                        Console.WriteLine("WaveIn остановлен");
+                    }
+
+                    IsCapturing = false;
+                    CurrentVolume = 0;
+                    ActiveDevice = null;
+                    _currentConfig = null;
+                
+                    Console.WriteLine("AudioCaptureService Dispose завершен");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка в AudioCaptureService.Dispose: {ex.Message}");
+            }
+            finally
+            {
+                _isDisposed = true;
+            }
         }
-    }
-}
+    }}

@@ -522,40 +522,40 @@ namespace ChatCaster.Windows.Views
     
             try
             {
-                // НОВОЕ: Отписываемся от событий
+                Console.WriteLine("📝 Отписываемся от GlobalHotkeyPressed");
                 if (_systemService != null)
                 {
-                    Console.WriteLine("📝 Отписываемся от GlobalHotkeyPressed");
                     _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
                 }
 
-                // Останавливаем сервисы при закрытии окна
-                Console.WriteLine("🎮 Закрываем GamepadService...");
-                _gamepadService?.Dispose();
-        
-                Console.WriteLine("⚙️ Закрываем SystemService...");
-                _systemService?.Dispose();
-        
-                Console.WriteLine("🖥️ Закрываем OverlayService...");
-                _overlayService?.Dispose();
-        
-                Console.WriteLine("🎤 Закрываем AudioService...");
-                _audioService?.Dispose();
-        
-                Console.WriteLine("🗣️ Закрываем SpeechService...");
-                _speechService?.Dispose();
+                // Детальное закрытие каждого сервиса
+                try { Console.WriteLine("🎮 Закрываем GamepadService..."); _gamepadService?.Dispose(); Console.WriteLine("✅ GamepadService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ GamepadService error: {ex.Message}"); }
 
-                Console.WriteLine("📱 Закрываем TrayService...");
-                _trayService?.Dispose();
-        
-                Console.WriteLine("✅ Все сервисы закрыты");
+                try { Console.WriteLine("⚙️ Закрываем SystemService..."); _systemService?.Dispose(); Console.WriteLine("✅ SystemService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ SystemService error: {ex.Message}"); }
+
+                try { Console.WriteLine("🖥️ Закрываем OverlayService..."); _overlayService?.Dispose(); Console.WriteLine("✅ OverlayService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ OverlayService error: {ex.Message}"); }
+
+                try { Console.WriteLine("🎤 Закрываем AudioService..."); _audioService?.Dispose(); Console.WriteLine("✅ AudioService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ AudioService error: {ex.Message}"); }
+
+                try { Console.WriteLine("🗣️ Закрываем SpeechService..."); _speechService?.Dispose(); Console.WriteLine("✅ SpeechService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ SpeechService error: {ex.Message}"); }
+
+                try { Console.WriteLine("📱 Закрываем TrayService..."); _trayService?.Dispose(); Console.WriteLine("✅ TrayService OK"); }
+                catch (Exception ex) { Console.WriteLine($"❌ TrayService error: {ex.Message}"); }
+
+                Console.WriteLine("🔚 OnClosed завершен");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Ошибка при закрытии сервисов: {ex.Message}");
+                Console.WriteLine($"❌ Общая ошибка при закрытии: {ex.Message}");
             }
 
-            Console.WriteLine("🔚 OnClosed завершен");
             base.OnClosed(e);
-        }    }
+            
+        }    
+    }
 }
