@@ -117,7 +117,6 @@ public enum OverlayPosition
     BottomLeft,
     BottomCenter,
     BottomRight,
-    Custom
 }
 
 /// <summary>

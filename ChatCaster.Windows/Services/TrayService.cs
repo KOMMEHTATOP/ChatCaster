@@ -18,12 +18,21 @@ public class TrayService : IDisposable
 
     // Ссылка на главное окно для прямого вызова методов
     private readonly Window _mainWindow;
+    
+    // ✅ ДОБАВЛЯЕМ: Ссылка на конфигурацию для проверки настроек
+    private AppConfig? _config;
 
     public bool IsVisible => _notifyIcon?.Visible == true;
 
     public TrayService(Window mainWindow)
     {
         _mainWindow = mainWindow;
+    }
+
+    // ✅ ДОБАВЛЯЕМ: Метод для установки конфигурации
+    public void SetConfig(AppConfig config)
+    {
+        _config = config;
     }
 
     public void Initialize()
@@ -117,6 +126,13 @@ public class TrayService : IDisposable
     {
         try
         {
+            // ✅ ИСПРАВЛЕНИЕ: Проверяем настройки перед показом уведомления
+            if (_config?.System?.ShowNotifications != true)
+            {
+                Console.WriteLine($"🔕 Уведомления отключены в настройках, пропускаем: {title} - {message}");
+                return;
+            }
+
             if (_notifyIcon != null)
             {
                 Console.WriteLine($"🔔 Показываем уведомление: {title} - {message}");
@@ -128,7 +144,6 @@ public class TrayService : IDisposable
             Console.WriteLine($"❌ Ошибка показа уведомления: {ex.Message}");
         }
     }
-
 
     private void ShowAbout()
     {
@@ -172,6 +187,7 @@ public class TrayService : IDisposable
 
     public void ShowFirstTimeNotification(AppConfig config)
     {
+        // ✅ ИСПРАВЛЕНИЕ: Эта функция уже правильно проверяет настройки
         if (!_hasShownTrayNotification && config.System.ShowNotifications)
         {
             _notifyIcon?.ShowBalloonTip(3000, "ChatCaster", 

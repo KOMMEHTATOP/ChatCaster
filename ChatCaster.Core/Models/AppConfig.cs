@@ -71,8 +71,6 @@ public class OverlayConfig
     public int OffsetY { get; set; } = 50;
     public OverlayMode Mode { get; set; } = OverlayMode.Normal;
     public float Opacity { get; set; } = 0.9f;
-    public bool AllowStickMovement { get; set; } = true; // Перемещение стиками во время записи
-    public int MovementSpeed { get; set; } = 5; // Пикселей за тик
 }
 
 /// <summary>

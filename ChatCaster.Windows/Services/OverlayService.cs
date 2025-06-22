@@ -20,11 +20,74 @@ public class OverlayService : IOverlayService, IDisposable
     private OverlayWindow? _overlayWindow;
     private OverlayConfig? _currentConfig;
     private bool _isDisposed;
+    
+    // ✅ ДОБАВЛЯЕМ недостающие поля
+    private IVoiceRecordingService? _voiceService;
+    private IConfigurationService? _configService;
 
     public bool IsVisible => _overlayWindow?.IsVisible == true;
     public (int X, int Y) CurrentPosition => _overlayWindow != null 
         ? ((int)_overlayWindow.Left, (int)_overlayWindow.Top) 
         : (0, 0);
+
+    public void SubscribeToVoiceService(IVoiceRecordingService voiceService, IConfigurationService configService)
+    {
+        // ✅ ИСПРАВЛЕНИЕ: Отписываемся от старого сервиса если есть
+        if (_voiceService != null)
+        {
+            _voiceService.StatusChanged -= OnRecordingStatusChanged;
+        }
+        
+        _voiceService = voiceService;
+        _configService = configService;
+    
+        // Подписываемся на изменения статуса
+        voiceService.StatusChanged += OnRecordingStatusChanged;
+        Debug.WriteLine("OverlayService подписался на события VoiceRecordingService");
+    }
+
+    private async void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
+    {
+        try
+        {
+            Debug.WriteLine($"OverlayService получил событие: {e.OldStatus} → {e.NewStatus}");
+            
+            // Проверяем настройки
+            if (_configService?.CurrentConfig?.Overlay?.IsEnabled != true)
+            {
+                Debug.WriteLine("Overlay отключен в настройках, пропускаем");
+                return;
+            }
+            
+            switch (e.NewStatus)
+            {
+                case RecordingStatus.Recording:
+                    await ShowAsync(RecordingStatus.Recording);
+                    break;
+                case RecordingStatus.Processing:
+                    await UpdateStatusAsync(RecordingStatus.Processing);
+                    break;
+                case RecordingStatus.Completed:
+                    await UpdateStatusAsync(RecordingStatus.Completed);
+                    await Task.Delay(2000); // Показать 2 сек
+                    await HideAsync();
+                    break;
+                case RecordingStatus.Error:
+                case RecordingStatus.Cancelled:
+                    await UpdateStatusAsync(e.NewStatus);
+                    await Task.Delay(1000);
+                    await HideAsync();
+                    break;
+                case RecordingStatus.Idle:
+                    await HideAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Ошибка в OnRecordingStatusChanged: {ex.Message}");
+        }
+    }
 
     public async Task ShowAsync(RecordingStatus status)
     {
@@ -363,6 +426,12 @@ public class OverlayService : IOverlayService, IDisposable
         {
             try
             {
+                // ✅ ДОБАВЛЯЕМ: Отписываемся от событий при Dispose
+                if (_voiceService != null)
+                {
+                    _voiceService.StatusChanged -= OnRecordingStatusChanged;
+                }
+
                 if (Application.Current?.Dispatcher != null)
                 {
                     if (Application.Current.Dispatcher.CheckAccess())

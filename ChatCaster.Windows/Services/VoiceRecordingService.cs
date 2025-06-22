@@ -67,6 +67,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
         // Подписываемся на события аудио захвата
         _audioCaptureService.AudioDataReceived += OnAudioDataReceived;
     }
+    
 
     public async Task<bool> StartRecordingAsync(CancellationToken cancellationToken = default)
     {
@@ -197,7 +198,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
             // Уведомляем о завершении
             RecognitionCompleted?.Invoke(this, new VoiceRecognitionCompletedEvent
             {
-                Result = result, AudioDataSize = audioData.Length, Timestamp = DateTime.UtcNow
+                Result = result, AudioDataSize = audioData.Length
             });
 
             if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
