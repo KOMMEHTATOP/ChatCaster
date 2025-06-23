@@ -5,7 +5,8 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
-      d:DesignHeight="600" d:DesignWidth="800">
+      d:DesignHeight="600" d:DesignWidth="800"
+      Unloaded="Page_Unloaded">
     
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
@@ -27,6 +28,13 @@
                            FontSize="14"
                            Foreground="#cccccc"/>
             </StackPanel>
+
+            <!-- Статус загрузки -->
+            <TextBlock Text="{Binding StatusMessage}" 
+                       FontSize="14"
+                       Foreground="#1ba1e2"
+                       Margin="0,0,0,15"
+                       Visibility="{Binding IsLoadingUI, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
             <!-- Настройки управления -->
             <Border Margin="0,0,0,20" 
@@ -65,7 +73,8 @@
                                     Padding="15,12"
                                     Margin="0,0,0,8"
                                     Cursor="Hand"
-                                    MouseLeftButtonDown="GamepadComboBorder_Click">
+                                    MouseLeftButtonDown="GamepadComboBorder_Click"
+                                    IsEnabled="{Binding IsWaitingForGamepadInput, Converter={StaticResource InverseBooleanConverter}}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -73,11 +82,14 @@
                                                 <Setter Property="Background" Value="#505050"/>
                                                 <Setter Property="BorderBrush" Value="#1ba1e2"/>
                                             </Trigger>
+                                            <DataTrigger Binding="{Binding IsWaitingForGamepadInput}" Value="True">
+                                                <Setter Property="BorderBrush" Value="#ff9800"/>
+                                                <Setter Property="Background" Value="#4a4a00"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock x:Name="GamepadComboText"
-                                           Text="LB + RB" 
+                                <TextBlock Text="{Binding GamepadComboText}" 
                                            FontSize="16"
                                            FontWeight="Medium"
                                            Foreground="White"
@@ -85,14 +97,12 @@
                             </Border>
                             
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <ui:SymbolIcon Symbol="Info16" 
-                                               FontSize="14" 
-                                               Foreground="#888888"
-                                               Margin="0,0,6,0"
-                                               VerticalAlignment="Center"/>
-                                <TextBlock Text="Кликните и нажмите нужную комбинацию кнопок на геймпаде" 
+                                <Ellipse Width="10" Height="10" 
+                                         Fill="{Binding GamepadStatusColor}"
+                                         Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding GamepadStatusText}" 
                                            FontSize="13"
-                                           Foreground="#888888"/>
+                                           Foreground="{Binding GamepadStatusColor}"/>
                             </StackPanel>
                         </StackPanel>
                         
@@ -120,7 +130,8 @@
                                     Padding="15,12"
                                     Margin="0,0,0,8"
                                     Cursor="Hand"
-                                    MouseLeftButtonDown="KeyboardComboBorder_Click">
+                                    MouseLeftButtonDown="KeyboardComboBorder_Click"
+                                    IsEnabled="{Binding IsWaitingForKeyboardInput, Converter={StaticResource InverseBooleanConverter}}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -128,11 +139,14 @@
                                                 <Setter Property="Background" Value="#505050"/>
                                                 <Setter Property="BorderBrush" Value="#1ba1e2"/>
                                             </Trigger>
+                                            <DataTrigger Binding="{Binding IsWaitingForKeyboardInput}" Value="True">
+                                                <Setter Property="BorderBrush" Value="#ff9800"/>
+                                                <Setter Property="Background" Value="#4a4a00"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock x:Name="KeyboardComboText"
-                                           Text="Ctrl + Shift + R" 
+                                <TextBlock Text="{Binding KeyboardComboText}"
                                            FontSize="16"
                                            FontWeight="Medium"
                                            Foreground="White"

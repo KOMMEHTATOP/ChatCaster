@@ -32,11 +32,6 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Controls\" />
-    <Folder Include="Models\" />
-  </ItemGroup>
-  
-  <ItemGroup>
   <Content Include="Resources\*.ico">
     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>

@@ -7,6 +7,7 @@ using Wpf.Ui.Controls;
 using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.ViewModels;
+using System.Windows.Threading;
 using WpfKey = System.Windows.Input.Key;
 using WpfModifierKeys = System.Windows.Input.ModifierKeys;
 
@@ -87,6 +88,14 @@ namespace ChatCaster.Windows.Views
             
             // Затем инициализируем ViewModel
             await _viewModel.InitializeAsync();
+            
+            // Устанавливаем фокус через Dispatcher чтобы дождаться полной загрузки
+            await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                this.Activate();
+                this.Focus();
+                Keyboard.Focus(this);
+            }));
         }
 
         private void ChatCasterWindow_Closing(object? sender, CancelEventArgs e)
