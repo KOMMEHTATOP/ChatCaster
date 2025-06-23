@@ -13,22 +13,22 @@ public class TrayService : IDisposable
 {
     private static int _instanceCounter = 0;
     private readonly int _instanceId;
-
-
-    
     
     private NotifyIcon? _notifyIcon;
-    private readonly string _normalIconPath = "Resources/mic_normal.ico";
+    private const string NormalIconPath = "Resources/mic_normal.ico";
     private bool _hasShownTrayNotification = false;
     private bool _isDisposed = false;
 
     // Ссылка на главное окно для прямого вызова методов
     private readonly Window _mainWindow;
     
-    // ✅ ДОБАВЛЯЕМ: Ссылка на конфигурацию для проверки настроек
+    // Ссылка на конфигурацию для проверки настроек
     private AppConfig? _config;
 
-    public bool IsVisible => _notifyIcon?.Visible == true;
+    public bool IsVisible
+    {
+        get => _notifyIcon?.Visible == true;
+    }
 
     public TrayService(Window mainWindow)
     {
@@ -40,7 +40,7 @@ public class TrayService : IDisposable
         
     }
 
-    // ✅ ДОБАВЛЯЕМ: Метод для установки конфигурации
+    // Метод для установки конфигурации
     public void SetConfig(AppConfig config)
     {
         _config = config;
@@ -54,8 +54,8 @@ public class TrayService : IDisposable
         {
             _notifyIcon = new NotifyIcon
             {
-                Icon = File.Exists(_normalIconPath) 
-                    ? new Icon(_normalIconPath) 
+                Icon = File.Exists(NormalIconPath) 
+                    ? new Icon(NormalIconPath) 
                     : SystemIcons.Application,
                 Text = "ChatCaster - Готов к работе",
                 Visible = true
@@ -165,7 +165,7 @@ public class TrayService : IDisposable
                         "Управление:\n" +
                         "• Геймпад: LB + RB (настраивается)\n" +
                         "• Клавиатура: Ctrl+Shift+R",
-            "О программе", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void ExitApplication()
@@ -186,11 +186,11 @@ public class TrayService : IDisposable
     {
         try
         {
-            if (_notifyIcon != null)
-            {
-                string trayText = status.Length > 120 ? status.Substring(0, 117) + "..." : status;
-                _notifyIcon.Text = trayText;
-            }
+            if (_notifyIcon == null)
+                return;
+
+            string trayText = status.Length > 120 ? status.Substring(0, 117) + "..." : status;
+            _notifyIcon.Text = trayText;
         }
         catch (Exception ex)
         {
@@ -200,14 +200,13 @@ public class TrayService : IDisposable
 
     public void ShowFirstTimeNotification(AppConfig config)
     {
-        // ✅ ИСПРАВЛЕНИЕ: Эта функция уже правильно проверяет настройки
-        if (!_hasShownTrayNotification && config.System.ShowNotifications)
-        {
-            _notifyIcon?.ShowBalloonTip(3000, "ChatCaster", 
-                "Приложение свернуто в системный трей. Двойной клик для возврата.", 
-                ToolTipIcon.Info);
-            _hasShownTrayNotification = true;
-        }
+        if (_hasShownTrayNotification || !config.System.ShowNotifications)
+            return;
+
+        _notifyIcon?.ShowBalloonTip(3000, "ChatCaster", 
+            "Приложение свернуто в системный трей. Двойной клик для возврата.", 
+            ToolTipIcon.Info);
+        _hasShownTrayNotification = true;
     }
 
     public void Dispose()

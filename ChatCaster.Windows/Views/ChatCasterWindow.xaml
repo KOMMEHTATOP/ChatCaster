@@ -10,7 +10,8 @@
                  Width="1200"
                  WindowStartupLocation="CenterScreen"
                  WindowBackdropType="Mica"
-                 ExtendsContentIntoTitleBar="True">
+                 ExtendsContentIntoTitleBar="True"
+                 WindowState="{Binding WindowState, Mode=TwoWay}">
     <DockPanel>
         <!-- Боковое меню как Border с анимацией -->
         <Border x:Name="SidebarBorder" 
@@ -42,7 +43,7 @@
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
-                               Background="#0e639c"
+                               Background="{Binding MainButtonBackground}"
                                Padding="15,12"
                                Click="NavigationButton_Click"
                                Tag="Main">
@@ -57,6 +58,7 @@
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
+                               Background="{Binding AudioButtonBackground}"
                                Padding="15,12"
                                Click="NavigationButton_Click"
                                Tag="Audio">
@@ -71,6 +73,7 @@
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
+                               Background="{Binding InterfaceButtonBackground}"
                                Padding="15,12"
                                Click="NavigationButton_Click"
                                Tag="Interface">
@@ -85,6 +88,7 @@
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
+                               Background="{Binding ControlButtonBackground}"
                                Padding="15,12"
                                Click="NavigationButton_Click"
                                Tag="Control">
@@ -143,7 +147,7 @@
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
                                    Foreground="#1ba1e2"/>
-                        <TextBlock Text="Voice Input for Gaming" 
+                        <TextBlock Text="{Binding StatusText}" 
                                    FontSize="12" 
                                    Margin="8,0,0,0"
                                    VerticalAlignment="Center"

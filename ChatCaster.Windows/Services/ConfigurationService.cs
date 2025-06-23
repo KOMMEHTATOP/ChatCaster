@@ -14,24 +14,21 @@ public class ConfigurationService : IConfigurationService
 {
     public event EventHandler<ConfigurationChangedEvent>? ConfigurationChanged;
 
-    private readonly string _configDirectory;
-    private readonly string _configFilePath;
-    private AppConfig _currentConfig = new();
-
-    public AppConfig CurrentConfig => _currentConfig;
-    public string ConfigPath => _configFilePath;
+    public AppConfig CurrentConfig { get; private set; } = new();
+    public string ConfigPath { get; }
 
     public ConfigurationService()
     {
-        // Папка конфигурации в AppData пользователя
-        _configDirectory = Path.Combine(
+        var configDirectory =
+            // Папка конфигурации в AppData пользователя
+            Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
             "ChatCaster");
             
-        _configFilePath = Path.Combine(_configDirectory, "config.json");
+        ConfigPath = Path.Combine(configDirectory, "config.json");
         
         // Создаем папку если её нет
-        Directory.CreateDirectory(_configDirectory);
+        Directory.CreateDirectory(configDirectory);
     }
 
     /// <summary>
@@ -41,7 +38,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            if (!File.Exists(_configFilePath))
+            if (!File.Exists(ConfigPath))
             {
                 System.Diagnostics.Debug.WriteLine("[CONFIG] Файл конфигурации не найден, создаем дефолтный");
                 var defaultConfig = new AppConfig();
@@ -49,29 +46,29 @@ public class ConfigurationService : IConfigurationService
                 return defaultConfig;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[CONFIG] Загружаем конфигурацию из: {_configFilePath}");
+            System.Diagnostics.Debug.WriteLine($"[CONFIG] Загружаем конфигурацию из: {ConfigPath}");
             
-            var jsonText = await File.ReadAllTextAsync(_configFilePath);
+            var jsonText = await File.ReadAllTextAsync(ConfigPath);
             var config = JsonSerializer.Deserialize<AppConfig>(jsonText, GetJsonOptions());
             
             if (config == null)
             {
                 System.Diagnostics.Debug.WriteLine("[CONFIG] Ошибка десериализации, используем дефолтную конфигурацию");
-                _currentConfig = new AppConfig();
-                return _currentConfig;
+                CurrentConfig = new AppConfig();
+                return CurrentConfig;
             }
 
             // Обновляем кеш (событие для загрузки файла не стреляем)
-            _currentConfig = config;
+            CurrentConfig = config;
 
             System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно загружена");
-            return _currentConfig;
+            return CurrentConfig;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[CONFIG] Ошибка загрузки конфигурации: {ex.Message}");
-            _currentConfig = new AppConfig(); // Возвращаем дефолтную при ошибке
-            return _currentConfig;
+            CurrentConfig = new AppConfig(); // Возвращаем дефолтную при ошибке
+            return CurrentConfig;
         }
     }
 
@@ -82,13 +79,13 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[CONFIG] Сохраняем конфигурацию в: {_configFilePath}");
+            System.Diagnostics.Debug.WriteLine($"[CONFIG] Сохраняем конфигурацию в: {ConfigPath}");
             
             var jsonText = JsonSerializer.Serialize(config, GetJsonOptions());
-            await File.WriteAllTextAsync(_configFilePath, jsonText);
+            await File.WriteAllTextAsync(ConfigPath, jsonText);
             
             // Обновляем кеш (без события - событие стреляется при изменении конкретных настроек)
-            _currentConfig = config;
+            CurrentConfig = config;
             
             System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно сохранена");
         }
@@ -104,21 +101,21 @@ public class ConfigurationService : IConfigurationService
     /// </summary>
     public bool ConfigFileExists()
     {
-        return File.Exists(_configFilePath);
+        return File.Exists(ConfigPath);
     }
 
     /// <summary>
     /// Создает резервную копию конфигурации
     /// </summary>
-    public async Task<bool> CreateBackupAsync()
+    public bool CreateBackup()
     {
         try
         {
-            if (!File.Exists(_configFilePath))
+            if (!File.Exists(ConfigPath))
                 return false;
 
-            var backupPath = _configFilePath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
-            File.Copy(_configFilePath, backupPath);
+            var backupPath = ConfigPath + $".backup_{DateTime.Now:yyyyMMdd_HHmmss}";
+            File.Copy(ConfigPath, backupPath);
             
             System.Diagnostics.Debug.WriteLine($"[CONFIG] Создана резервная копия: {backupPath}");
             return true;
