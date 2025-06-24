@@ -1,7 +1,5 @@
 using ChatCaster.Core.Constants;
-using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Managers;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Services.GamepadService;
@@ -9,7 +7,6 @@ using ChatCaster.Windows.Utilities;
 using ChatCaster.Windows.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Threading.Tasks;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -24,12 +21,12 @@ namespace ChatCaster.Windows.ViewModels
         private readonly MainGamepadService _gamepadService;
         private readonly SystemIntegrationService _systemService;
         
-        // Менеджеры для разделения ответственности  
-        private GamepadStatusManager? _gamepadStatusManager;
-        private GamepadCaptureManager? _gamepadCaptureManager;
-        private KeyboardCaptureManager? _keyboardCaptureManager;
-        private CaptureUIStateManager? _gamepadUIManager;
-        private CaptureUIStateManager? _keyboardUIManager;
+        // Менеджеры для разделения ответственности - убираем nullable
+        private GamepadStatusManager _gamepadStatusManager = null!;
+        private GamepadCaptureManager _gamepadCaptureManager = null!;
+        private KeyboardCaptureManager _keyboardCaptureManager = null!;
+        private CaptureUIStateManager _gamepadUIManager = null!;
+        private CaptureUIStateManager _keyboardUIManager = null!;
 
         #endregion
 
@@ -96,20 +93,13 @@ namespace ChatCaster.Windows.ViewModels
                 return;
             }
 
-            if (_keyboardCaptureManager == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] ОШИБКА: _keyboardCaptureManager == null!");
-                StatusMessage = "Ошибка: менеджер клавиатуры не инициализирован";
-                return;
-            }
-
             try
             {
                 System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] Вызываем StartCaptureAsync...");
                 await _keyboardCaptureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
                 System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] StartCaptureAsync завершен");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] Ошибка: {ex.Message}");
                 StatusMessage = $"Ошибка захвата клавиатуры: {ex.Message}";
@@ -121,17 +111,11 @@ namespace ChatCaster.Windows.ViewModels
         {
             if (IsWaitingForGamepadInput) return;
 
-            if (_gamepadCaptureManager == null)
-            {
-                StatusMessage = "Ошибка: менеджер геймпада не инициализирован";
-                return;
-            }
-
             try
             {
                 await _gamepadCaptureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 StatusMessage = $"Ошибка захвата геймпада: {ex.Message}";
             }
@@ -156,21 +140,8 @@ namespace ChatCaster.Windows.ViewModels
             
             try
             {
-                // Создаем менеджеры
-                _gamepadStatusManager = new GamepadStatusManager(_gamepadService);
-                _gamepadCaptureManager = new GamepadCaptureManager(_gamepadService);
-                _keyboardCaptureManager = new KeyboardCaptureManager();
-                
-                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Менеджеры созданы");
-                
-                // Создаем UI менеджеры
-                _gamepadUIManager = new CaptureUIStateManager();
-                _keyboardUIManager = new CaptureUIStateManager();
-
-                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] UI менеджеры созданы");
-
-                // Подписываемся на события менеджеров
-                SubscribeToManagerEvents();
+                // Инициализируем все менеджеры
+                InitializeManagers();
                 
                 System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] События подписаны");
             }
@@ -186,12 +157,35 @@ namespace ChatCaster.Windows.ViewModels
 
         #endregion
 
+        #region Manager Initialization
+
+        private void InitializeManagers()
+        {
+            // Создаем менеджеры
+            _gamepadStatusManager = new GamepadStatusManager(_gamepadService);
+            _gamepadCaptureManager = new GamepadCaptureManager(_gamepadService);
+            _keyboardCaptureManager = new KeyboardCaptureManager();
+            
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Менеджеры созданы");
+            
+            // Создаем UI менеджеры
+            _gamepadUIManager = new CaptureUIStateManager();
+            _keyboardUIManager = new CaptureUIStateManager();
+
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] UI менеджеры созданы");
+
+            // Подписываемся на события менеджеров
+            SubscribeToManagerEvents();
+        }
+
+        #endregion
+
         #region BaseSettingsViewModel Implementation
 
         protected override async Task LoadPageSpecificSettingsAsync()
         {
             // Загружаем текущие комбинации из конфигурации
-            var config = _serviceContext.Config;
+            var config = _serviceContext!.Config;
             
             GamepadComboText = config.Input.GamepadShortcut?.DisplayText ?? "LB + RB";
             KeyboardComboText = config.Input.KeyboardShortcut?.DisplayText ?? "Ctrl + Shift + R";
@@ -214,41 +208,16 @@ namespace ChatCaster.Windows.ViewModels
         {
             // Перезапускаем мониторинг геймпада с новыми настройками
             await _gamepadService.StopMonitoringAsync();
-            await _gamepadService.StartMonitoringAsync(_serviceContext.Config.Input.GamepadShortcut);
+            await _gamepadService.StartMonitoringAsync(_serviceContext!.Config.Input.GamepadShortcut);
 
             // Обновляем координатор геймпада
-            await _serviceContext.GamepadVoiceCoordinator.UpdateGamepadSettingsAsync(
+            await _serviceContext.GamepadVoiceCoordinator!.UpdateGamepadSettingsAsync(
                 _serviceContext.Config.Input.GamepadShortcut);
         }
 
         protected override async Task InitializePageSpecificDataAsync()
         {
             System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] InitializePageSpecificDataAsync начат");
-            
-            // Если менеджеры не созданы в конструкторе, создаем их здесь
-            if (_gamepadStatusManager == null)
-            {
-                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Менеджеры не созданы, создаем fallback...");
-                
-                try
-                {
-                    _gamepadStatusManager = new GamepadStatusManager(_gamepadService);
-                    _gamepadCaptureManager = new GamepadCaptureManager(_gamepadService);
-                    _keyboardCaptureManager = new KeyboardCaptureManager();
-                    _gamepadUIManager = new CaptureUIStateManager();
-                    _keyboardUIManager = new CaptureUIStateManager();
-                    
-                    System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Fallback менеджеры созданы");
-                    
-                    // Подписываемся на события
-                    SubscribeToManagerEvents();
-                    System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] События подписаны");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [ControlSettingsViewModel] Ошибка создания fallback менеджеров: {ex.Message}");
-                }
-            }
             
             await LoadPageSpecificSettingsAsync();
         }
@@ -304,19 +273,22 @@ namespace ChatCaster.Windows.ViewModels
 
         private void UnsubscribeFromManagerEvents()
         {
-            // В C# отписка от событий безопасна даже для null объектов
+            // События статуса геймпада
             _gamepadStatusManager.StatusChanged -= OnGamepadStatusChanged;
 
+            // События захвата геймпада
             _gamepadCaptureManager.CaptureCompleted -= OnGamepadCaptureCompleted;
             _gamepadCaptureManager.CaptureTimeout -= OnGamepadCaptureTimeout;
             _gamepadCaptureManager.StatusChanged -= OnGamepadCaptureStatusChanged;
             _gamepadCaptureManager.CaptureError -= OnGamepadCaptureError;
 
+            // События захвата клавиатуры
             _keyboardCaptureManager.CaptureCompleted -= OnKeyboardCaptureCompleted;
             _keyboardCaptureManager.CaptureTimeout -= OnKeyboardCaptureTimeout;
             _keyboardCaptureManager.StatusChanged -= OnKeyboardCaptureStatusChanged;
             _keyboardCaptureManager.CaptureError -= OnKeyboardCaptureError;
 
+            // События UI менеджеров
             _gamepadUIManager.StateChanged -= OnGamepadUIStateChanged;
             _keyboardUIManager.StateChanged -= OnKeyboardUIStateChanged;
         }
@@ -340,12 +312,12 @@ namespace ChatCaster.Windows.ViewModels
             
             try
             {
-                // ✅ ИСПРАВЛЕНИЕ: Сначала сбрасываем флаг
+                // Сбрасываем флаг
                 IsWaitingForGamepadInput = false;
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForGamepadInput ПОСЛЕ сброса: {IsWaitingForGamepadInput}");
                 
                 // Сохраняем в конфигурацию
-                _serviceContext.Config.Input.GamepadShortcut = capturedShortcut;
+                _serviceContext!.Config.Input.GamepadShortcut = capturedShortcut;
                 await OnUISettingChangedAsync();
 
                 // Обновляем UI
@@ -357,10 +329,10 @@ namespace ChatCaster.Windows.ViewModels
                 
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnGamepadCaptureCompleted завершен успешно");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ [VM] Ошибка в OnGamepadCaptureCompleted: {ex.Message}");
-                IsWaitingForGamepadInput = false; // ✅ И в случае ошибки тоже
+                IsWaitingForGamepadInput = false;
                 await _gamepadUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
             }
         }
@@ -374,9 +346,9 @@ namespace ChatCaster.Windows.ViewModels
         private void OnGamepadCaptureStatusChanged(string status)
         {
             System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnGamepadCaptureStatusChanged: {status}");
-            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _gamepadCaptureManager.IsCapturing: {_gamepadCaptureManager?.IsCapturing}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _gamepadCaptureManager.IsCapturing: {_gamepadCaptureManager.IsCapturing}");
             
-            if (_gamepadCaptureManager?.IsCapturing == true)
+            if (_gamepadCaptureManager.IsCapturing)
             {
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] Начинаем захват, устанавливаем IsWaitingForGamepadInput = true");
                 _gamepadUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
@@ -405,12 +377,12 @@ namespace ChatCaster.Windows.ViewModels
             
             try
             {
-                // ✅ ИСПРАВЛЕНИЕ: Сначала сбрасываем флаг
+                // Сбрасываем флаг
                 IsWaitingForKeyboardInput = false;
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForKeyboardInput ПОСЛЕ сброса: {IsWaitingForKeyboardInput}");
                 
                 // Сохраняем в конфигурацию
-                _serviceContext.Config.Input.KeyboardShortcut = capturedShortcut;
+                _serviceContext!.Config.Input.KeyboardShortcut = capturedShortcut;
                 await OnUISettingChangedAsync();
 
                 // Регистрируем глобальный хоткей
@@ -431,10 +403,10 @@ namespace ChatCaster.Windows.ViewModels
                 
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnKeyboardCaptureCompleted завершен успешно");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ [VM] Ошибка в OnKeyboardCaptureCompleted: {ex.Message}");
-                IsWaitingForKeyboardInput = false; // ✅ И в случае ошибки тоже
+                IsWaitingForKeyboardInput = false;
                 await _keyboardUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
             }
         }
@@ -448,9 +420,9 @@ namespace ChatCaster.Windows.ViewModels
         private void OnKeyboardCaptureStatusChanged(string status)
         {
             System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnKeyboardCaptureStatusChanged: {status}");
-            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _keyboardCaptureManager.IsCapturing: {_keyboardCaptureManager?.IsCapturing}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _keyboardCaptureManager.IsCapturing: {_keyboardCaptureManager.IsCapturing}");
             
-            if (_keyboardCaptureManager?.IsCapturing == true)
+            if (_keyboardCaptureManager.IsCapturing)
             {
                 System.Diagnostics.Debug.WriteLine($"🔥 [VM] Начинаем захват клавиатуры, устанавливаем IsWaitingForKeyboardInput = true");
                 _keyboardUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
@@ -464,6 +436,7 @@ namespace ChatCaster.Windows.ViewModels
             
             System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForKeyboardInput итоговое: {IsWaitingForKeyboardInput}");
         }
+
         private async void OnKeyboardCaptureError(string error)
         {
             IsWaitingForKeyboardInput = false;
@@ -495,18 +468,6 @@ namespace ChatCaster.Windows.ViewModels
             {
                 StatusMessage = state.StatusMessage;
             }
-        }
-
-        #endregion
-
-        #region Private Helper Methods
-
-        private async Task OnUISettingChangedAsync()
-        {
-            if (IsLoadingUI) return;
-
-            HasUnsavedChanges = true;
-            await ApplySettingsAsync();
         }
 
         #endregion

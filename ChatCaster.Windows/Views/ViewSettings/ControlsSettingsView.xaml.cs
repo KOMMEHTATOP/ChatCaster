@@ -1,16 +1,15 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using ChatCaster.Core.Services;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels;
-using ChatCaster.Windows.ViewModels.Settings;
 
 namespace ChatCaster.Windows.Views.ViewSettings;
 
 public partial class ControlSettingsView : Page
 {
-    private ControlSettingsViewModel? _viewModel;
+    // ✅ ИСПРАВЛЕНИЕ: Убираем nullable поскольку поле инициализируется в конструкторе
+    private ControlSettingsViewModel _viewModel = null!;
 
     public ControlSettingsView()
     {
@@ -23,7 +22,7 @@ public partial class ControlSettingsView : Page
                               ConfigurationService configurationService,
                               ServiceContext serviceContext) : this()
     {
-        // Создаем ViewModel и устанавливаем как DataContext
+        // ✅ ИСПРАВЛЕНИЕ: Гарантированно инициализируем _viewModel
         _viewModel = new ControlSettingsViewModel(
             configurationService, 
             serviceContext, 
@@ -32,7 +31,17 @@ public partial class ControlSettingsView : Page
         
         DataContext = _viewModel;
         
-        // ✅ ДОБАВИМ отладку свойств для анимации
+        // Подписываемся на события для отладки
+        SubscribeToViewModelEvents();
+        
+        // Инициализируем ViewModel
+        _ = _viewModel.InitializeAsync();
+    }
+
+    #region ✅ НОВЫЙ метод подписки на события
+
+    private void SubscribeToViewModelEvents()
+    {
         _viewModel.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(_viewModel.IsWaitingForKeyboardInput))
@@ -52,16 +61,17 @@ public partial class ControlSettingsView : Page
                 System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboTextColor изменен на: {_viewModel.GamepadComboTextColor}");
             }
         };
-        
-        // Инициализируем ViewModel
-        _ = _viewModel.InitializeAsync();
     }
+
+    #endregion
 
     // Обработчики кликов на поля комбинаций - делегируем в ViewModel
     private async void GamepadComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
         System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboBorder_Click вызван");
-        if (_viewModel?.StartGamepadCaptureCommand?.CanExecute(null) == true)
+        
+        // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
+        if (_viewModel.StartGamepadCaptureCommand.CanExecute(null))
         {
             await _viewModel.StartGamepadCaptureCommand.ExecuteAsync(null);
         }
@@ -70,7 +80,9 @@ public partial class ControlSettingsView : Page
     private async void KeyboardComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
         System.Diagnostics.Debug.WriteLine($"🎨 KeyboardComboBorder_Click вызван");
-        if (_viewModel?.StartKeyboardCaptureCommand?.CanExecute(null) == true)
+        
+        // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
+        if (_viewModel.StartKeyboardCaptureCommand.CanExecute(null))
         {
             await _viewModel.StartKeyboardCaptureCommand.ExecuteAsync(null);
         }
@@ -81,7 +93,8 @@ public partial class ControlSettingsView : Page
     {
         try
         {
-            _viewModel?.Cleanup();
+            // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
+            _viewModel.Cleanup();
         }
         catch (Exception ex)
         {
