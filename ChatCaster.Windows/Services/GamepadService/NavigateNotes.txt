@@ -1,0 +1,6 @@
+├── 📄 IXInputProvider.cs          # Интерфейс для XInput
+├── 📄 XInputProvider.cs           # Реализация XInput (простая)
+├── 📄 GamepadMonitor.cs           # Мониторинг подключений
+├── 📄 ShortcutDetector.cs         # Детектор комбинаций
+├── 📄 GamepadService.cs           # Главный сервис (координатор)
+└── 📄 GamepadExceptions.cs        # Специфичные исключения (опционально)

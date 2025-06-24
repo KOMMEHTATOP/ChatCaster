@@ -1,5 +1,6 @@
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Windows.Services.GamepadService;
 
 namespace ChatCaster.Windows.Services;
 
@@ -16,6 +17,7 @@ public class ServiceContext
     public IOverlayService? OverlayService { get; set; }
     public IVoiceRecordingService? VoiceRecordingService { get; set; }
     public IConfigurationService? ConfigurationService { get; set; }
+    public GamepadVoiceCoordinator? GamepadVoiceCoordinator { get; set; }
 
     public AppConfig Config { get; set; } = new();
     

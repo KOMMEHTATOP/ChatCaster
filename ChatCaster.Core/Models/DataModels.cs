@@ -36,9 +36,9 @@ public class GamepadInfo
 {
     public int Index { get; set; }
     public string Name { get; set; } = string.Empty;
-    public GamepadType Type { get; set; }
+    public GamepadType Type { get; set; } = GamepadType.XboxController;
     public bool IsConnected { get; set; }
-    public GamepadState State { get; set; } = new();
+    public DateTime LastUpdateTime { get; set; } = DateTime.Now;
 }
 
 /// <summary>
@@ -46,9 +46,57 @@ public class GamepadInfo
 /// </summary>
 public class GamepadState
 {
-    public Dictionary<GamepadButton, bool> Buttons { get; set; } = new();
-    public Dictionary<GamepadAxis, float> Axes { get; set; } = new();
+    private readonly Dictionary<GamepadButton, bool> _buttonStates = new();
+    private readonly Dictionary<GamepadButton, DateTime> _buttonPressTime = new();
+    
     public DateTime LastUpdateTime { get; set; } = DateTime.Now;
+    
+    /// <summary>
+    /// Проверяет нажата ли кнопка
+    /// </summary>
+    public bool IsButtonPressed(GamepadButton button)
+    {
+        return _buttonStates.GetValueOrDefault(button, false);
+    }
+    
+    /// <summary>
+    /// Устанавливает состояние кнопки
+    /// </summary>
+    public void SetButtonState(GamepadButton button, bool pressed)
+    {
+        var wasPressed = _buttonStates.GetValueOrDefault(button, false);
+        _buttonStates[button] = pressed;
+        
+        if (pressed && !wasPressed)
+        {
+            _buttonPressTime[button] = DateTime.Now;
+        }
+        else if (!pressed && wasPressed)
+        {
+            _buttonPressTime.Remove(button);
+        }
+        
+        LastUpdateTime = DateTime.Now;
+    }
+    
+    /// <summary>
+    /// Получает время удержания кнопки в миллисекундах
+    /// </summary>
+    public int GetButtonHoldTime(GamepadButton button)
+    {
+        if (!IsButtonPressed(button) || !_buttonPressTime.TryGetValue(button, out var value))
+            return 0;
+            
+        return (int)(DateTime.Now - value).TotalMilliseconds;
+    }
+    
+    /// <summary>
+    /// Получает все нажатые кнопки
+    /// </summary>
+    public IEnumerable<GamepadButton> GetPressedButtons()
+    {
+        return _buttonStates.Where(kvp => kvp.Value).Select(kvp => kvp.Key);
+    }
 }
 
 /// <summary>

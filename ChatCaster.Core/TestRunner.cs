@@ -53,7 +53,7 @@ public static class TestRunner
         var gamepad = new GamepadInfo 
         { 
             Name = "Xbox Controller",
-            Type = GamepadType.XboxSeries,
+            Type = GamepadType.XboxController,
             IsConnected = true 
         };
         Console.WriteLine($"   Геймпад: {gamepad.Name} ({gamepad.Type})");
@@ -149,11 +149,6 @@ public static class TestRunner
         Console.WriteLine($"   Диапазон записи: {AppConstants.MinRecordingSeconds}-{AppConstants.MaxRecordingSeconds} сек");
         Console.WriteLine($"   Частота по умолчанию: {AppConstants.DefaultSampleRate} Hz");
         Console.WriteLine($"   Конфиг файл: {AppConstants.ConfigFileName}");
-        
-        // Тест сообщений
-        Console.WriteLine($"   Сообщение готовности: {Messages.StatusIdle}");
-        Console.WriteLine($"   Сообщение ошибки: {Messages.ErrorNoMicrophone}");
-        
         Console.WriteLine("✅ Константы работают");
     }
     

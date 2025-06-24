@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using ChatCaster.Core.Services;
 using ChatCaster.Windows.Services;
+using ChatCaster.Windows.ViewModels;
 using ChatCaster.Windows.ViewModels.Settings;
 
 namespace ChatCaster.Windows.Views.ViewSettings;
@@ -17,7 +18,7 @@ public partial class ControlSettingsView : Page
     }
 
     // Конструктор с сервисами
-    public ControlSettingsView(GamepadService gamepadService, 
+    public ControlSettingsView(Services.GamepadService.MainGamepadService gamepadService, 
                               SystemIntegrationService systemService, 
                               ConfigurationService configurationService,
                               ServiceContext serviceContext) : this()

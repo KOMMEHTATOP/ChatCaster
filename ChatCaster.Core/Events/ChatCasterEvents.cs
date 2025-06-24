@@ -59,6 +59,8 @@ public class GamepadDisconnectedEvent : GamepadEvent
 public class GamepadShortcutPressedEvent : GamepadEvent
 {
     public GamepadShortcut Shortcut { get; set; } = new();
+    public GamepadState CurrentState { get; set; } = new();  
+    public int HoldTimeMs { get; set; }                  
 }
 
 /// <summary>

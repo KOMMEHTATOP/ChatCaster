@@ -3,76 +3,47 @@ namespace ChatCaster.Core.Models;
 /// <summary>
 /// Кнопки геймпада (расширенная версия)
 /// </summary>
+/// <summary>
+/// Кнопки геймпада (упрощенная версия для XInput)
+/// </summary>
 public enum GamepadButton
 {
-    // Стандартные кнопки XInput
+    // Основные кнопки
     A,
     B, 
     X,
     Y,
+    
+    // Бамперы и триггеры
     LeftBumper,
     RightBumper,
     LeftTrigger,
     RightTrigger,
+    
+    // Системные кнопки
     Back,
     Start,
+    Guide,           // Xbox кнопка
+    
+    // Стики (нажатие)
     LeftStick,
     RightStick,
+    
+    // D-Pad
     DPadUp,
     DPadDown,
     DPadLeft,
-    DPadRight,
-    Guide,           // Xbox кнопка
-    
-    // Дополнительные кнопки Elite/Pro контроллеров
-    Paddle1,         // P1 - левая верхняя лопасть
-    Paddle2,         // P2 - левая нижняя лопасть  
-    Paddle3,         // P3 - правая верхняя лопасть
-    Paddle4,         // P4 - правая нижняя лопасть
-    
-    // Дополнительные кнопки некоторых контроллеров
-    ExtraButton1,    // M1/Extra
-    ExtraButton2,    // M2/Extra
-    ExtraButton3,    // M3/Extra
-    ExtraButton4,    // M4/Extra
-    
-    // Кнопки профилей (если поддерживаются)
-    ProfileButton,   // Переключение профилей
-    
-    // Системные кнопки
-    Share,           // Share/Capture кнопка (PS/современные Xbox)
-    Menu,            // Hamburger menu кнопка
-    
-    // Для будущего расширения
-    Custom1,
-    Custom2,
-    Custom3,
-    Custom4
+    DPadRight
 }
 
 /// <summary>
-/// Оси геймпада (стики и триггеры)
-/// </summary>
-public enum GamepadAxis
-{
-    LeftStickX, LeftStickY,
-    RightStickX, RightStickY,
-    LeftTriggerAxis, RightTriggerAxis
-}
-
-/// <summary>
-/// Типы геймпадов
+/// Типы геймпадов (упрощенно)
 /// </summary>
 public enum GamepadType
 {
     Unknown,
-    Xbox360,
-    XboxOne,
-    XboxSeries,
-    PlayStation4,
-    PlayStation5,
-    SteamController,
-    Generic
+    XboxController,  // Любой XInput совместимый
+    Generic         // Для будущего расширения
 }
 
 /// <summary>

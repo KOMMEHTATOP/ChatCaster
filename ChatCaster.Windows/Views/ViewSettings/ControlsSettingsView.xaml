@@ -7,66 +7,88 @@
       mc:Ignorable="d"
       d:DesignHeight="600" d:DesignWidth="800"
       Unloaded="Page_Unloaded">
-    
+
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
-            
+
             <!-- Header секция -->
             <StackPanel Margin="0,0,0,20">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <ui:SymbolIcon Symbol="Games24" 
-                                   FontSize="28" 
+                    <ui:SymbolIcon Symbol="Games24"
+                                   FontSize="28"
                                    Foreground="#1ba1e2"
-                                   Margin="0,0,15,0"/>
-                    <TextBlock Text="Управление" 
-                               FontSize="24" 
+                                   Margin="0,0,15,0" />
+                    <TextBlock Text="Управление"
+                               FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="White"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center" />
                 </StackPanel>
-                <TextBlock Text="Кликните на поле комбинации и нажмите нужные кнопки" 
+                <TextBlock Text="Кликните на поле комбинации и нажмите нужные кнопки"
                            FontSize="14"
-                           Foreground="#cccccc"/>
+                           Foreground="#cccccc" />
             </StackPanel>
 
             <!-- Статус загрузки -->
-            <TextBlock Text="{Binding StatusMessage}" 
+            <TextBlock Text="{Binding StatusMessage}"
                        FontSize="14"
                        Foreground="#1ba1e2"
                        Margin="0,0,0,15"
-                       Visibility="{Binding IsLoadingUI, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                       Visibility="{Binding IsLoadingUI, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
             <!-- Настройки управления -->
-            <Border Margin="0,0,0,20" 
+            <Border Margin="0,0,0,20"
                     CornerRadius="12"
                     MinHeight="200">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2d2d30" Offset="0"/>
-                        <GradientStop Color="#3a3a3d" Offset="1"/>
+                        <GradientStop Color="#2d2d30" Offset="0" />
+                        <GradientStop Color="#3a3a3d" Offset="1" />
                     </LinearGradientBrush>
                 </Border.Background>
                 <Grid Margin="25">
                     <StackPanel>
-                        
-                        <!-- Геймпад секция -->
+
+                        <!-- Геймпад секция с улучшенным UI -->
                         <StackPanel Margin="0,0,0,30">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <ui:SymbolIcon Symbol="Games20" 
-                                               FontSize="18" 
+                                <ui:SymbolIcon Symbol="Games20"
+                                               FontSize="18"
                                                Foreground="#1ba1e2"
                                                Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                <TextBlock Text="Геймпад:" 
-                                           FontSize="16" 
+                                               VerticalAlignment="Center" />
+                                <TextBlock Text="Геймпад:"
+                                           FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="White"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center" />
+
+                                <!-- Таймер обратного отсчета -->
+                                <Border Background="#ff6b6b"
+                                        CornerRadius="10"
+                                        Padding="8,4"
+                                        Margin="10,0,0,0"
+                                        Visibility="{Binding ShowGamepadTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Clock12"
+                                                       FontSize="14"
+                                                       Foreground="White"
+                                                       Margin="0,0,4,0" />
+                                        <TextBlock Text="{Binding GamepadCaptureTimeLeft}"
+                                                   FontSize="12"
+                                                   FontWeight="Bold"
+                                                   Foreground="White" />
+                                        <TextBlock Text="с"
+                                                   FontSize="12"
+                                                   Foreground="White"
+                                                   Margin="2,0,0,0" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                            
+
                             <!-- Поле геймпад комбинации -->
                             <Border x:Name="GamepadComboBorder"
-                                    Background="#404040" 
+                                    Background="#404040"
                                     BorderBrush="#606060"
                                     BorderThickness="1"
                                     CornerRadius="6"
@@ -79,51 +101,106 @@
                                     <Style TargetType="Border">
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#505050"/>
-                                                <Setter Property="BorderBrush" Value="#1ba1e2"/>
+                                                <Setter Property="Background" Value="#505050" />
+                                                <Setter Property="BorderBrush" Value="#1ba1e2" />
                                             </Trigger>
                                             <DataTrigger Binding="{Binding IsWaitingForGamepadInput}" Value="True">
-                                                <Setter Property="BorderBrush" Value="#ff9800"/>
-                                                <Setter Property="Background" Value="#4a4a00"/>
+                                                <Setter Property="BorderBrush" Value="#ff6b6b" />
+                                                <Setter Property="Background" Value="#4a2c2c" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding GamepadComboText}" 
-                                           FontSize="16"
-                                           FontWeight="Medium"
-                                           Foreground="White"
-                                           HorizontalAlignment="Left"/>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding GamepadComboText}"
+                                               FontSize="16"
+                                               FontWeight="Medium"
+                                               Foreground="{Binding GamepadComboTextColor}"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center" />
+
+                                    <!-- Индикатор захвата -->
+                                    <Border Background="{Binding GamepadComboTextColor}"
+                                            Width="8"
+                                            Height="8"
+                                            CornerRadius="4"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding IsWaitingForGamepadInput, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Border.RenderTransform>
+                                            <ScaleTransform />
+                                        </Border.RenderTransform>
+                                        <Border.Triggers>
+                                            <EventTrigger RoutedEvent="Border.Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            From="1" To="1.5" Duration="0:0:0.8"
+                                                            AutoReverse="True" />
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            From="1" To="1.5" Duration="0:0:0.8"
+                                                            AutoReverse="True" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Border.Triggers>
+                                    </Border>
+                                </StackPanel>
                             </Border>
-                            
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <Ellipse Width="10" Height="10" 
+                                <Ellipse Width="10" Height="10"
                                          Fill="{Binding GamepadStatusColor}"
-                                         Margin="0,0,8,0"/>
-                                <TextBlock Text="{Binding GamepadStatusText}" 
+                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding GamepadStatusText}"
                                            FontSize="13"
-                                           Foreground="{Binding GamepadStatusColor}"/>
+                                           Foreground="{Binding GamepadStatusColor}" />
                             </StackPanel>
                         </StackPanel>
-                        
-                        <!-- Клавиатура секция -->
-                        <StackPanel>
+
+                        <!-- Клавиатура секция с улучшенным UI -->
+                        <StackPanel Margin="0,0,0,30">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <ui:SymbolIcon Symbol="Keyboard20" 
-                                               FontSize="18" 
+                                <ui:SymbolIcon Symbol="Keyboard24"
+                                               FontSize="18"
                                                Foreground="#1ba1e2"
                                                Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                <TextBlock Text="Клавиатура:" 
-                                           FontSize="16" 
+                                               VerticalAlignment="Center" />
+                                <TextBlock Text="Клавиатура:"
+                                           FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="White"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center" />
+
+                                <!-- Таймер обратного отсчета для клавиатуры -->
+                                <Border Background="#ff6b6b"
+                                        CornerRadius="10"
+                                        Padding="8,4"
+                                        Margin="10,0,0,0"
+                                        Visibility="{Binding ShowKeyboardTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Clock12"
+                                                       FontSize="14"
+                                                       Foreground="White"
+                                                       Margin="0,0,4,0" />
+                                        <TextBlock Text="{Binding KeyboardCaptureTimeLeft}"
+                                                   FontSize="12"
+                                                   FontWeight="Bold"
+                                                   Foreground="White" />
+                                        <TextBlock Text="с"
+                                                   FontSize="12"
+                                                   Foreground="White"
+                                                   Margin="2,0,0,0" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                            
-                            <!-- Поле клавиатурной комбинации -->
+
+                            <!-- Поле клавиатуры комбинации -->
                             <Border x:Name="KeyboardComboBorder"
-                                    Background="#404040" 
+                                    Background="#404040"
                                     BorderBrush="#606060"
                                     BorderThickness="1"
                                     CornerRadius="6"
@@ -136,39 +213,70 @@
                                     <Style TargetType="Border">
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#505050"/>
-                                                <Setter Property="BorderBrush" Value="#1ba1e2"/>
+                                                <Setter Property="Background" Value="#505050" />
+                                                <Setter Property="BorderBrush" Value="#1ba1e2" />
                                             </Trigger>
                                             <DataTrigger Binding="{Binding IsWaitingForKeyboardInput}" Value="True">
-                                                <Setter Property="BorderBrush" Value="#ff9800"/>
-                                                <Setter Property="Background" Value="#4a4a00"/>
+                                                <Setter Property="BorderBrush" Value="#ff6b6b" />
+                                                <Setter Property="Background" Value="#4a2c2c" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding KeyboardComboText}"
-                                           FontSize="16"
-                                           FontWeight="Medium"
-                                           Foreground="White"
-                                           HorizontalAlignment="Left"/>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding KeyboardComboText}"
+                                               FontSize="16"
+                                               FontWeight="Medium"
+                                               Foreground="{Binding KeyboardComboTextColor}"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center" />
+
+                                    <!-- Индикатор захвата для клавиатуры -->
+                                    <Border Background="{Binding KeyboardComboTextColor}"
+                                            Width="8"
+                                            Height="8"
+                                            CornerRadius="4"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding IsWaitingForKeyboardInput, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Border.RenderTransform>
+                                            <ScaleTransform />
+                                        </Border.RenderTransform>
+                                        <Border.Triggers>
+                                            <EventTrigger RoutedEvent="Border.Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            From="1" To="1.5" Duration="0:0:0.8"
+                                                            AutoReverse="True" />
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            From="1" To="1.5" Duration="0:0:0.8"
+                                                            AutoReverse="True" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Border.Triggers>
+                                    </Border>
+                                </StackPanel>
                             </Border>
-                            
-                            <StackPanel Orientation="Horizontal">
-                                <ui:SymbolIcon Symbol="Info16" 
-                                               FontSize="14" 
-                                               Foreground="#888888"
-                                               Margin="0,0,6,0"
-                                               VerticalAlignment="Center"/>
-                                <TextBlock Text="Кликните и нажмите нужную комбинацию клавиш" 
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                <Ellipse Width="10" Height="10"
+                                         Fill="{Binding KeyboardStatusColor}"
+                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding KeyboardStatusText}"
                                            FontSize="13"
-                                           Foreground="#888888"/>
+                                           Foreground="{Binding KeyboardStatusColor}" />
                             </StackPanel>
                         </StackPanel>
-                        
+
                     </StackPanel>
                 </Grid>
             </Border>
-            
+
         </StackPanel>
     </ScrollViewer>
 </Page>

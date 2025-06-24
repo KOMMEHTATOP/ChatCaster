@@ -12,15 +12,18 @@ namespace ChatCaster.Windows.ViewModels
 {
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
+
         #region Services
+
         private readonly AudioCaptureService _audioService;
         private readonly SpeechRecognitionService _speechService;
-        private readonly GamepadService _gamepadService;
+        private readonly Services.GamepadService.MainGamepadService _gamepadService;
         private readonly OverlayService _overlayService;
         private readonly SystemIntegrationService _systemService;
         private readonly ServiceContext _serviceContext;
         private readonly TrayService _trayService;
         private readonly NavigationManager _navigationManager;
+
         #endregion
 
         #region Observable Properties
@@ -110,7 +113,7 @@ namespace ChatCaster.Windows.ViewModels
         public ChatCasterWindowViewModel(
             AudioCaptureService audioService,
             SpeechRecognitionService speechService,
-            GamepadService gamepadService,
+            Services.GamepadService.MainGamepadService gamepadService,
             SystemIntegrationService systemService,
             OverlayService overlayService,
             ConfigurationService configService,
@@ -152,20 +155,41 @@ namespace ChatCaster.Windows.ViewModels
             {
                 Console.WriteLine("🔥 [ViewModel] Инициализация начата");
 
+                Console.WriteLine("🔧 [ViewModel] Загружаем конфигурацию...");
                 CurrentConfig = await _serviceContext.ConfigurationService!.LoadConfigAsync();
                 _serviceContext.Config = CurrentConfig;
                 _trayService.SetConfig(CurrentConfig);
+                Console.WriteLine("✅ [ViewModel] Конфигурация загружена");
 
+                Console.WriteLine("🎤 [ViewModel] Инициализируем сервис распознавания речи...");
                 await _speechService.InitializeAsync(CurrentConfig.Whisper);
+                Console.WriteLine("✅ [ViewModel] Сервис распознавания речи инициализирован");
 
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
+                    Console.WriteLine(
+                        $"⌨️ [ViewModel] Регистрируем хоткей: {CurrentConfig.Input.KeyboardShortcut.Key} + {CurrentConfig.Input.KeyboardShortcut.Modifiers}");
                     bool registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
                     Console.WriteLine($"📝 [ViewModel] Хоткей зарегистрирован: {registered}");
                 }
 
+                // Инициализируем геймпад координатор
+                Console.WriteLine("🎮 [ViewModel] Проверяем GamepadVoiceCoordinator...");
+
+                if (_serviceContext?.GamepadVoiceCoordinator != null)
+                {
+                    Console.WriteLine("🎮 [ViewModel] GamepadVoiceCoordinator найден, начинаем инициализацию...");
+                    bool gamepadInitialized = await _serviceContext.GamepadVoiceCoordinator.InitializeAsync();
+                    Console.WriteLine($"🎮 [ViewModel] Геймпад инициализирован: {gamepadInitialized}");
+                }
+                else
+                {
+                    Console.WriteLine("❌ [ViewModel] GamepadVoiceCoordinator НЕ НАЙДЕН в ServiceContext!");
+                }
+
                 if (CurrentConfig.System.StartMinimized)
                 {
+                    Console.WriteLine("🔽 [ViewModel] Запуск в свернутом виде");
                     WindowState = WindowState.Minimized;
                 }
 
@@ -175,9 +199,10 @@ namespace ChatCaster.Windows.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ [ViewModel] Ошибка инициализации: {ex.Message}");
+                Console.WriteLine($"❌ [ViewModel] StackTrace: {ex.StackTrace}");
             }
         }
-
+        
         public void NavigateToSettings()
         {
             _navigationManager.NavigateToSettings();
@@ -189,6 +214,11 @@ namespace ChatCaster.Windows.ViewModels
 
             _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
             _navigationManager.NavigationChanged -= OnNavigationChanged;
+
+            if (_serviceContext.GamepadVoiceCoordinator != null)
+            {
+                Task.Run(async () => await _serviceContext.GamepadVoiceCoordinator.ShutdownAsync());
+            }
 
             // Теперь можем вызывать Dispose напрямую
             _gamepadService?.Dispose();
@@ -209,7 +239,7 @@ namespace ChatCaster.Windows.ViewModels
         {
             CurrentPage = e.Page;
             CurrentPageTag = e.PageTag;
-            
+
             // Уведомляем об изменении всех button background свойств
             OnPropertyChanged(nameof(MainButtonBackground));
             OnPropertyChanged(nameof(AudioButtonBackground));
@@ -303,6 +333,7 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 var mainPage = _navigationManager.GetMainPageIfVisible();
+
                 if (mainPage != null)
                 {
                     Console.WriteLine($"📱 Обновляем UI MainPageView");
@@ -353,5 +384,6 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         #endregion
+
     }
 }

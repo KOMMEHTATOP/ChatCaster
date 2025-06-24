@@ -26,13 +26,17 @@ namespace ChatCaster.Windows.Views
             Console.InputEncoding = System.Text.Encoding.UTF8;
 
             // Создание сервисов
+            Console.WriteLine("🔧 [Window] Создаем основные сервисы...");
             var audioService = new AudioCaptureService();
             var speechService = new SpeechRecognitionService();
-            var gamepadService = new GamepadService();
+            Console.WriteLine("🎮 [Window] Создаем MainGamepadService...");
+            var gamepadService = new Services.GamepadService.MainGamepadService();
+            Console.WriteLine("🎮 [Window] MainGamepadService создан");
             var systemService = new SystemIntegrationService();
             var overlayService = new OverlayService();
             var configService = new ConfigurationService();
-
+            
+            Console.WriteLine("🔧 [Window] Создаем VoiceRecordingService...");
             // Создание VoiceRecordingService
             var voiceRecordingService = new VoiceRecordingService(
                 audioService,
@@ -42,6 +46,7 @@ namespace ChatCaster.Windows.Views
 
             overlayService.SubscribeToVoiceService(voiceRecordingService, configService);
 
+            Console.WriteLine("🔧 [Window] Создаем ServiceContext...");
             // Создание ServiceContext
             var serviceContext = new ServiceContext(new AppConfig())
             {
@@ -54,6 +59,21 @@ namespace ChatCaster.Windows.Views
                 VoiceRecordingService = voiceRecordingService
             };
 
+            Console.WriteLine("🎮 [Window] Создаем GamepadVoiceCoordinator...");
+            var gamepadVoiceCoordinator = new Services.GamepadService.GamepadVoiceCoordinator(
+                gamepadService,
+                voiceRecordingService,
+                systemService,
+                configService
+            );
+            Console.WriteLine("🎮 [Window] GamepadVoiceCoordinator создан");
+            
+            
+            // Добавляем координатор в ServiceContext
+            serviceContext.GamepadVoiceCoordinator = gamepadVoiceCoordinator;
+            Console.WriteLine("🎮 [Window] GamepadVoiceCoordinator добавлен в ServiceContext");
+
+            Console.WriteLine("🔧 [Window] Создаем TrayService...");
             // Создание TrayService
             var trayService = new TrayService(this);
             trayService.Initialize();

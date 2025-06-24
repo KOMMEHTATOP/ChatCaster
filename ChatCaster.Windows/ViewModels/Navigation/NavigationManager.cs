@@ -13,7 +13,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         // Сервисы для создания страниц
         private readonly AudioCaptureService _audioService;
         private readonly SpeechRecognitionService _speechService;
-        private readonly GamepadService _gamepadService;
+        private readonly Services.GamepadService.MainGamepadService _gamepadService;
         private readonly SystemIntegrationService _systemService;
         private readonly OverlayService _overlayService;
         private readonly ConfigurationService _configService;
@@ -28,7 +28,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         public NavigationManager(
             AudioCaptureService audioService,
             SpeechRecognitionService speechService,
-            GamepadService gamepadService,
+            Services.GamepadService.MainGamepadService gamepadService,
             SystemIntegrationService systemService,
             OverlayService overlayService,
             ConfigurationService configService,

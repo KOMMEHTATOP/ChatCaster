@@ -42,37 +42,14 @@ public static class AppConstants
     public const int MaxPollingRateMs = 100;
     public const int DefaultPollingRateMs = 16; // ~60 FPS
     
+    // НОВЫЕ КОНСТАНТЫ ДЛЯ ЗАХВАТА КОМБИНАЦИЙ
+    public const int MinHoldTimeMs = 50; // Минимальное время удержания кнопок
+    public const int CapturePollingRateMs = 16; // Частота опроса при захвате (~60 FPS)
+    public const int ComboDetectionTimeoutMs = 200; // Время ожидания дополнительных кнопок в комбинации
+    public const int CaptureTimeoutSeconds = 5; // Таймаут захвата комбинации
+    
     // Whisper
     public const int DefaultMaxTokens = 224;
     public const int MinMaxTokens = 50;
     public const int MaxMaxTokens = 500;
-}
-
-/// <summary>
-/// Сообщения для UI
-/// </summary>
-public static class Messages
-{
-    // Статусы записи
-    public const string StatusIdle = "Готов к записи";
-    public const string StatusRecording = "Запись голоса...";
-    public const string StatusProcessing = "Обработка...";
-    public const string StatusCompleted = "Текст распознан";
-    public const string StatusError = "Ошибка";
-    public const string StatusCancelled = "Отменено";
-    
-    // Ошибки
-    public const string ErrorNoMicrophone = "Микрофон не найден";
-    public const string ErrorNoGamepad = "Геймпад не подключен";
-    public const string ErrorWhisperInit = "Не удалось инициализировать Whisper";
-    public const string ErrorRecordingFailed = "Ошибка записи";
-    public const string ErrorRecognitionFailed = "Ошибка распознавания";
-    public const string ErrorConfigLoad = "Ошибка загрузки настроек";
-    public const string ErrorConfigSave = "Ошибка сохранения настроек";
-    
-    // Уведомления
-    public const string NotificationRecordingStarted = "Запись начата";
-    public const string NotificationTextRecognized = "Текст распознан и вставлен";
-    public const string NotificationGamepadConnected = "Геймпад подключен";
-    public const string NotificationGamepadDisconnected = "Геймпад отключен";
 }

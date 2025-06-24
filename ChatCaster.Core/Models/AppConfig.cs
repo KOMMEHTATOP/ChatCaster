@@ -48,7 +48,36 @@ public class GamepadShortcut
     public GamepadButton SecondaryButton { get; set; } = GamepadButton.RightBumper;
     public bool RequireBothButtons { get; set; } = true;
     public int HoldTimeMs { get; set; } = 100; // Минимальное время удержания
+    
+    /// <summary>
+    /// Проверяет соответствие состояния геймпада этому шорткату
+    /// </summary>
+    public bool IsPressed(GamepadState state)
+    {
+        var primaryPressed = state.IsButtonPressed(PrimaryButton);
+        var secondaryPressed = state.IsButtonPressed(SecondaryButton);
+        
+        if (RequireBothButtons)
+        {
+            return primaryPressed && secondaryPressed;
+        }
+        
+        return primaryPressed || secondaryPressed;
+    }
+    
+    /// <summary>
+    /// Текстовое представление комбинации для UI
+    /// </summary>
+    public string DisplayText
+    {
+        get => RequireBothButtons && PrimaryButton != SecondaryButton
+            ? $"{PrimaryButton} + {SecondaryButton}"
+            : PrimaryButton.ToString(); // Показываем только одну кнопку если они одинаковые
+    }
 }
+
+
+
 
 /// <summary>
 /// Горячая клавиша клавиатуры
@@ -58,8 +87,49 @@ public class KeyboardShortcut
     public ModifierKeys Modifiers { get; set; } = ModifierKeys.Control | ModifierKeys.Shift;
     public Key Key { get; set; } = Key.V;
     public bool IsGlobal { get; set; } = true;
-}
+    
+    /// <summary>
+    /// Текстовое представление комбинации для UI
+    /// </summary>
+    public string DisplayText
+    {
+        get
+        {
+            var parts = new List<string>();
 
+            if (Modifiers.HasFlag(ModifierKeys.Control))
+                parts.Add("Ctrl");
+            if (Modifiers.HasFlag(ModifierKeys.Shift))
+                parts.Add("Shift");
+            if (Modifiers.HasFlag(ModifierKeys.Alt))
+                parts.Add("Alt");
+            if (Modifiers.HasFlag(ModifierKeys.Windows))
+                parts.Add("Win");
+
+            parts.Add(GetKeyDisplayName(Key));
+
+            return string.Join(" + ", parts);
+        }
+    }
+    
+    private string GetKeyDisplayName(Key key)
+    {
+        return key switch
+        {
+            Key.D0 => "0", Key.D1 => "1", Key.D2 => "2", Key.D3 => "3", Key.D4 => "4",
+            Key.D5 => "5", Key.D6 => "6", Key.D7 => "7", Key.D8 => "8", Key.D9 => "9",
+            Key.NumPad0 => "NumPad0", Key.NumPad1 => "NumPad1", Key.NumPad2 => "NumPad2",
+            Key.NumPad3 => "NumPad3", Key.NumPad4 => "NumPad4", Key.NumPad5 => "NumPad5",
+            Key.NumPad6 => "NumPad6", Key.NumPad7 => "NumPad7", Key.NumPad8 => "NumPad8",
+            Key.NumPad9 => "NumPad9",
+            Key.Space => "Space",
+            Key.Enter => "Enter",
+            Key.Tab => "Tab",
+            Key.Escape => "Esc",
+            _ => key.ToString()
+        };
+    }
+}
 /// <summary>
 /// Настройки overlay индикатора
 /// </summary>

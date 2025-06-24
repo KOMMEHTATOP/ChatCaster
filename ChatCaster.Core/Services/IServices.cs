@@ -61,23 +61,29 @@ public interface ISpeechRecognitionService
 }
 
 /// <summary>
-/// Сервис для работы с геймпадами (Platform-specific)
+/// Упрощенный сервис для работы с геймпадами (только XInput)
 /// </summary>
 public interface IGamepadService
 {
+    // События
     event EventHandler<GamepadConnectedEvent>? GamepadConnected;
     event EventHandler<GamepadDisconnectedEvent>? GamepadDisconnected;
     event EventHandler<GamepadShortcutPressedEvent>? ShortcutPressed;
     
-    Task StartMonitoringAsync(InputConfig config);
+    // Управление мониторингом
+    Task StartMonitoringAsync(GamepadShortcut shortcut);
     Task StopMonitoringAsync();
     
-    Task<IEnumerable<GamepadInfo>> GetConnectedGamepadsAsync();
-    GamepadState? GetGamepadState(int index);
-    GamepadInfo? GetActiveGamepadSync();
-
+    // Получение информации
+    Task<GamepadInfo?> GetConnectedGamepadAsync();
+    GamepadState? GetCurrentState();
+    
+    // Статус
     bool IsMonitoring { get; }
-    int ConnectedGamepadCount { get; }
+    bool IsGamepadConnected { get; }
+    
+    // Тестирование (для UI настроек)
+    Task<bool> TestConnectionAsync();
 }
 
 /// <summary>
