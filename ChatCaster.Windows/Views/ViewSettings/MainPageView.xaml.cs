@@ -11,7 +11,6 @@ namespace ChatCaster.Windows.Views.ViewSettings
     {
         private readonly AudioCaptureService? _audioCaptureService;
         private readonly ServiceContext? _serviceContext;
-        private readonly OverlayService? _overlayService;
 
         public MainPageView()
         {
@@ -20,17 +19,14 @@ namespace ChatCaster.Windows.Views.ViewSettings
         }
 
         // Конструктор с сервисами
-        public MainPageView(AudioCaptureService audioCaptureService, 
-                           SpeechRecognitionService speechRecognitionService, 
-                           ServiceContext serviceContext, OverlayService overlayService) : this()
+        public MainPageView(AudioCaptureService audioCaptureService, ServiceContext serviceContext) : this()
         {
             _audioCaptureService = audioCaptureService;
             _serviceContext = serviceContext;
-            _overlayService = overlayService;
             
             LoadCurrentDevice();
             
-            // НОВОЕ: Подписываемся на события VoiceRecordingService
+            // Подписываемся на события VoiceRecordingService
             if (serviceContext?.VoiceRecordingService != null)
             {
                 serviceContext.VoiceRecordingService.StatusChanged += OnRecordingStatusChanged;
@@ -59,7 +55,7 @@ namespace ChatCaster.Windows.Views.ViewSettings
             }
         }
 
-        // НОВОЕ: Обработчик изменения состояния записи
+        // Обработчик изменения состояния записи
         private void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
         {
             Dispatcher.InvokeAsync(() =>
@@ -91,7 +87,7 @@ namespace ChatCaster.Windows.Views.ViewSettings
             });
         }
 
-        // НОВОЕ: Обработчик завершения распознавания
+        // Обработчик завершения распознавания
         private void OnRecognitionCompleted(object? sender, VoiceRecognitionCompletedEvent e)
         {
             Dispatcher.InvokeAsync(() =>
@@ -106,10 +102,6 @@ namespace ChatCaster.Windows.Views.ViewSettings
 
                     ConfidenceText.Text = $"Уверенность: {result.Confidence:P0}";
                     ProcessingTimeText.Text = $"Время: {result.ProcessingTime.TotalMilliseconds:F0}мс";
-
-                    Console.WriteLine($"✅ [MainPageView] Отображаем результат: '{result.RecognizedText}'");
-                    
-                    // Показываем уведомление если включено (через TrayService будет показано)
                 }
                 else
                 {
@@ -119,7 +111,6 @@ namespace ChatCaster.Windows.Views.ViewSettings
             });
         }
 
-        // УПРОЩЕННЫЙ: Кнопка теперь работает через VoiceRecordingService
         private async void RecordButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -133,60 +124,50 @@ namespace ChatCaster.Windows.Views.ViewSettings
 
                 if (voiceService.IsRecording)
                 {
-                    Console.WriteLine("🛑 [MainPageView] Останавливаем запись через VoiceRecordingService");
                     await voiceService.StopRecordingAsync();
                 }
                 else
                 {
-                    Console.WriteLine("🎤 [MainPageView] Начинаем запись через VoiceRecordingService");
                     await voiceService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
                 ShowError($"Ошибка: {ex.Message}");
-                Console.WriteLine($"❌ [MainPageView] Ошибка в RecordButton_Click: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// НОВЫЙ: Метод для хоткея - теперь работает через VoiceRecordingService
+        /// Метод для хоткея - работает через VoiceRecordingService
         /// </summary>
         public async Task TriggerRecordingFromHotkey()
         {
             try
             {
-                Console.WriteLine($"🎤 [MainPageView] TriggerRecordingFromHotkey - переадресация к VoiceRecordingService");
-                
                 var voiceService = _serviceContext?.VoiceRecordingService;
                 if (voiceService == null)
                 {
-                    Console.WriteLine($"❌ [MainPageView] VoiceRecordingService недоступен");
                     ShowError("Сервис записи недоступен");
                     return;
                 }
 
                 if (voiceService.IsRecording)
                 {
-                    Console.WriteLine($"📝 [MainPageView] Останавливаем запись через сервис");
                     await voiceService.StopRecordingAsync();
                 }
                 else
                 {
-                    Console.WriteLine($"📝 [MainPageView] Начинаем запись через сервис");
                     await voiceService.StartRecordingAsync();
                 }
-
-                Console.WriteLine($"🎤 [MainPageView] TriggerRecordingFromHotkey завершен");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [MainPageView] Ошибка в TriggerRecordingFromHotkey: {ex.Message}");
                 ShowError($"Ошибка хоткея: {ex.Message}");
             }
         }
 
-        // ТОЛЬКО UI МЕТОДЫ - никакой бизнес-логики
+        // ===== ВНУТРЕННИЕ HELPER МЕТОДЫ =====
+
         public void ShowError(string message)
         {
             ResultText.Text = message;
@@ -197,8 +178,6 @@ namespace ChatCaster.Windows.Views.ViewSettings
             ProcessingTimeText.Text = "Время: -";
 
             UpdateRecordingStatus("Ошибка", "#f44336");
-            
-            Console.WriteLine($"❌ [MainPageView] Ошибка: {message}");
         }
 
         public void ClearResults()
@@ -221,56 +200,11 @@ namespace ChatCaster.Windows.Views.ViewSettings
         public void UpdateRecordingButton(string content, string iconSymbol)
         {
             RecordButton.Content = content;
-            // TODO: Обновить иконку кнопки если нужно
+            // Обновить иконку кнопки если нужно
         }
 
-        // Методы для внешнего управления UI
-        public void UpdateDeviceStatus(string deviceName)
-        {
-            CurrentDeviceText.Text = $"Устройство: {deviceName}";
-        }
-
-        public void UpdateConnectionStatus(bool isConnected)
-        {
-            if (isConnected)
-            {
-                UpdateRecordingStatus("Готов к записи", "#4caf50");
-            }
-            else
-            {
-                UpdateRecordingStatus("Не подключен", "#f44336");
-            }
-        }
-
-        // НОВЫЕ методы для обновления из ChatCasterWindow
-        public void UpdateRecordingState(bool isRecording)
-        {
-            if (isRecording)
-            {
-                UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
-                UpdateRecordingStatus("Запись...", "#ff9800");
-                ClearResults();
-            }
-            else
-            {
-                UpdateRecordingButton("🎙️ Записать", "Mic24");
-                UpdateRecordingStatus("Готов к записи", "#4caf50");
-            }
-        }
-
-        public void UpdateRecognizedText(string recognizedText)
-        {
-            if (!string.IsNullOrEmpty(recognizedText))
-            {
-                ResultText.Text = recognizedText;
-                ResultText.Foreground = Brushes.White;
-                ResultText.FontStyle = FontStyles.Normal;
-                
-                Console.WriteLine($"📱 [MainPageView] UI обновлен с текстом: '{recognizedText}'");
-            }
-        }
-
-        // Cleanup при выгрузке страницы
+        // ===== CLEANUP - КРИТИЧЕСКИ ВАЖЕН! =====
+        
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
             try
@@ -281,12 +215,12 @@ namespace ChatCaster.Windows.Views.ViewSettings
                     _serviceContext.VoiceRecordingService.StatusChanged -= OnRecordingStatusChanged;
                     _serviceContext.VoiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
                 }
-
-                Console.WriteLine($"🧹 [MainPageView] Очистка завершена");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [MainPageView] Ошибка при выгрузке: {ex.Message}");
+                // Здесь можно оставить Console.WriteLine для критических ошибок cleanup
+                // или заменить на ваш логгер когда внедрите
+                System.Diagnostics.Debug.WriteLine($"❌ [MainPageView] Ошибка при выгрузке: {ex.Message}");
             }
         }
     }

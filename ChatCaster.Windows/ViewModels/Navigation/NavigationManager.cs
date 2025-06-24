@@ -73,7 +73,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
         private void LoadMainPage()
         {
-            var mainPage = new MainPageView(_audioService, _speechService, _serviceContext, _overlayService);
+            var mainPage = new MainPageView(_audioService, _serviceContext);
             _cachedPages[NavigationConstants.MainPage] = mainPage;
             CurrentPage = mainPage;
             CurrentPageTag = NavigationConstants.MainPage;
@@ -86,7 +86,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
             Page newPage = pageTag switch
             {
-                NavigationConstants.MainPage => new MainPageView(_audioService, _speechService, _serviceContext, _overlayService),
+                NavigationConstants.MainPage => new MainPageView(_audioService, _serviceContext),
                 NavigationConstants.AudioPage => new AudioSettingsView(_audioService, _speechService, _configService, _serviceContext),
                 NavigationConstants.InterfacePage => new InterfaceSettingsView(_overlayService, _configService, _serviceContext),
                 NavigationConstants.ControlPage => new ControlSettingsView(_gamepadService, _systemService, _configService, _serviceContext),

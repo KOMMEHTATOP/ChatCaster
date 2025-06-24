@@ -8,12 +8,15 @@ using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
 
-namespace ChatCaster.Windows.ViewModels.Settings
+namespace ChatCaster.Windows.ViewModels
 {
     public partial class InterfaceSettingsViewModel : BaseSettingsViewModel
     {
+
         #region Private Services
+
         private readonly OverlayService? _overlayService;
+
         #endregion
 
         #region Observable Properties
@@ -58,7 +61,7 @@ namespace ChatCaster.Windows.ViewModels.Settings
             {
                 StatusMessage = "Показываем overlay для тестирования...";
                 await _overlayService.ShowAsync(RecordingStatus.Recording);
-                
+
                 await Task.Delay(5000);
                 await _overlayService.HideAsync();
                 StatusMessage = "Тест overlay завершен";
@@ -77,7 +80,7 @@ namespace ChatCaster.Windows.ViewModels.Settings
             try
             {
                 await _overlayService.ShowAsync(RecordingStatus.Idle);
-                
+
                 // Скрываем через 3 секунды
                 await Task.Delay(3000);
                 await _overlayService.HideAsync();
@@ -91,15 +94,17 @@ namespace ChatCaster.Windows.ViewModels.Settings
         #endregion
 
         #region Constructor
+
         public InterfaceSettingsViewModel(
             ConfigurationService? configurationService,
             ServiceContext? serviceContext,
             OverlayService? overlayService) : base(configurationService, serviceContext)
         {
             _overlayService = overlayService;
-            
+
             InitializeStaticData();
         }
+
         #endregion
 
         #region BaseSettingsViewModel Implementation
@@ -121,8 +126,6 @@ namespace ChatCaster.Windows.ViewModels.Settings
             MinimizeToTray = !config.System.AllowCompleteExit; // Инвертируем логику
             StartWithWindows = config.System.StartWithWindows;
             StartMinimized = config.System.StartMinimized;
-
-            Console.WriteLine("Настройки интерфейса загружены");
         }
 
         protected override async Task ApplySettingsToConfigAsync(AppConfig config)
@@ -131,7 +134,7 @@ namespace ChatCaster.Windows.ViewModels.Settings
             config.Overlay.IsEnabled = ShowOverlay;
             config.Overlay.Position = SelectedPosition?.Position ?? OverlayPosition.TopRight;
             config.Overlay.Opacity = (float)(OverlayOpacity / 100.0);
-            
+
             // Обновляем системные настройки
             config.System.ShowNotifications = ShowNotifications;
             config.System.AllowCompleteExit = !MinimizeToTray;
@@ -222,12 +225,13 @@ namespace ChatCaster.Windows.ViewModels.Settings
                 case nameof(StartWithWindows):
                 case nameof(StartMinimized):
                     await OnUISettingChangedAsync();
-                    
+
                     // Если изменили настройку overlay, показываем предварительный просмотр
                     if (e.PropertyName == nameof(ShowOverlay) && ShowOverlay)
                     {
                         await ShowOverlayPreview();
                     }
+
                     break;
             }
         }
@@ -238,6 +242,7 @@ namespace ChatCaster.Windows.ViewModels.Settings
         }
 
         #endregion
+
     }
 
     #region Helper Classes
@@ -257,4 +262,5 @@ namespace ChatCaster.Windows.ViewModels.Settings
     }
 
     #endregion
+
 }

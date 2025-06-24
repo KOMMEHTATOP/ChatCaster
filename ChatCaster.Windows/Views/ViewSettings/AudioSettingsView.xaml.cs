@@ -15,7 +15,7 @@ public partial class AudioSettingsView : Page
 
     private bool _isTestingMicrophone = false;
     private bool _isDownloadingModel = false;
-    private bool _isLoadingUI = false; // Флаг чтобы не применять настройки во время загрузки UI
+    private bool _isLoadingUi = false; // Флаг чтобы не применять настройки во время загрузки UI
 
     public AudioSettingsView()
     {
@@ -37,7 +37,7 @@ public partial class AudioSettingsView : Page
 
     private async void LoadInitialData()
     {
-        _isLoadingUI = true;
+        _isLoadingUi = true;
         
         // Устанавливаем значения по умолчанию для UI элементов
         MaxDurationSlider.Value = 30;
@@ -55,12 +55,12 @@ public partial class AudioSettingsView : Page
             await CheckModelStatusAsync();
         }
 
-        _isLoadingUI = false;
+        _isLoadingUi = false;
     }
 
     private async void LoadConfigAndDevices()
     {
-        _isLoadingUI = true;
+        _isLoadingUi = true;
         
         // Загружаем устройства и модели
         await LoadMicrophoneDevicesAsync();
@@ -72,7 +72,7 @@ public partial class AudioSettingsView : Page
         // Подписываемся на события изменения UI
         SubscribeToUIEvents();
         
-        _isLoadingUI = false;
+        _isLoadingUi = false;
     }
 
     private void SubscribeToUIEvents()
@@ -140,7 +140,7 @@ public partial class AudioSettingsView : Page
     // Обработчики автоматического применения настроек
     private async void OnSettingChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingUI) return; // Не применяем во время загрузки UI
+        if (_isLoadingUi) return; // Не применяем во время загрузки UI
         
         await ApplyCurrentSettingsAsync();
         
@@ -153,7 +153,7 @@ public partial class AudioSettingsView : Page
 
     private async void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isLoadingUI) return; // Не применяем во время загрузки UI
+        if (_isLoadingUi) return; // Не применяем во время загрузки UI
         
         // Обновляем текст рядом со слайдером
         if (MaxDurationValueText != null)

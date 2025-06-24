@@ -33,7 +33,6 @@ namespace ChatCaster.Windows.Views
             var overlayService = new OverlayService();
             var configService = new ConfigurationService();
             
-            Console.WriteLine("🔧 [Window] Создаем VoiceRecordingService...");
             // Создание VoiceRecordingService
             var voiceRecordingService = new VoiceRecordingService(
                 audioService,
@@ -43,7 +42,6 @@ namespace ChatCaster.Windows.Views
 
             overlayService.SubscribeToVoiceService(voiceRecordingService, configService);
 
-            Console.WriteLine("🔧 [Window] Создаем ServiceContext...");
             // Создание ServiceContext
             var serviceContext = new ServiceContext(new AppConfig())
             {
@@ -70,9 +68,6 @@ namespace ChatCaster.Windows.Views
             
             // Добавляем координатор в ServiceContext
             serviceContext.GamepadVoiceCoordinator = gamepadVoiceCoordinator;
-            Console.WriteLine("🎮 [Window] GamepadVoiceCoordinator добавлен в ServiceContext");
-
-            Console.WriteLine("🔧 [Window] Создаем TrayService...");
 
             // Создание ViewModel
             _viewModel = new ChatCasterWindowViewModel(
@@ -156,7 +151,7 @@ namespace ChatCaster.Windows.Views
             ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeOut);
             await Task.Delay(150);
 
-            // ТЕПЕРЬ выполняем команду ViewModel (обновляет CurrentPage и кнопки)
+            // обновляет CurrentPage и кнопки
             _viewModel.NavigateToPageCommand.Execute(pageTag);
             
             // И навигацию в Frame

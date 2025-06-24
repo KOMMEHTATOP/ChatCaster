@@ -11,7 +11,7 @@ public partial class InterfaceSettingsView : Page
     private readonly ConfigurationService? _configurationService;
     private readonly ServiceContext? _serviceContext;
     
-    private bool _isLoadingUI = false; // Флаг чтобы не применять настройки во время загрузки UI
+    private bool _isLoadingUi = false; // Флаг чтобы не применять настройки во время загрузки UI
 
     public InterfaceSettingsView()
     {
@@ -30,7 +30,7 @@ public partial class InterfaceSettingsView : Page
 
     private void LoadInitialData()
     {
-        _isLoadingUI = true;
+        _isLoadingUi = true;
         
         // Устанавливаем значения по умолчанию
         ShowOverlayCheckBox.IsChecked = true;
@@ -43,14 +43,14 @@ public partial class InterfaceSettingsView : Page
         StartWithWindowsCheckBox.IsChecked = true;
         StartMinimizedCheckBox.IsChecked = false;
 
-        _isLoadingUI = false;
+        _isLoadingUi = false;
     }
 
     private async Task LoadCurrentSettings()
     {
         try
         {
-            _isLoadingUI = true;
+            _isLoadingUi = true;
             
             if (_serviceContext?.Config == null) return;
 
@@ -70,8 +70,6 @@ public partial class InterfaceSettingsView : Page
 
             // Подписываемся на события изменения UI
             SubscribeToUIEvents();
-
-            Console.WriteLine("Настройки интерфейса загружены");
         }
         catch (Exception ex)
         {
@@ -79,7 +77,7 @@ public partial class InterfaceSettingsView : Page
         }
         finally
         {
-            _isLoadingUI = false;
+            _isLoadingUi = false;
         }
     }
 
@@ -104,7 +102,7 @@ public partial class InterfaceSettingsView : Page
     // Обработчики автоматического применения настроек
     private async void OnSettingChanged(object sender, RoutedEventArgs e)
     {
-        if (_isLoadingUI) return;
+        if (_isLoadingUi) return;
 
         await ApplyCurrentSettingsAsync();
 
@@ -117,13 +115,13 @@ public partial class InterfaceSettingsView : Page
 
     private async void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingUI) return;
+        if (_isLoadingUi) return;
         await ApplyCurrentSettingsAsync();
     }
 
     private async void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isLoadingUI) return;
+        if (_isLoadingUi) return;
         
         // Обновляем текст рядом со слайдером
         if (OverlayOpacityValueText != null)
@@ -160,8 +158,6 @@ public partial class InterfaceSettingsView : Page
             // Применяем к overlay сервису
             if (_overlayService != null)
                 await _overlayService.ApplyConfigAsync(config.Overlay);
-
-            Console.WriteLine("Настройки интерфейса автоматически сохранены и применены");
         }
         catch (Exception ex)
         {
@@ -206,29 +202,7 @@ public partial class InterfaceSettingsView : Page
         {
             return position;
         }
-        return OverlayPosition.TopRight; // По умолчанию
-    }
-
-    // Тестирование overlay (можно оставить кнопку если есть в XAML)
-    private async void TestOverlayButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_overlayService == null) return;
-
-        try
-        {
-            await _overlayService.ShowAsync(RecordingStatus.Recording);
-            
-            MessageBox.Show("Overlay показан на 5 секунд для тестирования", "ChatCaster", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            await Task.Delay(5000);
-            await _overlayService.HideAsync();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Ошибка тестирования overlay: {ex.Message}", "ChatCaster", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        return OverlayPosition.TopRight; 
     }
     
     // Cleanup при выгрузке страницы
