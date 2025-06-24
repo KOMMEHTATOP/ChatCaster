@@ -335,19 +335,32 @@ namespace ChatCaster.Windows.ViewModels
         // Геймпад захват
         private async void OnGamepadCaptureCompleted(GamepadShortcut capturedShortcut)
         {
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnGamepadCaptureCompleted: {capturedShortcut.DisplayText}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForGamepadInput ДО: {IsWaitingForGamepadInput}");
+            
             try
             {
+                // ✅ ИСПРАВЛЕНИЕ: Сначала сбрасываем флаг
+                IsWaitingForGamepadInput = false;
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForGamepadInput ПОСЛЕ сброса: {IsWaitingForGamepadInput}");
+                
                 // Сохраняем в конфигурацию
                 _serviceContext.Config.Input.GamepadShortcut = capturedShortcut;
                 await OnUISettingChangedAsync();
 
                 // Обновляем UI
                 GamepadComboText = capturedShortcut.DisplayText;
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] GamepadComboText установлен в: {GamepadComboText}");
+                
                 await _gamepadUIManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
                 _gamepadUIManager.SetIdleState(GamepadComboText);
+                
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnGamepadCaptureCompleted завершен успешно");
             }
             catch (System.Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ [VM] Ошибка в OnGamepadCaptureCompleted: {ex.Message}");
+                IsWaitingForGamepadInput = false; // ✅ И в случае ошибки тоже
                 await _gamepadUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
             }
         }
@@ -360,11 +373,22 @@ namespace ChatCaster.Windows.ViewModels
 
         private void OnGamepadCaptureStatusChanged(string status)
         {
-            if (_gamepadCaptureManager.IsCapturing)
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnGamepadCaptureStatusChanged: {status}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _gamepadCaptureManager.IsCapturing: {_gamepadCaptureManager?.IsCapturing}");
+            
+            if (_gamepadCaptureManager?.IsCapturing == true)
             {
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] Начинаем захват, устанавливаем IsWaitingForGamepadInput = true");
                 _gamepadUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
                 IsWaitingForGamepadInput = true;
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] Захват НЕ активен, устанавливаем IsWaitingForGamepadInput = false");
+                IsWaitingForGamepadInput = false;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForGamepadInput итоговое: {IsWaitingForGamepadInput}");
         }
 
         private async void OnGamepadCaptureError(string error)
@@ -376,9 +400,14 @@ namespace ChatCaster.Windows.ViewModels
         // Клавиатура захват
         private async void OnKeyboardCaptureCompleted(KeyboardShortcut capturedShortcut)
         {
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnKeyboardCaptureCompleted: {capturedShortcut.DisplayText}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForKeyboardInput ДО: {IsWaitingForKeyboardInput}");
+            
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] OnKeyboardCaptureCompleted: {capturedShortcut.DisplayText}");
+                // ✅ ИСПРАВЛЕНИЕ: Сначала сбрасываем флаг
+                IsWaitingForKeyboardInput = false;
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForKeyboardInput ПОСЛЕ сброса: {IsWaitingForKeyboardInput}");
                 
                 // Сохраняем в конфигурацию
                 _serviceContext.Config.Input.KeyboardShortcut = capturedShortcut;
@@ -388,19 +417,24 @@ namespace ChatCaster.Windows.ViewModels
                 bool registered = await _systemService.RegisterGlobalHotkeyAsync(capturedShortcut);
                 if (!registered)
                 {
-                    System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] Ошибка регистрации хоткея");
+                    System.Diagnostics.Debug.WriteLine("[VM] Ошибка регистрации хоткея");
                     await _keyboardUIManager.CompleteWithErrorAsync("Ошибка регистрации хоткея");
                     return;
                 }
 
                 // Обновляем UI
                 KeyboardComboText = capturedShortcut.DisplayText;
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] KeyboardComboText установлен в: {KeyboardComboText}");
+                
                 await _keyboardUIManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
                 _keyboardUIManager.SetIdleState(KeyboardComboText);
+                
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnKeyboardCaptureCompleted завершен успешно");
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] Ошибка в OnKeyboardCaptureCompleted: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ [VM] Ошибка в OnKeyboardCaptureCompleted: {ex.Message}");
+                IsWaitingForKeyboardInput = false; // ✅ И в случае ошибки тоже
                 await _keyboardUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
             }
         }
@@ -413,13 +447,23 @@ namespace ChatCaster.Windows.ViewModels
 
         private void OnKeyboardCaptureStatusChanged(string status)
         {
-            if (_keyboardCaptureManager.IsCapturing)
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] OnKeyboardCaptureStatusChanged: {status}");
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] _keyboardCaptureManager.IsCapturing: {_keyboardCaptureManager?.IsCapturing}");
+            
+            if (_keyboardCaptureManager?.IsCapturing == true)
             {
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] Начинаем захват клавиатуры, устанавливаем IsWaitingForKeyboardInput = true");
                 _keyboardUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
                 IsWaitingForKeyboardInput = true;
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"🔥 [VM] Захват клавиатуры НЕ активен, устанавливаем IsWaitingForKeyboardInput = false");
+                IsWaitingForKeyboardInput = false;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"🔥 [VM] IsWaitingForKeyboardInput итоговое: {IsWaitingForKeyboardInput}");
         }
-
         private async void OnKeyboardCaptureError(string error)
         {
             IsWaitingForKeyboardInput = false;

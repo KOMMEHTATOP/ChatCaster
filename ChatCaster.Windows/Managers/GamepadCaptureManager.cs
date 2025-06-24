@@ -140,23 +140,34 @@ namespace ChatCaster.Windows.Managers
 
         private void OnGamepadShortcutCaptured(object? sender, GamepadShortcut capturedShortcut)
         {
-            if (_isDisposed) return;
+            System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] OnGamepadShortcutCaptured: {capturedShortcut.DisplayText}");
+            
+            if (_isDisposed) 
+            {
+                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] ОТКЛОНЕНО - объект disposed");
+                return;
+            }
 
             try
             {
                 // Останавливаем таймер
                 _captureTimer.Stop();
+                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] Таймер остановлен");
                 
                 // Уведомляем о успешном захвате
                 StatusChanged?.Invoke("Комбинация захвачена!");
+                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] StatusChanged вызвано");
+                
                 CaptureCompleted?.Invoke(capturedShortcut);
+                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] CaptureCompleted вызвано");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ [GamepadCaptureManager] Ошибка: {ex.Message}");
                 CaptureError?.Invoke($"Ошибка обработки захвата: {ex.Message}");
             }
         }
-
+        
         private void OnGamepadCaptureStatusChanged(object? sender, string status)
         {
             if (_isDisposed) return;

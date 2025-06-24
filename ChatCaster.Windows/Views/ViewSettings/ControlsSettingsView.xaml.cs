@@ -32,6 +32,27 @@ public partial class ControlSettingsView : Page
         
         DataContext = _viewModel;
         
+        // ✅ ДОБАВИМ отладку свойств для анимации
+        _viewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(_viewModel.IsWaitingForKeyboardInput))
+            {
+                System.Diagnostics.Debug.WriteLine($"🎨 IsWaitingForKeyboardInput изменен на: {_viewModel.IsWaitingForKeyboardInput}");
+            }
+            if (e.PropertyName == nameof(_viewModel.IsWaitingForGamepadInput))
+            {
+                System.Diagnostics.Debug.WriteLine($"🎨 IsWaitingForGamepadInput изменен на: {_viewModel.IsWaitingForGamepadInput}");
+            }
+            if (e.PropertyName == nameof(_viewModel.KeyboardComboTextColor))
+            {
+                System.Diagnostics.Debug.WriteLine($"🎨 KeyboardComboTextColor изменен на: {_viewModel.KeyboardComboTextColor}");
+            }
+            if (e.PropertyName == nameof(_viewModel.GamepadComboTextColor))
+            {
+                System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboTextColor изменен на: {_viewModel.GamepadComboTextColor}");
+            }
+        };
+        
         // Инициализируем ViewModel
         _ = _viewModel.InitializeAsync();
     }
@@ -39,6 +60,7 @@ public partial class ControlSettingsView : Page
     // Обработчики кликов на поля комбинаций - делегируем в ViewModel
     private async void GamepadComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboBorder_Click вызван");
         if (_viewModel?.StartGamepadCaptureCommand?.CanExecute(null) == true)
         {
             await _viewModel.StartGamepadCaptureCommand.ExecuteAsync(null);
@@ -47,6 +69,7 @@ public partial class ControlSettingsView : Page
 
     private async void KeyboardComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"🎨 KeyboardComboBorder_Click вызван");
         if (_viewModel?.StartKeyboardCaptureCommand?.CanExecute(null) == true)
         {
             await _viewModel.StartKeyboardCaptureCommand.ExecuteAsync(null);

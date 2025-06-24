@@ -120,33 +120,42 @@
                                                HorizontalAlignment="Left"
                                                VerticalAlignment="Center" />
 
-                                    <!-- Индикатор захвата -->
+                                    <!-- Индикатор захвата для геймпада -->
                                     <Border Background="{Binding GamepadComboTextColor}"
-                                            Width="8"
-                                            Height="8"
-                                            CornerRadius="4"
+                                            Width="15"
+                                            Height="15"
+                                            CornerRadius="8"
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             Visibility="{Binding IsWaitingForGamepadInput, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Border.RenderTransform>
                                             <ScaleTransform />
                                         </Border.RenderTransform>
-                                        <Border.Triggers>
-                                            <EventTrigger RoutedEvent="Border.Loaded">
-                                                <BeginStoryboard>
-                                                    <Storyboard RepeatBehavior="Forever">
-                                                        <DoubleAnimation
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
-                                                            From="1" To="1.5" Duration="0:0:0.8"
-                                                            AutoReverse="True" />
-                                                        <DoubleAnimation
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
-                                                            From="1" To="1.5" Duration="0:0:0.8"
-                                                            AutoReverse="True" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </EventTrigger>
-                                        </Border.Triggers>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWaitingForGamepadInput}" Value="True">
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard x:Name="GamepadPulseStoryboard">
+                                                                <Storyboard RepeatBehavior="Forever">
+                                                                    <DoubleAnimation
+                                                                        Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                                        From="1" To="1.5" Duration="0:0:0.8"
+                                                                        AutoReverse="True" />
+                                                                    <DoubleAnimation
+                                                                        Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                                        From="1" To="1.5" Duration="0:0:0.8"
+                                                                        AutoReverse="True" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                        <DataTrigger.ExitActions>
+                                                            <StopStoryboard BeginStoryboardName="GamepadPulseStoryboard" />
+                                                        </DataTrigger.ExitActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                     </Border>
                                 </StackPanel>
                             </Border>
@@ -234,32 +243,41 @@
 
                                     <!-- Индикатор захвата для клавиатуры -->
                                     <Border Background="{Binding KeyboardComboTextColor}"
-                                            Width="8"
-                                            Height="8"
-                                            CornerRadius="4"
+                                            Width="15"
+                                            Height="15"
+                                            CornerRadius="8"
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             Visibility="{Binding IsWaitingForKeyboardInput, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Border.RenderTransform>
                                             <ScaleTransform />
                                         </Border.RenderTransform>
-                                        <Border.Triggers>
-                                            <EventTrigger RoutedEvent="Border.Loaded">
-                                                <BeginStoryboard>
-                                                    <Storyboard RepeatBehavior="Forever">
-                                                        <DoubleAnimation
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
-                                                            From="1" To="1.5" Duration="0:0:0.8"
-                                                            AutoReverse="True" />
-                                                        <DoubleAnimation
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
-                                                            From="1" To="1.5" Duration="0:0:0.8"
-                                                            AutoReverse="True" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </EventTrigger>
-                                        </Border.Triggers>
-                                    </Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWaitingForKeyboardInput}" Value="True">
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard x:Name="KeyboardPulseStoryboard">
+                                                                <Storyboard RepeatBehavior="Forever">
+                                                                    <DoubleAnimation
+                                                                        Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                                        From="1" To="1.5" Duration="0:0:0.8"
+                                                                        AutoReverse="True" />
+                                                                    <DoubleAnimation
+                                                                        Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                                        From="1" To="1.5" Duration="0:0:0.8"
+                                                                        AutoReverse="True" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                        <DataTrigger.ExitActions>
+                                                            <StopStoryboard BeginStoryboardName="KeyboardPulseStoryboard" />
+                                                        </DataTrigger.ExitActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>                                
                                 </StackPanel>
                             </Border>
 

@@ -1,4 +1,6 @@
 
+using System.Windows;
+
 namespace ChatCaster.Windows.Utilities
 {
     /// <summary>
@@ -45,7 +47,7 @@ namespace ChatCaster.Windows.Utilities
         private CaptureUIState _currentState;
         private string _originalText = string.Empty;
         private bool _isDisposed;
-
+        private Timer? _countdownTimer;
         #endregion
 
         #region Color Constants
@@ -115,15 +117,57 @@ namespace ChatCaster.Windows.Utilities
         {
             if (_isDisposed) return;
 
+            // ✅ ОСТАНАВЛИВАЕМ предыдущий таймер если есть
+            _countdownTimer?.Dispose();
+
+            var timeLeft = timeoutSeconds;
+            
             CurrentState = new CaptureUIState
             {
                 Text = capturingMessage,
                 TextColor = CapturingColor,
                 StatusMessage = "Ожидание ввода...",
                 ShowTimer = true,
-                TimeLeft = timeoutSeconds,
+                TimeLeft = timeLeft,
                 State = CaptureState.Capturing
             };
+
+            System.Diagnostics.Debug.WriteLine($"🕐 StartCapture: timeLeft = {timeLeft}");
+
+            // ✅ ЗАПУСКАЕМ таймер обратного отсчета
+            _countdownTimer = new Timer(_ =>
+            {
+                if (_isDisposed || CurrentState.State != CaptureState.Capturing) return;
+
+                timeLeft--;
+                System.Diagnostics.Debug.WriteLine($"🕐 Timer tick: timeLeft = {timeLeft}");
+
+                if (timeLeft >= 0)
+                {
+                    // Обновляем счетчик
+                    Application.Current?.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (!_isDisposed && CurrentState.State == CaptureState.Capturing)
+                        {
+                            CurrentState = new CaptureUIState
+                            {
+                                Text = CurrentState.Text,
+                                TextColor = CurrentState.TextColor,
+                                StatusMessage = CurrentState.StatusMessage,
+                                ShowTimer = true,
+                                TimeLeft = timeLeft,
+                                State = CaptureState.Capturing
+                            };
+                        }
+                    });
+                }
+
+                if (timeLeft <= 0)
+                {
+                    _countdownTimer?.Dispose();
+                    _countdownTimer = null;
+                }
+            }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
         /// <summary>
@@ -156,6 +200,9 @@ namespace ChatCaster.Windows.Utilities
         {
             if (_isDisposed) return;
 
+            // ✅ ИСПРАВЛЕНИЕ: Обновляем _originalText новым значением
+            _originalText = successText;
+
             CurrentState = new CaptureUIState
             {
                 Text = successText,
@@ -170,10 +217,10 @@ namespace ChatCaster.Windows.Utilities
             await Task.Delay(2000);
             if (!_isDisposed)
             {
-                ReturnToIdle();
+                ReturnToIdle(); // ← Теперь вернет НОВЫЙ текст
             }
         }
-
+        
         /// <summary>
         /// Завершает захват с ошибкой
         /// </summary>
@@ -231,6 +278,11 @@ namespace ChatCaster.Windows.Utilities
         public void StopCapture()
         {
             if (_isDisposed) return;
+            
+            // ✅ ОСТАНАВЛИВАЕМ таймер
+            _countdownTimer?.Dispose();
+            _countdownTimer = null;
+            
             ReturnToIdle();
         }
 
@@ -260,6 +312,10 @@ namespace ChatCaster.Windows.Utilities
         public void Dispose()
         {
             if (_isDisposed) return;
+            
+            // ✅ ОСТАНАВЛИВАЕМ таймер при освобождении ресурсов
+            _countdownTimer?.Dispose();
+            _countdownTimer = null;
             
             _isDisposed = true;
             StateChanged = null;

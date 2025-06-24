@@ -120,6 +120,7 @@ namespace ChatCaster.Windows.Views
             }
             else
             {
+                // Всегда вызываем Cleanup при реальном закрытии
                 _viewModel.Cleanup();
             }
         }
@@ -231,6 +232,7 @@ namespace ChatCaster.Windows.Views
 
         protected override void OnClosed(EventArgs e)
         {
+            // Гарантированная очистка при любом закрытии окна
             _viewModel.Cleanup();
             base.OnClosed(e);
         }

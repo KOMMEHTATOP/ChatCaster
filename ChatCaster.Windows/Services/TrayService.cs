@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using ChatCaster.Core.Models;
 using System.IO;
+using Application = System.Windows.Application;
 
 namespace ChatCaster.Windows.Services;
 
@@ -33,11 +34,14 @@ public class TrayService : IDisposable
     public TrayService(Window mainWindow)
     {
         _instanceId = ++_instanceCounter;
-
         _mainWindow = mainWindow;
-        Console.WriteLine($"[TRAY-{_instanceId}] TrayService создан");
-
         
+        // Подписываемся на события закрытия приложения для гарантированной очистки
+        Application.Current.Exit += (s, e) => Dispose();
+        Application.Current.SessionEnding += (s, e) => Dispose();
+        AppDomain.CurrentDomain.ProcessExit += (s, e) => Dispose();
+        
+        Console.WriteLine($"[TRAY-{_instanceId}] TrayService создан");
     }
 
     // Метод для установки конфигурации
@@ -172,12 +176,13 @@ public class TrayService : IDisposable
     {
         try
         {
-            _notifyIcon?.Dispose();
+            Console.WriteLine($"[TRAY-{_instanceId}] ExitApplication вызван");
+            Dispose(); // Сначала очищаем трей
             System.Windows.Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка выхода: {ex.Message}");
+            Console.WriteLine($"[TRAY-{_instanceId}] Ошибка выхода: {ex.Message}");
             Environment.Exit(0);
         }
     }
@@ -215,16 +220,23 @@ public class TrayService : IDisposable
         {
             try
             {
+                Console.WriteLine($"[TRAY-{_instanceId}] Disposing...");
+                
                 if (_notifyIcon != null)
                 {
                     _notifyIcon.Visible = false;
+                    _notifyIcon.Icon?.Dispose(); // Освобождаем иконку
+                    _notifyIcon.ContextMenuStrip?.Dispose(); // Освобождаем меню
                     _notifyIcon.Dispose();
                     _notifyIcon = null;
+                    
+                    // Обновляем трей только если это действительно нужно
+                    // RefreshSystemTray(); удалил 
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка закрытия TrayService: {ex.Message}");
+                Console.WriteLine($"[TRAY-{_instanceId}] Ошибка закрытия: {ex.Message}");
             }
             _isDisposed = true;
         }

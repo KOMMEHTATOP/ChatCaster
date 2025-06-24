@@ -204,42 +204,50 @@ namespace ChatCaster.Windows.Managers
             System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Total registered hotkeys: {registeredCount}");
         }
 
-        private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
+private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
         {
-            if (!IsCapturing || _isDisposed) return;
+            System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] OnHotkeyPressed: {e.Name}");
+            System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] IsCapturing: {IsCapturing}, _isDisposed: {_isDisposed}");
+            
+            if (!IsCapturing || _isDisposed) 
+            {
+                System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] ОТКЛОНЕНО - не захватываем или disposed");
+                return;
+            }
 
             try
             {
-                // Отладочная информация
-                System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Hotkey pressed: {e.Name}");
-                
                 // Получаем информацию о нажатой комбинации из имени хоткея
                 if (TryGetHotkeyInfo(e.Name, out var key, out var modifiers))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Detected: {key} + {modifiers}");
+                    System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Detected: {key} + {modifiers}");
                     
                     var keyboardShortcut = WpfCoreConverter.CreateKeyboardShortcut(key, modifiers);
                     
                     if (keyboardShortcut != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Created shortcut: {keyboardShortcut.DisplayText}");
+                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Created shortcut: {keyboardShortcut.DisplayText}");
                         
                         // Останавливаем захват
                         _captureTimer.Stop();
                         ClearRegisteredHotkeys();
+                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Захват остановлен");
                         
                         StatusChanged?.Invoke($"Захвачена комбинация: {keyboardShortcut.DisplayText}");
+                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] StatusChanged вызвано");
+                        
                         CaptureCompleted?.Invoke(keyboardShortcut);
+                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] CaptureCompleted вызвано");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Failed to create shortcut for {key} + {modifiers}");
+                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Failed to create shortcut for {key} + {modifiers}");
                         CaptureError?.Invoke("Неподдерживаемая комбинация клавиш");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Failed to parse hotkey: {e.Name}");
+                    System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Failed to parse hotkey: {e.Name}");
                     CaptureError?.Invoke("Ошибка распознавания комбинации");
                 }
                 
@@ -247,7 +255,7 @@ namespace ChatCaster.Windows.Managers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Exception: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ [KeyboardCapture] Exception: {ex.Message}");
                 CaptureError?.Invoke($"Ошибка обработки клавиш: {ex.Message}");
                 StopCapture();
             }
