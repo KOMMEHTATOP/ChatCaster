@@ -1,118 +1,141 @@
 using ChatCaster.Core.Constants;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
+using ChatCaster.Windows.Interfaces;
+using ChatCaster.Windows.Managers;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Services.GamepadService;
+using ChatCaster.Windows.Utilities;
 using ChatCaster.Windows.ViewModels.Base;
-using NHotkey;
-using NHotkey.Wpf;
-using System.Windows;
-
-// Алиасы для разделения WPF и Core моделей
-using WpfKey = System.Windows.Input.Key;
-using WpfModifierKeys = System.Windows.Input.ModifierKeys;
-using CoreKey = ChatCaster.Core.Models.Key;
-using CoreModifierKeys = ChatCaster.Core.Models.ModifierKeys;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Threading.Tasks;
 
 namespace ChatCaster.Windows.ViewModels
 {
+    /// <summary>
+    /// ViewModel для настроек управления (клавиатура и геймпад)
+    /// Рефакторенная версия с разделением ответственности
+    /// </summary>
     public partial class ControlSettingsViewModel : BaseSettingsViewModel
     {
-        #region Private Services
+        #region Private Services and Managers
 
         private readonly MainGamepadService _gamepadService;
         private readonly SystemIntegrationService _systemService;
-        private GamepadCaptureService? _gamepadCaptureService;
+        
+        // Менеджеры для разделения ответственности  
+        private GamepadStatusManager? _gamepadStatusManager;
+        private GamepadCaptureManager? _gamepadCaptureManager;
+        private KeyboardCaptureManager? _keyboardCaptureManager;
+        private CaptureUIStateManager? _gamepadUIManager;
+        private CaptureUIStateManager? _keyboardUIManager;
 
         #endregion
 
         #region Observable Properties
 
-        [ObservableProperty]
-        private string _gamepadComboText = "LB + RB";
-
-        [ObservableProperty]
-        private string _keyboardComboText = "Ctrl + Shift + R";
-
-        [ObservableProperty]
-        private bool _isWaitingForGamepadInput = false;
-
-        [ObservableProperty]
-        private bool _isWaitingForKeyboardInput = false;
-
+        // Геймпад статус
         [ObservableProperty]
         private string _gamepadStatusText = "Геймпад не найден";
 
         [ObservableProperty]
         private string _gamepadStatusColor = "#f44336";
-        
+
+        // Геймпад захват
+        [ObservableProperty]
+        private string _gamepadComboText = "LB + RB";
+
         [ObservableProperty]
         private string _gamepadComboTextColor = "White";
 
         [ObservableProperty]
-        private string _keyboardComboTextColor = "White"; 
+        private bool _isWaitingForGamepadInput = false;
 
         [ObservableProperty]
-        private int _gamepadCaptureTimeLeft = 0; 
+        private int _gamepadCaptureTimeLeft = 0;
 
         [ObservableProperty]
-        private bool _showGamepadTimer = false; 
-        
+        private bool _showGamepadTimer = false;
+
+        // Клавиатура захват
         [ObservableProperty]
-        private int _keyboardCaptureTimeLeft = 0; 
+        private string _keyboardComboText = "Ctrl + Shift + R";
+
+        [ObservableProperty]
+        private string _keyboardComboTextColor = "White";
+
+        [ObservableProperty]
+        private bool _isWaitingForKeyboardInput = false;
+
+        [ObservableProperty]
+        private int _keyboardCaptureTimeLeft = 0;
 
         [ObservableProperty]
         private bool _showKeyboardTimer = false;
 
-        private Timer? _keyboardCaptureTimer;
-        private string _originalKeyboardComboText = "";
+        // Клавиатура статус (для совместимости с XAML)
+        [ObservableProperty]
+        private string _keyboardStatusText = "Клавиатура готова";
 
-        private Timer? _gamepadCaptureTimer;
-        private string _originalGamepadComboText = "";
-        private const int CAPTURE_TIMEOUT_SECONDS = 5;
+        [ObservableProperty]
+        private string _keyboardStatusColor = "#4caf50";
 
         #endregion
 
         #region Commands
 
         [RelayCommand]
-        private async Task StartGamepadCapture()
-        {
-            if (IsWaitingForGamepadInput) return;
-
-            try
-            {
-                await StartGamepadCaptureInternal();
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Ошибка захвата геймпада: {ex.Message}";
-            }
-        }
-
-        [RelayCommand]
         private async Task StartKeyboardCapture()
         {
-            if (IsWaitingForKeyboardInput) return;
+            System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] StartKeyboardCapture вызван");
+            
+            if (IsWaitingForKeyboardInput) 
+            {
+                System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] Уже ждем ввод, выходим");
+                return;
+            }
+
+            if (_keyboardCaptureManager == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] ОШИБКА: _keyboardCaptureManager == null!");
+                StatusMessage = "Ошибка: менеджер клавиатуры не инициализирован";
+                return;
+            }
 
             try
             {
-                await StartKeyboardCaptureInternal();
+                System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] Вызываем StartCaptureAsync...");
+                await _keyboardCaptureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
+                System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] StartCaptureAsync завершен");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] Ошибка: {ex.Message}");
                 StatusMessage = $"Ошибка захвата клавиатуры: {ex.Message}";
             }
         }
 
-        #endregion
+        [RelayCommand]
+        private async Task StartGamepadCapture()
+        {
+            if (IsWaitingForGamepadInput) return;
 
-        #region Private Fields for Capture State
+            if (_gamepadCaptureManager == null)
+            {
+                StatusMessage = "Ошибка: менеджер геймпада не инициализирован";
+                return;
+            }
 
-        private readonly Dictionary<string, (WpfKey Key, WpfModifierKeys Modifiers)> _registeredHotkeys = new();
-        private readonly string _tempHotkeyName = "TempCapture";
+            try
+            {
+                await _gamepadCaptureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
+            }
+            catch (System.Exception ex)
+            {
+                StatusMessage = $"Ошибка захвата геймпада: {ex.Message}";
+            }
+        }
 
         #endregion
 
@@ -124,8 +147,41 @@ namespace ChatCaster.Windows.ViewModels
             MainGamepadService gamepadService,
             SystemIntegrationService systemService) : base(configurationService, serviceContext)
         {
-            _gamepadService = gamepadService;
-            _systemService = systemService;
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Конструктор начат");
+            
+            _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
+            _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
+
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Создаем менеджеры...");
+            
+            try
+            {
+                // Создаем менеджеры
+                _gamepadStatusManager = new GamepadStatusManager(_gamepadService);
+                _gamepadCaptureManager = new GamepadCaptureManager(_gamepadService);
+                _keyboardCaptureManager = new KeyboardCaptureManager();
+                
+                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Менеджеры созданы");
+                
+                // Создаем UI менеджеры
+                _gamepadUIManager = new CaptureUIStateManager();
+                _keyboardUIManager = new CaptureUIStateManager();
+
+                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] UI менеджеры созданы");
+
+                // Подписываемся на события менеджеров
+                SubscribeToManagerEvents();
+                
+                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] События подписаны");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [ControlSettingsViewModel] Ошибка создания менеджеров: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ [ControlSettingsViewModel] StackTrace: {ex.StackTrace}");
+                throw;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Конструктор завершен");
         }
 
         #endregion
@@ -134,16 +190,29 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override async Task LoadPageSpecificSettingsAsync()
         {
-            await CheckGamepadStatus();
+            // Загружаем текущие комбинации из конфигурации
+            var config = _serviceContext.Config;
+            
+            GamepadComboText = config.Input.GamepadShortcut?.DisplayText ?? "LB + RB";
+            KeyboardComboText = config.Input.KeyboardShortcut?.DisplayText ?? "Ctrl + Shift + R";
+
+            // Устанавливаем базовые состояния UI
+            _gamepadUIManager.SetIdleState(GamepadComboText);
+            _keyboardUIManager.SetIdleState(KeyboardComboText);
+
+            // Обновляем статус геймпада
+            await _gamepadStatusManager.RefreshStatusAsync();
         }
 
         protected override async Task ApplySettingsToConfigAsync(AppConfig config)
         {
+            // Настройки уже сохранены в обработчиках событий
             await Task.CompletedTask;
         }
 
         protected override async Task ApplySettingsToServicesAsync()
         {
+            // Перезапускаем мониторинг геймпада с новыми настройками
             await _gamepadService.StopMonitoringAsync();
             await _gamepadService.StartMonitoringAsync(_serviceContext.Config.Input.GamepadShortcut);
 
@@ -151,454 +220,242 @@ namespace ChatCaster.Windows.ViewModels
             await _serviceContext.GamepadVoiceCoordinator.UpdateGamepadSettingsAsync(
                 _serviceContext.Config.Input.GamepadShortcut);
         }
-        
+
         protected override async Task InitializePageSpecificDataAsync()
         {
-            await CheckGamepadStatus();
+            System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] InitializePageSpecificDataAsync начат");
+            
+            // Если менеджеры не созданы в конструкторе, создаем их здесь
+            if (_gamepadStatusManager == null)
+            {
+                System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Менеджеры не созданы, создаем fallback...");
+                
+                try
+                {
+                    _gamepadStatusManager = new GamepadStatusManager(_gamepadService);
+                    _gamepadCaptureManager = new GamepadCaptureManager(_gamepadService);
+                    _keyboardCaptureManager = new KeyboardCaptureManager();
+                    _gamepadUIManager = new CaptureUIStateManager();
+                    _keyboardUIManager = new CaptureUIStateManager();
+                    
+                    System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] Fallback менеджеры созданы");
+                    
+                    // Подписываемся на события
+                    SubscribeToManagerEvents();
+                    System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsViewModel] События подписаны");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [ControlSettingsViewModel] Ошибка создания fallback менеджеров: {ex.Message}");
+                }
+            }
+            
+            await LoadPageSpecificSettingsAsync();
         }
 
         public override void SubscribeToUIEvents()
         {
-            _gamepadService.GamepadConnected += OnGamepadConnected;
-            _gamepadService.GamepadDisconnected += OnGamepadDisconnected;
-            _gamepadService.ShortcutPressed += OnGamepadShortcutPressed;
+            // События геймпада обрабатываются через GamepadStatusManager
         }
 
         protected override void UnsubscribeFromUIEvents()
         {
-            _gamepadService.GamepadConnected -= OnGamepadConnected;
-            _gamepadService.GamepadDisconnected -= OnGamepadDisconnected;
-            _gamepadService.ShortcutPressed -= OnGamepadShortcutPressed;
+            // События отписываются в CleanupPageSpecific
         }
 
         protected override void CleanupPageSpecific()
         {
-            // Очищаем таймеры
-            _gamepadCaptureTimer?.Dispose();
-            _gamepadCaptureTimer = null;
+            // Отписываемся от событий менеджеров
+            UnsubscribeFromManagerEvents();
 
-            _keyboardCaptureTimer?.Dispose();
-            _keyboardCaptureTimer = null;
-
-            // Останавливаем захват
-            StopKeyboardCapture();
-            StopGamepadCapture();
-
-            // Освобождаем сервис захвата геймпада
-            if (_gamepadCaptureService != null)
-            {
-                _gamepadCaptureService.ShortcutCaptured -= OnGamepadShortcutCaptured;
-                _gamepadCaptureService.CaptureStatusChanged -= OnGamepadCaptureStatusChanged;
-                _gamepadCaptureService.Dispose();
-                _gamepadCaptureService = null;
-            }
+            // Освобождаем менеджеры
+            _gamepadStatusManager?.Dispose();
+            _gamepadCaptureManager?.Dispose();
+            _keyboardCaptureManager?.Dispose();
+            _gamepadUIManager?.Dispose();
+            _keyboardUIManager?.Dispose();
         }
 
         #endregion
 
-        #region Gamepad Event Handlers
+        #region Manager Event Subscriptions
 
-        private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
+        private void SubscribeToManagerEvents()
         {
-            GamepadStatusText = $"Геймпад подключен: {e.GamepadInfo.Name}";
-            GamepadStatusColor = "#4caf50";
+            // События статуса геймпада
+            _gamepadStatusManager.StatusChanged += OnGamepadStatusChanged;
+
+            // События захвата геймпада
+            _gamepadCaptureManager.CaptureCompleted += OnGamepadCaptureCompleted;
+            _gamepadCaptureManager.CaptureTimeout += OnGamepadCaptureTimeout;
+            _gamepadCaptureManager.StatusChanged += OnGamepadCaptureStatusChanged;
+            _gamepadCaptureManager.CaptureError += OnGamepadCaptureError;
+
+            // События захвата клавиатуры
+            _keyboardCaptureManager.CaptureCompleted += OnKeyboardCaptureCompleted;
+            _keyboardCaptureManager.CaptureTimeout += OnKeyboardCaptureTimeout;
+            _keyboardCaptureManager.StatusChanged += OnKeyboardCaptureStatusChanged;
+            _keyboardCaptureManager.CaptureError += OnKeyboardCaptureError;
+
+            // События UI менеджеров
+            _gamepadUIManager.StateChanged += OnGamepadUIStateChanged;
+            _keyboardUIManager.StateChanged += OnKeyboardUIStateChanged;
         }
 
-        private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
+        private void UnsubscribeFromManagerEvents()
         {
-            GamepadStatusText = "Геймпад отключен";
-            GamepadStatusColor = "#f44336";
-        }
+            // В C# отписка от событий безопасна даже для null объектов
+            _gamepadStatusManager.StatusChanged -= OnGamepadStatusChanged;
 
-        private void OnGamepadShortcutPressed(object? sender, GamepadShortcutPressedEvent e)
-        {
-            // Пустой обработчик - логика в координаторе
-        }
+            _gamepadCaptureManager.CaptureCompleted -= OnGamepadCaptureCompleted;
+            _gamepadCaptureManager.CaptureTimeout -= OnGamepadCaptureTimeout;
+            _gamepadCaptureManager.StatusChanged -= OnGamepadCaptureStatusChanged;
+            _gamepadCaptureManager.CaptureError -= OnGamepadCaptureError;
 
-        #endregion
+            _keyboardCaptureManager.CaptureCompleted -= OnKeyboardCaptureCompleted;
+            _keyboardCaptureManager.CaptureTimeout -= OnKeyboardCaptureTimeout;
+            _keyboardCaptureManager.StatusChanged -= OnKeyboardCaptureStatusChanged;
+            _keyboardCaptureManager.CaptureError -= OnKeyboardCaptureError;
 
-        #region Keyboard Capture Methods
-
-        private async Task StartKeyboardCaptureInternal()
-        {
-            // Сохраняем оригинальную комбинацию для возврата
-            _originalKeyboardComboText = KeyboardComboText;
-
-            IsWaitingForKeyboardInput = true;
-            ShowKeyboardTimer = true;
-            KeyboardCaptureTimeLeft = AppConstants.CaptureTimeoutSeconds;
-
-            // Меняем цвет на красноватый во время ожидания
-            KeyboardComboTextColor = "#ff6b6b";
-            KeyboardComboText = "Нажмите любую комбинацию клавиш...";
-            StatusMessage = "Ожидание нажатия клавиш...";
-
-            // Запускаем таймер обратного отсчета
-            StartKeyboardCaptureTimer();
-
-            // Регистрируем временные обработчики
-            RegisterAllPossibleHotkeys();
-        }
-
-        private void StartKeyboardCaptureTimer()
-        {
-            _keyboardCaptureTimer?.Dispose();
-            _keyboardCaptureTimer = new Timer(OnKeyboardCaptureTimerTick, null, 1000, 1000);
-        }
-
-        private void OnKeyboardCaptureTimerTick(object? state)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                KeyboardCaptureTimeLeft--;
-
-                if (KeyboardCaptureTimeLeft <= 0)
-                {
-                    StopKeyboardCaptureWithTimeout();
-                }
-            });
-        }
-
-        private void StopKeyboardCaptureWithTimeout()
-        {
-            _keyboardCaptureTimer?.Dispose();
-            _keyboardCaptureTimer = null;
-
-            IsWaitingForKeyboardInput = false;
-            ShowKeyboardTimer = false;
-
-            // Возвращаем оригинальную комбинацию
-            KeyboardComboText = _originalKeyboardComboText;
-            KeyboardComboTextColor = "White";
-
-            StatusMessage = "Время ожидания истекло";
-
-            // Удаляем временные хотkeys
-            ClearTempHotkeys();
-
-            // Очищаем сообщение через 2 секунды
-            Task.Delay(2000).ContinueWith(_ => { 
-                Application.Current.Dispatcher.Invoke(() => StatusMessage = ""); 
-            });
-        }
-
-        private void RegisterAllPossibleHotkeys()
-        {
-            _registeredHotkeys.Clear();
-
-            // Список часто используемых клавиш
-            var commonKeys = new[]
-            {
-                WpfKey.F1, WpfKey.F2, WpfKey.F3, WpfKey.F4, WpfKey.F5, WpfKey.F6, 
-                WpfKey.F7, WpfKey.F8, WpfKey.F9, WpfKey.F10, WpfKey.F11, WpfKey.F12, 
-                WpfKey.NumPad0, WpfKey.NumPad1, WpfKey.NumPad2, WpfKey.NumPad3,
-                WpfKey.Insert, WpfKey.Delete, WpfKey.Home, WpfKey.End, 
-                WpfKey.PageUp, WpfKey.PageDown
-            };
-
-            var modifiers = new[]
-            {
-                WpfModifierKeys.None, WpfModifierKeys.Control, WpfModifierKeys.Shift, 
-                WpfModifierKeys.Alt, WpfModifierKeys.Control | WpfModifierKeys.Shift, 
-                WpfModifierKeys.Control | WpfModifierKeys.Alt,
-                WpfModifierKeys.Shift | WpfModifierKeys.Alt
-            };
-
-            int hotkeyIndex = 0;
-
-            foreach (var modifier in modifiers)
-            {
-                foreach (var key in commonKeys)
-                {
-                    try
-                    {
-                        var hotkeyName = $"{_tempHotkeyName}_{hotkeyIndex++}";
-                        HotkeyManager.Current.AddOrReplace(hotkeyName, key, modifier, OnTempHotkeyPressed);
-                        _registeredHotkeys[hotkeyName] = (key, modifier);
-                    }
-                    catch
-                    {
-                        // Игнорируем конфликты
-                    }
-                }
-            }
-        }
-
-        private async void OnTempHotkeyPressed(object? sender, HotkeyEventArgs e)
-        {
-            if (!IsWaitingForKeyboardInput) return;
-
-            try
-            {
-                if (_registeredHotkeys.TryGetValue(e.Name, out var hotkeyInfo))
-                {
-                    var keyboardShortcut = new KeyboardShortcut
-                    {
-                        Modifiers = ConvertToCore(hotkeyInfo.Modifiers), 
-                        Key = ConvertToCore(hotkeyInfo.Key)
-                    };
-
-                    // Используем DisplayText из Core модели
-                    KeyboardComboText = keyboardShortcut.DisplayText;
-                    KeyboardComboTextColor = "#4caf50"; 
-
-                    // Останавливаем захват
-                    _keyboardCaptureTimer?.Dispose();
-                    ShowKeyboardTimer = false;
-                    IsWaitingForKeyboardInput = false;
-
-                    StatusMessage = "Комбинация сохранена!";
-                    ClearTempHotkeys();
-
-                    // Сохраняем в конфигурацию
-                    _serviceContext.Config.Input.KeyboardShortcut = keyboardShortcut;
-                    await OnUISettingChangedAsync();
-
-                    // Регистрируем хоткей глобально
-                    bool registered = await _systemService.RegisterGlobalHotkeyAsync(keyboardShortcut);
-                    if (!registered)
-                    {
-                        StatusMessage = "Ошибка регистрации хоткея";
-                        KeyboardComboTextColor = "#f44336"; 
-                    }
-
-                    // Возвращаем белый цвет через 2 секунды
-                    await Task.Delay(2000);
-                    KeyboardComboTextColor = "White";
-                    StatusMessage = "";
-                }
-            }
-            catch (Exception ex)
-            {
-                KeyboardComboText = "Ошибка сохранения";
-                KeyboardComboTextColor = "#f44336"; 
-                StopKeyboardCaptureWithTimeout();
-            }
-
-            e.Handled = true;
-        }
-
-        private void StopKeyboardCapture()
-        {
-            IsWaitingForKeyboardInput = false;
-            ShowKeyboardTimer = false;
-
-            _keyboardCaptureTimer?.Dispose();
-            _keyboardCaptureTimer = null;
-
-            ClearTempHotkeys();
-        }
-
-        private void ClearTempHotkeys()
-        {
-            foreach (var hotkeyName in _registeredHotkeys.Keys)
-            {
-                try
-                {
-                    HotkeyManager.Current.Remove(hotkeyName);
-                }
-                catch
-                {
-                    // Игнорируем ошибки при удалении
-                }
-            }
-
-            _registeredHotkeys.Clear();
+            _gamepadUIManager.StateChanged -= OnGamepadUIStateChanged;
+            _keyboardUIManager.StateChanged -= OnKeyboardUIStateChanged;
         }
 
         #endregion
 
-        #region Gamepad Capture Methods
+        #region Event Handlers
 
-        private async Task StartGamepadCaptureInternal()
+        // Геймпад статус
+        private void OnGamepadStatusChanged(string statusText, string statusColor)
         {
-            if (_gamepadCaptureService == null)
-            {
-                _gamepadCaptureService = new GamepadCaptureService(_gamepadService);
-                _gamepadCaptureService.ShortcutCaptured += OnGamepadShortcutCaptured;
-                _gamepadCaptureService.CaptureStatusChanged += OnGamepadCaptureStatusChanged;
-            }
-
-            // Сохраняем оригинальную комбинацию
-            _originalGamepadComboText = GamepadComboText;
-
-            IsWaitingForGamepadInput = true;
-            ShowGamepadTimer = true;
-            GamepadCaptureTimeLeft = CAPTURE_TIMEOUT_SECONDS;
-
-            GamepadComboTextColor = "#ff6b6b";
-            StartCaptureTimer();
-
-            await _gamepadCaptureService.StartCaptureAsync(CAPTURE_TIMEOUT_SECONDS);
+            GamepadStatusText = statusText;
+            GamepadStatusColor = statusColor;
         }
 
-        private void StartCaptureTimer()
-        {
-            _gamepadCaptureTimer?.Dispose();
-            _gamepadCaptureTimer = new Timer(OnCaptureTimerTick, null, 1000, 1000);
-        }
-
-        private void OnCaptureTimerTick(object? state)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                GamepadCaptureTimeLeft--;
-
-                if (GamepadCaptureTimeLeft <= 0)
-                {
-                    StopGamepadCaptureWithTimeout();
-                }
-            });
-        }
-
-        private void StopGamepadCaptureWithTimeout()
-        {
-            _gamepadCaptureTimer?.Dispose();
-            _gamepadCaptureTimer = null;
-
-            IsWaitingForGamepadInput = false;
-            ShowGamepadTimer = false;
-
-            GamepadComboText = _originalGamepadComboText;
-            GamepadComboTextColor = "White";
-            StatusMessage = "Время ожидания истекло";
-
-            _gamepadCaptureService?.StopCapture();
-
-            Task.Delay(2000).ContinueWith(_ => { 
-                Application.Current.Dispatcher.Invoke(() => StatusMessage = ""); 
-            });
-        }
-
-        private void StopGamepadCapture()
-        {
-            IsWaitingForGamepadInput = false; 
-            _gamepadCaptureService?.StopCapture(); 
-        }
-
-        private async void OnGamepadShortcutCaptured(object? sender, GamepadShortcut capturedShortcut)
+        // Геймпад захват
+        private async void OnGamepadCaptureCompleted(GamepadShortcut capturedShortcut)
         {
             try
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    // Используем DisplayText из Core модели
-                    GamepadComboText = capturedShortcut.DisplayText;
-                    GamepadComboTextColor = "#4caf50"; 
-                    
-                    _gamepadCaptureTimer?.Dispose();
-                    ShowGamepadTimer = false;
-                    IsWaitingForGamepadInput = false;
-
-                    StatusMessage = "Комбинация сохранена!";
-                });
-
                 // Сохраняем в конфигурацию
                 _serviceContext.Config.Input.GamepadShortcut = capturedShortcut;
                 await OnUISettingChangedAsync();
 
-                // Возвращаем белый цвет через 2 секунды
-                await Task.Delay(2000);
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    GamepadComboTextColor = "White";
-                    StatusMessage = "";
-                });
+                // Обновляем UI
+                GamepadComboText = capturedShortcut.DisplayText;
+                await _gamepadUIManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
+                _gamepadUIManager.SetIdleState(GamepadComboText);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    StatusMessage = $"Ошибка сохранения: {ex.Message}";
-                    GamepadComboTextColor = "#f44336";
-                    StopGamepadCaptureWithTimeout();
-                });
+                await _gamepadUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
             }
         }
 
-        private void OnGamepadCaptureStatusChanged(object? sender, string status)
+        private async void OnGamepadCaptureTimeout()
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            IsWaitingForGamepadInput = false;
+            await _gamepadUIManager.CompleteWithTimeoutAsync();
+        }
+
+        private void OnGamepadCaptureStatusChanged(string status)
+        {
+            if (_gamepadCaptureManager.IsCapturing)
             {
-                if (IsWaitingForGamepadInput && !status.Contains("Захват остановлен"))
+                _gamepadUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
+                IsWaitingForGamepadInput = true;
+            }
+        }
+
+        private async void OnGamepadCaptureError(string error)
+        {
+            IsWaitingForGamepadInput = false;
+            await _gamepadUIManager.CompleteWithErrorAsync(error);
+        }
+
+        // Клавиатура захват
+        private async void OnKeyboardCaptureCompleted(KeyboardShortcut capturedShortcut)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] OnKeyboardCaptureCompleted: {capturedShortcut.DisplayText}");
+                
+                // Сохраняем в конфигурацию
+                _serviceContext.Config.Input.KeyboardShortcut = capturedShortcut;
+                await OnUISettingChangedAsync();
+
+                // Регистрируем глобальный хоткей
+                bool registered = await _systemService.RegisterGlobalHotkeyAsync(capturedShortcut);
+                if (!registered)
                 {
-                    GamepadComboText = status;
-                    GamepadComboTextColor = status.Contains("кнопок") || status.Contains("комбинация") 
-                        ? "#81c784" : "#ff6b6b";
+                    System.Diagnostics.Debug.WriteLine("[ControlSettingsViewModel] Ошибка регистрации хоткея");
+                    await _keyboardUIManager.CompleteWithErrorAsync("Ошибка регистрации хоткея");
+                    return;
                 }
-            });
+
+                // Обновляем UI
+                KeyboardComboText = capturedShortcut.DisplayText;
+                await _keyboardUIManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
+                _keyboardUIManager.SetIdleState(KeyboardComboText);
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ControlSettingsViewModel] Ошибка в OnKeyboardCaptureCompleted: {ex.Message}");
+                await _keyboardUIManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
+            }
+        }
+
+        private async void OnKeyboardCaptureTimeout()
+        {
+            IsWaitingForKeyboardInput = false;
+            await _keyboardUIManager.CompleteWithTimeoutAsync();
+        }
+
+        private void OnKeyboardCaptureStatusChanged(string status)
+        {
+            if (_keyboardCaptureManager.IsCapturing)
+            {
+                _keyboardUIManager.StartCapture(status, AppConstants.CaptureTimeoutSeconds);
+                IsWaitingForKeyboardInput = true;
+            }
+        }
+
+        private async void OnKeyboardCaptureError(string error)
+        {
+            IsWaitingForKeyboardInput = false;
+            await _keyboardUIManager.CompleteWithErrorAsync(error);
+        }
+
+        // UI состояния
+        private void OnGamepadUIStateChanged(CaptureUIState state)
+        {
+            GamepadComboText = state.Text;
+            GamepadComboTextColor = state.TextColor;
+            ShowGamepadTimer = state.ShowTimer;
+            GamepadCaptureTimeLeft = state.TimeLeft;
+            
+            if (!string.IsNullOrEmpty(state.StatusMessage))
+            {
+                StatusMessage = state.StatusMessage;
+            }
+        }
+
+        private void OnKeyboardUIStateChanged(CaptureUIState state)
+        {
+            KeyboardComboText = state.Text;
+            KeyboardComboTextColor = state.TextColor;
+            ShowKeyboardTimer = state.ShowTimer;
+            KeyboardCaptureTimeLeft = state.TimeLeft;
+            
+            if (!string.IsNullOrEmpty(state.StatusMessage))
+            {
+                StatusMessage = state.StatusMessage;
+            }
         }
 
         #endregion
 
-        #region Helper Methods
-
-        private async Task CheckGamepadStatus()
-        {
-            try
-            {
-                var gamepad = await _gamepadService.GetConnectedGamepadAsync();
-
-                if (gamepad != null)
-                {
-                    GamepadStatusText = $"Геймпад подключен: {gamepad.Name}";
-                    GamepadStatusColor = "#4caf50";
-                }
-                else
-                {
-                    GamepadStatusText = "Геймпад не найден";
-                    GamepadStatusColor = "#f44336";
-                }
-            }
-            catch (Exception ex)
-            {
-                GamepadStatusText = $"Ошибка проверки геймпада: {ex.Message}";
-                GamepadStatusColor = "#f44336";
-            }
-        }
-        
-        private CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
-        {
-            var coreModifiers = CoreModifierKeys.None;
-
-            if (wpfModifiers.HasFlag(WpfModifierKeys.Control))
-                coreModifiers |= CoreModifierKeys.Control;
-            if (wpfModifiers.HasFlag(WpfModifierKeys.Shift))
-                coreModifiers |= CoreModifierKeys.Shift;
-            if (wpfModifiers.HasFlag(WpfModifierKeys.Alt))
-                coreModifiers |= CoreModifierKeys.Alt;
-            if (wpfModifiers.HasFlag(WpfModifierKeys.Windows))
-                coreModifiers |= CoreModifierKeys.Windows;
-
-            return coreModifiers;
-        }
-
-        private CoreKey ConvertToCore(WpfKey wpfKey)
-        {
-            // Упрощенная версия - можно создать статический Dictionary для производительности
-            return wpfKey switch
-            {
-                WpfKey.A => CoreKey.A, WpfKey.B => CoreKey.B, WpfKey.C => CoreKey.C, 
-                WpfKey.D => CoreKey.D, WpfKey.E => CoreKey.E, WpfKey.F => CoreKey.F, 
-                WpfKey.G => CoreKey.G, WpfKey.H => CoreKey.H, WpfKey.I => CoreKey.I, 
-                WpfKey.J => CoreKey.J, WpfKey.K => CoreKey.K, WpfKey.L => CoreKey.L,
-                WpfKey.M => CoreKey.M, WpfKey.N => CoreKey.N, WpfKey.O => CoreKey.O, 
-                WpfKey.P => CoreKey.P, WpfKey.Q => CoreKey.Q, WpfKey.R => CoreKey.R, 
-                WpfKey.S => CoreKey.S, WpfKey.T => CoreKey.T, WpfKey.U => CoreKey.U, 
-                WpfKey.V => CoreKey.V, WpfKey.W => CoreKey.W, WpfKey.X => CoreKey.X,
-                WpfKey.Y => CoreKey.Y, WpfKey.Z => CoreKey.Z,
-                WpfKey.F1 => CoreKey.F1, WpfKey.F2 => CoreKey.F2, WpfKey.F3 => CoreKey.F3, 
-                WpfKey.F4 => CoreKey.F4, WpfKey.F5 => CoreKey.F5, WpfKey.F6 => CoreKey.F6, 
-                WpfKey.F7 => CoreKey.F7, WpfKey.F8 => CoreKey.F8, WpfKey.F9 => CoreKey.F9, 
-                WpfKey.F10 => CoreKey.F10, WpfKey.F11 => CoreKey.F11, WpfKey.F12 => CoreKey.F12,
-                WpfKey.NumPad0 => CoreKey.NumPad0, WpfKey.NumPad1 => CoreKey.NumPad1, 
-                WpfKey.NumPad2 => CoreKey.NumPad2, WpfKey.NumPad3 => CoreKey.NumPad3,
-                WpfKey.Insert => CoreKey.Insert, WpfKey.Delete => CoreKey.Delete, 
-                WpfKey.Home => CoreKey.Home, WpfKey.End => CoreKey.End, 
-                WpfKey.PageUp => CoreKey.PageUp, WpfKey.PageDown => CoreKey.PageDown,
-                _ => CoreKey.A // Fallback
-            };
-        }
+        #region Private Helper Methods
 
         private async Task OnUISettingChangedAsync()
         {
