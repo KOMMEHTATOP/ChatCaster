@@ -1,6 +1,7 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
+using ChatCaster.Windows.Services;
 
 namespace ChatCaster.Windows.Services.GamepadService;
 
@@ -14,6 +15,7 @@ public class GamepadVoiceCoordinator : IDisposable
     private readonly IVoiceRecordingService _voiceService;
     private readonly ISystemIntegrationService _systemService;
     private readonly IConfigurationService _configService;
+    private readonly TrayService _trayService;
 
     private readonly object _lockObject = new();
     private bool _isDisposed = false;
@@ -32,12 +34,14 @@ public class GamepadVoiceCoordinator : IDisposable
         MainGamepadService gamepadService,
         IVoiceRecordingService voiceService,
         ISystemIntegrationService systemService,
-        IConfigurationService configService)
+        IConfigurationService configService,
+        TrayService trayService)
     {
         _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
         _voiceService = voiceService ?? throw new ArgumentNullException(nameof(voiceService));
         _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
     }
 
     /// <summary>
@@ -152,7 +156,7 @@ public class GamepadVoiceCoordinator : IDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"❌ [GamepadVoiceCoordinator] Ошибка инициализации: {ex.Message}");
-            Console.WriteLine($"❌ [GamepadVoiceCoordinator] StackTrace: {ex.StackTrace}");
+            _trayService?.ShowNotification("Ошибка геймпада", "Не удалось инициализировать геймпад");
             return false;
         }
     }
@@ -242,6 +246,7 @@ public class GamepadVoiceCoordinator : IDisposable
     private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
     {
         Console.WriteLine($"[GamepadVoiceCoordinator] 🎮 Геймпад подключен: {e.GamepadInfo.Name}");
+        _trayService?.ShowNotification("Геймпад", $"Подключен: {e.GamepadInfo.Name}");
     }
 
     /// <summary>
@@ -250,6 +255,7 @@ public class GamepadVoiceCoordinator : IDisposable
     private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
     {
         Console.WriteLine($"[GamepadVoiceCoordinator] 🎮 Геймпад отключен из слота {e.GamepadIndex}");
+        _trayService?.ShowNotification("Геймпад", "Геймпад отключен");
 
         // Останавливаем запись если она идет
         Task.Run(async () =>
@@ -286,6 +292,7 @@ public class GamepadVoiceCoordinator : IDisposable
             catch (Exception ex)
             {
                 Console.WriteLine($"[GamepadVoiceCoordinator] Ошибка обработки комбинации: {ex.Message}");
+                _trayService?.ShowNotification("Ошибка", "Ошибка обработки геймпада");
             }
         });
     }
@@ -328,6 +335,12 @@ public class GamepadVoiceCoordinator : IDisposable
             {
                 await _systemService.SendTextAsync(result.RecognizedText);
                 Console.WriteLine($"[GamepadVoiceCoordinator] ✅ Текст отправлен: '{result.RecognizedText}'");
+                _trayService?.ShowNotification("Распознано", result.RecognizedText);
+            }
+            else
+            {
+                Console.WriteLine($"[GamepadVoiceCoordinator] ❌ Ошибка распознавания: {result.ErrorMessage}");
+                _trayService?.ShowNotification("Ошибка", result.ErrorMessage ?? "Не удалось распознать речь");
             }
         }
         else
@@ -336,9 +349,15 @@ public class GamepadVoiceCoordinator : IDisposable
             Console.WriteLine("[GamepadVoiceCoordinator] 🎤 Запускаем запись по геймпаду");
             bool started = await _voiceService.StartRecordingAsync();
 
-            if (!started)
+            if (started)
+            {
+                Console.WriteLine("[GamepadVoiceCoordinator] ✅ Запись началась");
+                _trayService?.ShowNotification("Запись", "Говорите...");
+            }
+            else
             {
                 Console.WriteLine("[GamepadVoiceCoordinator] ❌ Не удалось запустить запись");
+                _trayService?.ShowNotification("Ошибка", "Не удалось начать запись");
             }
         }
     }
@@ -348,7 +367,7 @@ public class GamepadVoiceCoordinator : IDisposable
     /// </summary>
     private void OnVoiceRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
     {
-        Console.WriteLine($"[GamepadVoiceCoordinator] 📢 Статус записи: {e.OldStatus} → {e.NewStatus}");
+        // Убрали консольные логи для статуса - они слишком частые
     }
 
     /// <summary>
@@ -356,6 +375,7 @@ public class GamepadVoiceCoordinator : IDisposable
     /// </summary>
     private void OnVoiceRecognitionCompleted(object? sender, VoiceRecognitionCompletedEvent e)
     {
+        // Уведомления обрабатываются в HandleToggleMode, здесь только консоль
         if (e.Result.Success)
         {
             Console.WriteLine($"[GamepadVoiceCoordinator] 🎉 Распознавание завершено: '{e.Result.RecognizedText}'");

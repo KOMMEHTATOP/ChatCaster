@@ -26,12 +26,9 @@ namespace ChatCaster.Windows.Views
             Console.InputEncoding = System.Text.Encoding.UTF8;
 
             // Создание сервисов
-            Console.WriteLine("🔧 [Window] Создаем основные сервисы...");
             var audioService = new AudioCaptureService();
             var speechService = new SpeechRecognitionService();
-            Console.WriteLine("🎮 [Window] Создаем MainGamepadService...");
             var gamepadService = new Services.GamepadService.MainGamepadService();
-            Console.WriteLine("🎮 [Window] MainGamepadService создан");
             var systemService = new SystemIntegrationService();
             var overlayService = new OverlayService();
             var configService = new ConfigurationService();
@@ -59,14 +56,16 @@ namespace ChatCaster.Windows.Views
                 VoiceRecordingService = voiceRecordingService
             };
 
-            Console.WriteLine("🎮 [Window] Создаем GamepadVoiceCoordinator...");
+            // Создание TrayService
+            var trayService = new TrayService(this);
+            trayService.Initialize();
+            
             var gamepadVoiceCoordinator = new Services.GamepadService.GamepadVoiceCoordinator(
                 gamepadService,
                 voiceRecordingService,
                 systemService,
-                configService
-            );
-            Console.WriteLine("🎮 [Window] GamepadVoiceCoordinator создан");
+                configService,
+                trayService);
             
             
             // Добавляем координатор в ServiceContext
@@ -74,9 +73,6 @@ namespace ChatCaster.Windows.Views
             Console.WriteLine("🎮 [Window] GamepadVoiceCoordinator добавлен в ServiceContext");
 
             Console.WriteLine("🔧 [Window] Создаем TrayService...");
-            // Создание TrayService
-            var trayService = new TrayService(this);
-            trayService.Initialize();
 
             // Создание ViewModel
             _viewModel = new ChatCasterWindowViewModel(
