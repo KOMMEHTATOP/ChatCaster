@@ -22,7 +22,7 @@ public partial class ControlSettingsView : Page
                               ConfigurationService configurationService,
                               ServiceContext serviceContext) : this()
     {
-        // ✅ ИСПРАВЛЕНИЕ: Гарантированно инициализируем _viewModel
+        // Гарантированно инициализируем _viewModel
         _viewModel = new ControlSettingsViewModel(
             configurationService, 
             serviceContext, 
@@ -38,7 +38,7 @@ public partial class ControlSettingsView : Page
         _ = _viewModel.InitializeAsync();
     }
 
-    #region ✅ НОВЫЙ метод подписки на события
+    #region метод подписки на события
 
     private void SubscribeToViewModelEvents()
     {
@@ -91,14 +91,7 @@ public partial class ControlSettingsView : Page
     // Cleanup при выгрузке страницы
     private void Page_Unloaded(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
-            _viewModel.Cleanup();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка при выгрузке ControlSettingsView: {ex.Message}");
-        }
+        System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsView] Page_Unloaded - НЕ вызываем Cleanup");
+
     }
 }

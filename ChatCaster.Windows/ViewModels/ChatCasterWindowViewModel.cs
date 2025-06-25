@@ -220,6 +220,10 @@ namespace ChatCaster.Windows.ViewModels
                 Task.Run(async () => await _serviceContext.GamepadVoiceCoordinator.ShutdownAsync());
             }
 
+            // НОВОЕ: Очищаем все страницы через NavigationManager
+            Console.WriteLine("🧹 [ViewModel] Очищаем все кешированные страницы...");
+            _navigationManager.CleanupAllPages();
+
             // Теперь можем вызывать Dispose напрямую
             _gamepadService?.Dispose();
             _systemService?.Dispose();
@@ -230,7 +234,6 @@ namespace ChatCaster.Windows.ViewModels
 
             Console.WriteLine("🔥 [ViewModel] Cleanup завершен");
         }
-
         #endregion
 
         #region Event Handlers
