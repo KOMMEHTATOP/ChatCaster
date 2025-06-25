@@ -5,8 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
-      d:DesignHeight="600" d:DesignWidth="800"
-      Unloaded="Page_Unloaded">
+      d:DesignHeight="600" d:DesignWidth="800">
 
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
@@ -68,13 +67,13 @@
                                         CornerRadius="10"
                                         Padding="8,4"
                                         Margin="10,0,0,0"
-                                        Visibility="{Binding ShowGamepadTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        Visibility="{Binding GamepadComponent.ShowTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:SymbolIcon Symbol="Clock12"
                                                        FontSize="14"
                                                        Foreground="White"
                                                        Margin="0,0,4,0" />
-                                        <TextBlock Text="{Binding GamepadCaptureTimeLeft}"
+                                        <TextBlock Text="{Binding GamepadComponent.CaptureTimeLeft}"
                                                    FontSize="12"
                                                    FontWeight="Bold"
                                                    Foreground="White" />
@@ -95,8 +94,11 @@
                                     Padding="15,12"
                                     Margin="0,0,0,8"
                                     Cursor="Hand"
-                                    MouseLeftButtonDown="GamepadComboBorder_Click"
-                                    IsEnabled="{Binding IsWaitingForGamepadInput, Converter={StaticResource InverseBooleanConverter}}">
+                                    IsEnabled="{Binding GamepadComponent.IsWaitingForInput, Converter={StaticResource InverseBooleanConverter}}">
+                                
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick" Command="{Binding StartGamepadCaptureCommand}" />
+                                </Border.InputBindings>
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -104,7 +106,7 @@
                                                 <Setter Property="Background" Value="#505050" />
                                                 <Setter Property="BorderBrush" Value="#1ba1e2" />
                                             </Trigger>
-                                            <DataTrigger Binding="{Binding IsWaitingForGamepadInput}" Value="True">
+                                            <DataTrigger Binding="{Binding GamepadComponent.IsWaitingForInput}" Value="True">
                                                 <Setter Property="BorderBrush" Value="#ff6b6b" />
                                                 <Setter Property="Background" Value="#4a2c2c" />
                                             </DataTrigger>
@@ -113,28 +115,28 @@
                                 </Border.Style>
 
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding GamepadComboText}"
+                                    <TextBlock Text="{Binding GamepadComponent.ComboText}"
                                                FontSize="16"
                                                FontWeight="Medium"
-                                               Foreground="{Binding GamepadComboTextColor}"
+                                               Foreground="{Binding GamepadComponent.ComboTextColor}"
                                                HorizontalAlignment="Left"
                                                VerticalAlignment="Center" />
 
                                     <!-- Индикатор захвата для геймпада -->
-                                    <Border Background="{Binding GamepadComboTextColor}"
+                                    <Border Background="{Binding GamepadComponent.ComboTextColor}"
                                             Width="15"
                                             Height="15"
                                             CornerRadius="8"
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
-                                            Visibility="{Binding IsWaitingForGamepadInput, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            Visibility="{Binding GamepadComponent.IsWaitingForInput, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Border.RenderTransform>
                                             <ScaleTransform />
                                         </Border.RenderTransform>
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsWaitingForGamepadInput}" Value="True">
+                                                    <DataTrigger Binding="{Binding GamepadComponent.IsWaitingForInput}" Value="True">
                                                         <DataTrigger.EnterActions>
                                                             <BeginStoryboard x:Name="GamepadPulseStoryboard">
                                                                 <Storyboard RepeatBehavior="Forever">
@@ -162,11 +164,11 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                                 <Ellipse Width="10" Height="10"
-                                         Fill="{Binding GamepadStatusColor}"
+                                         Fill="{Binding GamepadComponent.StatusColor}"
                                          Margin="0,0,8,0" />
-                                <TextBlock Text="{Binding GamepadStatusText}"
+                                <TextBlock Text="{Binding GamepadComponent.StatusText}"
                                            FontSize="13"
-                                           Foreground="{Binding GamepadStatusColor}" />
+                                           Foreground="{Binding GamepadComponent.StatusColor}" />
                             </StackPanel>
                         </StackPanel>
 
@@ -189,13 +191,13 @@
                                         CornerRadius="10"
                                         Padding="8,4"
                                         Margin="10,0,0,0"
-                                        Visibility="{Binding ShowKeyboardTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        Visibility="{Binding KeyboardComponent.ShowTimer, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:SymbolIcon Symbol="Clock12"
                                                        FontSize="14"
                                                        Foreground="White"
                                                        Margin="0,0,4,0" />
-                                        <TextBlock Text="{Binding KeyboardCaptureTimeLeft}"
+                                        <TextBlock Text="{Binding KeyboardComponent.CaptureTimeLeft}"
                                                    FontSize="12"
                                                    FontWeight="Bold"
                                                    Foreground="White" />
@@ -216,8 +218,11 @@
                                     Padding="15,12"
                                     Margin="0,0,0,8"
                                     Cursor="Hand"
-                                    MouseLeftButtonDown="KeyboardComboBorder_Click"
-                                    IsEnabled="{Binding IsWaitingForKeyboardInput, Converter={StaticResource InverseBooleanConverter}}">
+                                    IsEnabled="{Binding KeyboardComponent.IsWaitingForInput, Converter={StaticResource InverseBooleanConverter}}">
+                                
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick" Command="{Binding StartKeyboardCaptureCommand}" />
+                                </Border.InputBindings>
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
@@ -225,7 +230,7 @@
                                                 <Setter Property="Background" Value="#505050" />
                                                 <Setter Property="BorderBrush" Value="#1ba1e2" />
                                             </Trigger>
-                                            <DataTrigger Binding="{Binding IsWaitingForKeyboardInput}" Value="True">
+                                            <DataTrigger Binding="{Binding KeyboardComponent.IsWaitingForInput}" Value="True">
                                                 <Setter Property="BorderBrush" Value="#ff6b6b" />
                                                 <Setter Property="Background" Value="#4a2c2c" />
                                             </DataTrigger>
@@ -234,28 +239,28 @@
                                 </Border.Style>
 
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding KeyboardComboText}"
+                                    <TextBlock Text="{Binding KeyboardComponent.ComboText}"
                                                FontSize="16"
                                                FontWeight="Medium"
-                                               Foreground="{Binding KeyboardComboTextColor}"
+                                               Foreground="{Binding KeyboardComponent.ComboTextColor}"
                                                HorizontalAlignment="Left"
                                                VerticalAlignment="Center" />
 
                                     <!-- Индикатор захвата для клавиатуры -->
-                                    <Border Background="{Binding KeyboardComboTextColor}"
+                                    <Border Background="{Binding KeyboardComponent.ComboTextColor}"
                                             Width="15"
                                             Height="15"
                                             CornerRadius="8"
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
-                                            Visibility="{Binding IsWaitingForKeyboardInput, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            Visibility="{Binding KeyboardComponent.IsWaitingForInput, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Border.RenderTransform>
                                             <ScaleTransform />
                                         </Border.RenderTransform>
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsWaitingForKeyboardInput}" Value="True">
+                                                    <DataTrigger Binding="{Binding KeyboardComponent.IsWaitingForInput}" Value="True">
                                                         <DataTrigger.EnterActions>
                                                             <BeginStoryboard x:Name="KeyboardPulseStoryboard">
                                                                 <Storyboard RepeatBehavior="Forever">
@@ -283,11 +288,11 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                                 <Ellipse Width="10" Height="10"
-                                         Fill="{Binding KeyboardStatusColor}"
+                                         Fill="{Binding KeyboardComponent.StatusColor}"
                                          Margin="0,0,8,0" />
-                                <TextBlock Text="{Binding KeyboardStatusText}"
+                                <TextBlock Text="{Binding KeyboardComponent.StatusText}"
                                            FontSize="13"
-                                           Foreground="{Binding KeyboardStatusColor}" />
+                                           Foreground="{Binding KeyboardComponent.StatusColor}" />
                             </StackPanel>
                         </StackPanel>
 
