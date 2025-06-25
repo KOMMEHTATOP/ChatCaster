@@ -1,7 +1,4 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Events;
@@ -9,7 +6,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
 
-namespace ChatCaster.Windows.ViewModels.Settings
+namespace ChatCaster.Windows.ViewModels
 {
     public partial class AudioSettingsViewModel : BaseSettingsViewModel
     {

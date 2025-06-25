@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Windows.Controls;
 using ChatCaster.Windows.Services;
-using ChatCaster.Windows.ViewModels.Settings;
 using ChatCaster.Windows.Views.ViewSettings;
 using Serilog;
 
