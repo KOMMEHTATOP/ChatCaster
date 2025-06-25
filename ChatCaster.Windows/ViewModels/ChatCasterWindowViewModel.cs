@@ -7,6 +7,7 @@ using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Navigation;
+using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -153,53 +154,58 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Console.WriteLine("🔥 [ViewModel] Инициализация начата");
+                Log.Information("Инициализация ChatCasterWindowViewModel начата");
 
-                Console.WriteLine("🔧 [ViewModel] Загружаем конфигурацию...");
+                Log.Debug("Загружаем конфигурацию...");
                 CurrentConfig = await _serviceContext.ConfigurationService!.LoadConfigAsync();
                 _serviceContext.Config = CurrentConfig;
                 _trayService.SetConfig(CurrentConfig);
-                Console.WriteLine("✅ [ViewModel] Конфигурация загружена");
+                Log.Information("Конфигурация загружена");
 
-                Console.WriteLine("🎤 [ViewModel] Инициализируем сервис распознавания речи...");
+                Log.Debug("Инициализируем сервис распознавания речи...");
                 await _speechService.InitializeAsync(CurrentConfig.Whisper);
-                Console.WriteLine("✅ [ViewModel] Сервис распознавания речи инициализирован");
+                Log.Information("Сервис распознавания речи инициализирован");
+
+                Log.Debug("Применяем конфигурацию к OverlayService...");
+                await _overlayService.ApplyConfigAsync(CurrentConfig.Overlay);
+                Log.Information("Конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}", 
+                    CurrentConfig.Overlay.Position, CurrentConfig.Overlay.Opacity);
 
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
-                    Console.WriteLine(
-                        $"⌨️ [ViewModel] Регистрируем хоткей: {CurrentConfig.Input.KeyboardShortcut.Key} + {CurrentConfig.Input.KeyboardShortcut.Modifiers}");
-                    bool registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
-                    Console.WriteLine($"📝 [ViewModel] Хоткей зарегистрирован: {registered}");
+                    Log.Debug("Регистрируем хоткей: {Key} + {Modifiers}", 
+                        CurrentConfig.Input.KeyboardShortcut.Key, CurrentConfig.Input.KeyboardShortcut.Modifiers);
+                    
+                    var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
+                    Log.Information("Хоткей зарегистрирован: {Registered}", registered);
                 }
 
                 // Инициализируем геймпад координатор
-                Console.WriteLine("🎮 [ViewModel] Проверяем GamepadVoiceCoordinator...");
+                Log.Debug("Проверяем GamepadVoiceCoordinator...");
 
                 if (_serviceContext?.GamepadVoiceCoordinator != null)
                 {
-                    Console.WriteLine("🎮 [ViewModel] GamepadVoiceCoordinator найден, начинаем инициализацию...");
-                    bool gamepadInitialized = await _serviceContext.GamepadVoiceCoordinator.InitializeAsync();
-                    Console.WriteLine($"🎮 [ViewModel] Геймпад инициализирован: {gamepadInitialized}");
+                    Log.Debug("GamepadVoiceCoordinator найден, начинаем инициализацию...");
+                    var gamepadInitialized = await _serviceContext.GamepadVoiceCoordinator.InitializeAsync();
+                    Log.Information("Геймпад инициализирован: {Initialized}", gamepadInitialized);
                 }
                 else
                 {
-                    Console.WriteLine("❌ [ViewModel] GamepadVoiceCoordinator НЕ НАЙДЕН в ServiceContext!");
+                    Log.Warning("GamepadVoiceCoordinator НЕ НАЙДЕН в ServiceContext");
                 }
 
                 if (CurrentConfig.System.StartMinimized)
                 {
-                    Console.WriteLine("🔽 [ViewModel] Запуск в свернутом виде");
+                    Log.Debug("Запуск в свернутом виде");
                     WindowState = WindowState.Minimized;
                 }
 
                 StatusText = NavigationConstants.StatusReady;
-                Console.WriteLine("🔥 [ViewModel] Инициализация завершена");
+                Log.Information("Инициализация ChatCasterWindowViewModel завершена");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [ViewModel] Ошибка инициализации: {ex.Message}");
-                Console.WriteLine($"❌ [ViewModel] StackTrace: {ex.StackTrace}");
+                Log.Error(ex, "Ошибка инициализации ChatCasterWindowViewModel");
             }
         }
         
@@ -210,7 +216,7 @@ namespace ChatCaster.Windows.ViewModels
 
         public void Cleanup()
         {
-            Console.WriteLine("🔥 [ViewModel] Cleanup начат");
+            Log.Information("Cleanup ChatCasterWindowViewModel начат");
 
             _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
             _navigationManager.NavigationChanged -= OnNavigationChanged;
@@ -220,8 +226,8 @@ namespace ChatCaster.Windows.ViewModels
                 Task.Run(async () => await _serviceContext.GamepadVoiceCoordinator.ShutdownAsync());
             }
 
-            // НОВОЕ: Очищаем все страницы через NavigationManager
-            Console.WriteLine("🧹 [ViewModel] Очищаем все кешированные страницы...");
+            // Очищаем все страницы через NavigationManager
+            Log.Debug("Очищаем все кешированные страницы...");
             _navigationManager.CleanupAllPages();
 
             // Теперь можем вызывать Dispose напрямую
@@ -232,7 +238,7 @@ namespace ChatCaster.Windows.ViewModels
             _speechService?.Dispose();
             _trayService?.Dispose();
 
-            Console.WriteLine("🔥 [ViewModel] Cleanup завершен");
+            Log.Information("Cleanup ChatCasterWindowViewModel завершен");
         }
         #endregion
 
@@ -254,12 +260,12 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Console.WriteLine($"🎯 Глобальный хоткей: {FormatKeyboardShortcut(shortcut)}");
+                Log.Debug("Глобальный хоткей нажат: {Shortcut}", FormatKeyboardShortcut(shortcut));
                 await HandleVoiceRecordingAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Ошибка обработки хоткея: {ex.Message}");
+                Log.Error(ex, "Ошибка обработки хоткея");
                 _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея");
             }
         }
@@ -276,91 +282,32 @@ namespace ChatCaster.Windows.ViewModels
 
                 if (voiceService == null)
                 {
-                    Console.WriteLine("❌ VoiceRecordingService не инициализирован");
+                    Log.Error("VoiceRecordingService не инициализирован");
                     _trayService.ShowNotification("Ошибка", "Сервис записи не готов");
                     return;
                 }
 
                 if (voiceService.IsRecording)
                 {
-                    Console.WriteLine("🛑 Останавливаем запись...");
+                    Log.Debug("Останавливаем запись через VoiceRecordingService...");
                     StatusText = NavigationConstants.StatusProcessing;
 
-                    var result = await voiceService.StopRecordingAsync();
-
-                    if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
-                    {
-                        Console.WriteLine($"✅ Распознано: '{result.RecognizedText}'");
-                        _trayService.ShowNotification("Распознано", result.RecognizedText);
-                        StatusText = NavigationConstants.StatusReady;
-
-                        await _systemService.SendTextAsync(result.RecognizedText);
-                        UpdateMainPageIfVisible(result.RecognizedText, false);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"❌ Распознавание не удалось: {result.ErrorMessage}");
-                        _trayService.ShowNotification("Ошибка", result.ErrorMessage ?? "Не удалось распознать речь");
-                        StatusText = NavigationConstants.StatusReady;
-                    }
+                    // Просто останавливаем запись - VoiceRecordingService уведомит всех подписчиков
+                    await voiceService.StopRecordingAsync();
                 }
                 else
                 {
-                    Console.WriteLine("🎤 Начинаем запись...");
-
-                    bool started = await voiceService.StartRecordingAsync();
-
-                    if (started)
-                    {
-                        Console.WriteLine("✅ Запись началась");
-                        StatusText = NavigationConstants.StatusRecording;
-                        UpdateMainPageIfVisible("", true);
-                    }
-                    else
-                    {
-                        Console.WriteLine("❌ Не удалось начать запись");
-                        _trayService.ShowNotification("Ошибка", "Не удалось начать запись");
-                    }
+                    Log.Debug("Начинаем запись через VoiceRecordingService...");
+                    
+                    // Просто начинаем запись - VoiceRecordingService уведомит всех подписчиков
+                    await voiceService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Ошибка в HandleVoiceRecordingAsync: {ex.Message}");
+                Log.Error(ex, "Ошибка в HandleVoiceRecordingAsync");
                 _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи");
                 StatusText = NavigationConstants.StatusReady;
-            }
-        }
-
-        private void UpdateMainPageIfVisible(string recognizedText, bool isRecording)
-        {
-            try
-            {
-                var mainPage = _navigationManager.GetMainPageIfVisible();
-
-                if (mainPage != null)
-                {
-                    Console.WriteLine($"📱 Обновляем UI MainPageView");
-
-                    if (isRecording)
-                    {
-                        mainPage.UpdateRecordingStatus(NavigationConstants.StatusRecording, "#ff9800");
-                        mainPage.UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
-                    }
-                    else
-                    {
-                        mainPage.UpdateRecordingStatus(NavigationConstants.StatusReady, "#4caf50");
-                        mainPage.UpdateRecordingButton("🎙️ Записать", "Mic24");
-
-                        if (!string.IsNullOrEmpty(recognizedText))
-                        {
-                            mainPage.ResultText.Text = recognizedText;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Ошибка обновления UI: {ex.Message}");
             }
         }
 

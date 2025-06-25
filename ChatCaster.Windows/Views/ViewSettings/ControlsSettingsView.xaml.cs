@@ -1,15 +1,14 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels;
+using Serilog;
 
 namespace ChatCaster.Windows.Views.ViewSettings;
 
-public partial class ControlSettingsView : Page
+public partial class ControlSettingsView 
 {
-    // ✅ ИСПРАВЛЕНИЕ: Убираем nullable поскольку поле инициализируется в конструкторе
-    private ControlSettingsViewModel _viewModel = null!;
+    private readonly ControlSettingsViewModel _viewModel = null!;
 
     public ControlSettingsView()
     {
@@ -22,76 +21,143 @@ public partial class ControlSettingsView : Page
                               ConfigurationService configurationService,
                               ServiceContext serviceContext) : this()
     {
-        // Гарантированно инициализируем _viewModel
-        _viewModel = new ControlSettingsViewModel(
-            configurationService, 
-            serviceContext, 
-            gamepadService, 
-            systemService);
-        
-        DataContext = _viewModel;
-        
-        // Подписываемся на события для отладки
-        SubscribeToViewModelEvents();
-        
-        // Инициализируем ViewModel
-        _ = _viewModel.InitializeAsync();
+        try
+        {
+            // Гарантированно инициализируем _viewModel
+            _viewModel = new ControlSettingsViewModel(
+                configurationService, 
+                serviceContext, 
+                gamepadService, 
+                systemService);
+            
+            DataContext = _viewModel;
+            
+            // Подписываемся на события для отладки
+            SubscribeToViewModelEvents();
+            
+            // Инициализируем ViewModel
+            _ = _viewModel.InitializeAsync();
+            
+            Log.Debug("ControlSettingsView инициализирован с ViewModel");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при инициализации ControlSettingsView");
+        }
     }
 
-    #region метод подписки на события
+    #region Подписка на события ViewModel
 
     private void SubscribeToViewModelEvents()
     {
-        _viewModel.PropertyChanged += (s, e) =>
+        try
         {
-            if (e.PropertyName == nameof(_viewModel.IsWaitingForKeyboardInput))
+            _viewModel.PropertyChanged += (s, e) =>
             {
-                System.Diagnostics.Debug.WriteLine($"🎨 IsWaitingForKeyboardInput изменен на: {_viewModel.IsWaitingForKeyboardInput}");
-            }
-            if (e.PropertyName == nameof(_viewModel.IsWaitingForGamepadInput))
-            {
-                System.Diagnostics.Debug.WriteLine($"🎨 IsWaitingForGamepadInput изменен на: {_viewModel.IsWaitingForGamepadInput}");
-            }
-            if (e.PropertyName == nameof(_viewModel.KeyboardComboTextColor))
-            {
-                System.Diagnostics.Debug.WriteLine($"🎨 KeyboardComboTextColor изменен на: {_viewModel.KeyboardComboTextColor}");
-            }
-            if (e.PropertyName == nameof(_viewModel.GamepadComboTextColor))
-            {
-                System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboTextColor изменен на: {_viewModel.GamepadComboTextColor}");
-            }
-        };
+                switch (e.PropertyName)
+                {
+                    case nameof(_viewModel.IsWaitingForKeyboardInput):
+                        Log.Debug("IsWaitingForKeyboardInput изменен на: {Value}", _viewModel.IsWaitingForKeyboardInput);
+                        break;
+                    case nameof(_viewModel.IsWaitingForGamepadInput):
+                        Log.Debug("IsWaitingForGamepadInput изменен на: {Value}", _viewModel.IsWaitingForGamepadInput);
+                        break;
+                    case nameof(_viewModel.KeyboardComboTextColor):
+                        Log.Debug("KeyboardComboTextColor изменен на: {Value}", _viewModel.KeyboardComboTextColor);
+                        break;
+                    case nameof(_viewModel.GamepadComboTextColor):
+                        Log.Debug("GamepadComboTextColor изменен на: {Value}", _viewModel.GamepadComboTextColor);
+                        break;
+                }
+            };
+            
+            Log.Debug("События ViewModel подписаны для ControlSettings");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при подписке на события ViewModel");
+        }
     }
 
     #endregion
 
+    #region Event Handlers
+
     // Обработчики кликов на поля комбинаций - делегируем в ViewModel
-    private async void GamepadComboBorder_Click(object sender, MouseButtonEventArgs e)
+    private void GamepadComboBorder_Click(object sender, MouseButtonEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"🎨 GamepadComboBorder_Click вызван");
+        Log.Debug("GamepadComboBorder_Click вызван");
         
-        // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
-        if (_viewModel.StartGamepadCaptureCommand.CanExecute(null))
+        // Безопасный fire-and-forget
+        _ = HandleGamepadCaptureAsync();
+    }
+
+    private void KeyboardComboBorder_Click(object sender, MouseButtonEventArgs e)
+    {
+        Log.Debug("KeyboardComboBorder_Click вызван");
+        
+        // Безопасный fire-and-forget
+        _ = HandleKeyboardCaptureAsync();
+    }
+
+    #endregion
+
+    #region Безопасные async методы
+
+    private async Task HandleGamepadCaptureAsync()
+    {
+        try
         {
-            await _viewModel.StartGamepadCaptureCommand.ExecuteAsync(null);
+            if (_viewModel.StartGamepadCaptureCommand.CanExecute(null))
+            {
+                await _viewModel.StartGamepadCaptureCommand.ExecuteAsync(null);
+            }
+            else
+            {
+                Log.Debug("StartGamepadCaptureCommand не может быть выполнен");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при обработке клика по GamepadComboBorder");
         }
     }
 
-    private async void KeyboardComboBorder_Click(object sender, MouseButtonEventArgs e)
+    private async Task HandleKeyboardCaptureAsync()
     {
-        System.Diagnostics.Debug.WriteLine($"🎨 KeyboardComboBorder_Click вызван");
-        
-        // ✅ ИСПРАВЛЕНИЕ: Убираем null-conditional поскольку _viewModel гарантированно не null
-        if (_viewModel.StartKeyboardCaptureCommand.CanExecute(null))
+        try
         {
-            await _viewModel.StartKeyboardCaptureCommand.ExecuteAsync(null);
+            if (_viewModel.StartKeyboardCaptureCommand.CanExecute(null))
+            {
+                await _viewModel.StartKeyboardCaptureCommand.ExecuteAsync(null);
+            }
+            else
+            {
+                Log.Debug("StartKeyboardCaptureCommand не может быть выполнен");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при обработке клика по KeyboardComboBorder");
         }
     }
 
-    // Cleanup при выгрузке страницы
+    #endregion
+
+    #region Cleanup
+
     private void Page_Unloaded(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("🔥 [ControlSettingsView] Page_Unloaded - НЕ вызываем Cleanup");
-
+        try
+        {
+            // Cleanup обрабатывается в NavigationManager через DataContext
+            Log.Debug("ControlSettingsView выгружен (cleanup управляется NavigationManager)");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при выгрузке ControlSettingsView");
+        }
     }
+
+    #endregion
 }

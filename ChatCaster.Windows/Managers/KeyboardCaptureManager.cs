@@ -1,4 +1,5 @@
 using ChatCaster.Core.Models;
+using ChatCaster.Windows.Converters;
 using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Utilities;
 using NHotkey;

@@ -53,14 +53,13 @@
                                    Margin="0,0,0,15"/>
                         
                         <!-- Показывать overlay -->
-                        <CheckBox x:Name="ShowOverlayCheckBox"
-                                  Content="Показывать overlay во время записи"
+                        <CheckBox Content="Показывать overlay во время записи"
                                   FontSize="14"
                                   Foreground="#e0e0e0"
                                   Margin="0,0,0,20"
-                                  IsChecked="True"/>
+                                  IsChecked="{Binding ShowOverlay}"/>
                         
-                        <!-- Позиция overlay -->
+                        <!-- Позиция overlay - ВОЗВРАЩАЕМ ОРИГИНАЛЬНУЮ СТРУКТУРУ -->
                         <Grid Margin="0,0,0,25">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="120"/>
@@ -77,10 +76,13 @@
                             <ComboBox Grid.Column="1" 
                                       x:Name="OverlayPositionComboBox"
                                       FontSize="14"
-                                      IsEnabled="{Binding IsChecked, ElementName=ShowOverlayCheckBox}">
+                                      IsEnabled="{Binding ShowOverlay}"
+                                      SelectedValue="{Binding SelectedPosition.Position, Mode=OneWay}"
+                                      SelectedValuePath="Tag"
+                                      SelectionChanged="OverlayPositionComboBox_SelectionChanged">
                                 <ComboBoxItem Content="Верхний левый" Tag="TopLeft"/>
                                 <ComboBoxItem Content="Верхний центр" Tag="TopCenter"/>
-                                <ComboBoxItem Content="Верхний правый" Tag="TopRight" IsSelected="True"/>
+                                <ComboBoxItem Content="Верхний правый" Tag="TopRight"/>
                                 <ComboBoxItem Content="Средний левый" Tag="MiddleLeft"/>
                                 <ComboBoxItem Content="Центр" Tag="MiddleCenter"/>
                                 <ComboBoxItem Content="Средний правый" Tag="MiddleRight"/>
@@ -110,18 +112,16 @@
                                        VerticalAlignment="Center"/>
 
                             <Slider Grid.Column="1" 
-                                    x:Name="OverlayOpacitySlider"
                                     Minimum="0" 
                                     Maximum="100" 
-                                    Value="90"
+                                    Value="{Binding OverlayOpacity}"
                                     TickFrequency="10"
                                     IsSnapToTickEnabled="False"
                                     Margin="10,0"
-                                    IsEnabled="{Binding IsChecked, ElementName=ShowOverlayCheckBox}"/>
+                                    IsEnabled="{Binding ShowOverlay}"/>
 
                             <TextBlock Grid.Column="2" 
-                                       x:Name="OverlayOpacityValueText"
-                                       Text="90%" 
+                                       Text="{Binding OverlayOpacityText}" 
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#1ba1e2"
@@ -129,31 +129,30 @@
                                        HorizontalAlignment="Center"/>
                         </Grid>
                         
-                        <!-- Системные настройки -->
+                        <!-- Системные настройки - БЕЗ ЛИШНЕГО ЗАГОЛОВКА -->
                         <StackPanel>
-                            <CheckBox x:Name="ShowNotificationsCheckBox"
-                                      Content="Показывать уведомления"
-                                      FontSize="14"
-                                      Foreground="#e0e0e0"
-                                      Margin="0,0,0,7"/>
-                            
-                            <CheckBox x:Name="MinimizeToTrayCheckBox"
-                                      Content="Кнопка закрытия (X) сворачивает в трей"
+                            <CheckBox Content="Показывать уведомления"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
                                       Margin="0,0,0,7"
-                                      IsChecked="True"/>
+                                      IsChecked="{Binding ShowNotifications}"/>
                             
-                            <CheckBox x:Name="StartWithWindowsCheckBox"
-                                      Content="Запускать с Windows"
+                            <CheckBox Content="Кнопка закрытия (X) сворачивает в трей"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
-                                      Margin="0,0,0,7"/>
+                                      Margin="0,0,0,7"
+                                      IsChecked="{Binding MinimizeToTray}"/>
                             
-                            <CheckBox x:Name="StartMinimizedCheckBox"
-                                      Content="Запускать свернутым в трей"
+                            <CheckBox Content="Запускать с Windows"
                                       FontSize="14"
-                                      Foreground="#e0e0e0"/>
+                                      Foreground="#e0e0e0"
+                                      Margin="0,0,0,7"
+                                      IsChecked="{Binding StartWithWindows}"/>
+                            
+                            <CheckBox Content="Запускать свернутым в трей"
+                                      FontSize="14"
+                                      Foreground="#e0e0e0"
+                                      IsChecked="{Binding StartMinimized}"/>
                         </StackPanel>
                         
                     </StackPanel>

@@ -7,7 +7,8 @@
       mc:Ignorable="d"
       Title="MainPageView" 
       d:DesignHeight="600" d:DesignWidth="920"
-      Background="Transparent">
+      Background="Transparent"
+      Unloaded="Page_Unloaded">
 
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
         <StackPanel MaxWidth="800">
@@ -48,26 +49,23 @@
                         </Grid.ColumnDefinitions>
                         
                         <StackPanel Grid.Column="0">
-                            <TextBlock x:Name="RecordingStatusText"
-                                       Text="Готов к записи" 
+                            <TextBlock Text="{Binding RecordingStatusText}"
                                        FontSize="22" 
                                        FontWeight="Medium"
-                                       Foreground="#4caf50"
+                                       Foreground="{Binding RecordingStatusBrush}"
                                        Margin="0,0,0,8"/>
-                            <TextBlock x:Name="CurrentDeviceText"
-                                       Text="Устройство: Microphone (Default)" 
+                            <TextBlock Text="{Binding CurrentDeviceText}"
                                        FontSize="14"
                                        Foreground="#e0e0e0"/>
                         </StackPanel>
                         
-                        <ui:Button x:Name="RecordButton"
-                                   Grid.Column="1" 
-                                   Content="Записать"
+                        <ui:Button Grid.Column="1" 
+                                   Content="{Binding RecordButtonText}"
+                                   Command="{Binding ToggleRecordingCommand}"
                                    Appearance="Primary"
                                    FontSize="14"
                                    FontWeight="SemiBold"
-                                   Padding="32,14"
-                                   Click="RecordButton_Click"/>
+                                   Padding="32,14"/>
                     </Grid>
                 </Grid>
             </Border>
@@ -106,24 +104,21 @@
                             Padding="20"
                             MinHeight="120"
                             Margin="0,0,0,15">
-                        <TextBlock x:Name="ResultText"
-                                   Text="Здесь появится распознанный текст..."
+                        <TextBlock Text="{Binding ResultText}"
                                    FontFamily="Consolas"
                                    FontSize="14"
-                                   Foreground="#666666"
-                                   FontStyle="Italic"
+                                   Foreground="{Binding ResultTextBrush}"
+                                   FontStyle="{Binding ResultFontStyle}"
                                    TextWrapping="Wrap"/>
                     </Border>
                     
                     <StackPanel Grid.Row="2" 
                                 Orientation="Horizontal">
-                        <TextBlock x:Name="ConfidenceText"
-                                   Text="Уверенность: -" 
+                        <TextBlock Text="{Binding ConfidenceText}"
                                    FontSize="12"
                                    Foreground="#999999"
                                    Margin="0,0,25,0"/>
-                        <TextBlock x:Name="ProcessingTimeText"
-                                   Text="Время: -" 
+                        <TextBlock Text="{Binding ProcessingTimeText}"
                                    FontSize="12"
                                    Foreground="#999999"/>
                     </StackPanel>

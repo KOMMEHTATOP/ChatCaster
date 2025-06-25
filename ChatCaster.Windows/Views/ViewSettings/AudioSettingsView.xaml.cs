@@ -3,10 +3,11 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
+using Serilog;
 
 namespace ChatCaster.Windows.Views.ViewSettings;
 
-public partial class AudioSettingsView : Page
+public partial class AudioSettingsView 
 {
     private readonly AudioCaptureService? _audioCaptureService;
     private readonly SpeechRecognitionService? _speechRecognitionService;
@@ -33,9 +34,11 @@ public partial class AudioSettingsView : Page
         _configService = configService;
         _serviceContext = serviceContext;
         LoadConfigAndDevices();
+        
+        Log.Debug("AudioSettingsView инициализирован с сервисами");
     }
 
-    private async void LoadInitialData()
+    private void LoadInitialData()
     {
         _isLoadingUi = true;
         
@@ -46,33 +49,50 @@ public partial class AudioSettingsView : Page
         // Загружаем доступные устройства если сервис доступен
         if (_audioCaptureService != null)
         {
-            await LoadMicrophoneDevicesAsync();
+            _ = LoadMicrophoneDevicesAsync();
         }
 
         // Проверяем статус моделей если сервис доступен
         if (_speechRecognitionService != null)
         {
-            await CheckModelStatusAsync();
+            _ = CheckModelStatusAsync();
         }
 
         _isLoadingUi = false;
+        
+        Log.Debug("Загружены значения по умолчанию для AudioSettings");
     }
 
-    private async void LoadConfigAndDevices()
+    private void LoadConfigAndDevices()
     {
         _isLoadingUi = true;
         
         // Загружаем устройства и модели
-        await LoadMicrophoneDevicesAsync();
-        await CheckModelStatusAsync();
-        
-        // Применяем настройки из ServiceContext к UI
-        ApplyConfigToUI();
-        
-        // Подписываемся на события изменения UI
-        SubscribeToUIEvents();
+        _ = LoadConfigAndDevicesAsync();
         
         _isLoadingUi = false;
+    }
+
+    private async Task LoadConfigAndDevicesAsync()
+    {
+        try
+        {
+            // Загружаем устройства и модели
+            await LoadMicrophoneDevicesAsync();
+            await CheckModelStatusAsync();
+            
+            // Применяем настройки из ServiceContext к UI
+            ApplyConfigToUI();
+            
+            // Подписываемся на события изменения UI
+            SubscribeToUIEvents();
+            
+            Log.Debug("Конфигурация и устройства AudioSettings загружены");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при загрузке конфигурации и устройств AudioSettings");
+        }
     }
 
     private void SubscribeToUIEvents()
@@ -82,11 +102,17 @@ public partial class AudioSettingsView : Page
         WhisperModelComboBox.SelectionChanged += OnSettingChanged;
         LanguageComboBox.SelectionChanged += OnSettingChanged;
         MaxDurationSlider.ValueChanged += OnSliderChanged;
+        
+        Log.Debug("События UI подписаны для AudioSettings");
     }
 
     private void ApplyConfigToUI()
     {
-        if (_serviceContext?.Config == null) return;
+        if (_serviceContext?.Config == null)
+        {
+            Log.Warning("ServiceContext.Config недоступен при применении настроек к UI");
+            return;
+        }
 
         try
         {
@@ -129,47 +155,75 @@ public partial class AudioSettingsView : Page
                 }
             }
 
-            Console.WriteLine("Настройки применены к UI");
+            Log.Information("Настройки применены к UI: Device={DeviceId}, Model={Model}, Language={Language}", 
+                config.Audio.SelectedDeviceId, config.Whisper.Model, config.Whisper.Language);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка применения настроек к UI: {ex.Message}");
+            Log.Error(ex, "Ошибка применения настроек к UI");
         }
     }
 
     // Обработчики автоматического применения настроек
-    private async void OnSettingChanged(object sender, SelectionChangedEventArgs e)
+    private void OnSettingChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingUi) return; // Не применяем во время загрузки UI
         
-        await ApplyCurrentSettingsAsync();
+        _ = HandleSettingChangedAsync(sender);
+    }
+
+    private void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_isLoadingUi) return; // Не применяем во время загрузки UI
         
-        // Проверяем статус модели если изменилась модель Whisper
-        if (sender == WhisperModelComboBox)
+        _ = HandleSliderChangedAsync(e);
+    }
+
+    private async Task HandleSettingChangedAsync(object sender)
+    {
+        try
         {
-            await CheckModelStatusAsync();
+            await ApplyCurrentSettingsAsync();
+            
+            // Проверяем статус модели если изменилась модель Whisper
+            if (Equals(sender, WhisperModelComboBox))
+            {
+                await CheckModelStatusAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка в HandleSettingChangedAsync");
         }
     }
 
-    private async void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private async Task HandleSliderChangedAsync(RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isLoadingUi) return; // Не применяем во время загрузки UI
-        
-        // Обновляем текст рядом со слайдером
-        if (MaxDurationValueText != null)
+        try
         {
-            MaxDurationValueText.Text = $"{(int)e.NewValue}с";
+            // Обновляем текст рядом со слайдером
+            if (MaxDurationValueText != null)
+            {
+                MaxDurationValueText.Text = $"{(int)e.NewValue}с";
+            }
+            
+            await ApplyCurrentSettingsAsync();
         }
-        
-        await ApplyCurrentSettingsAsync();
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка в HandleSliderChangedAsync");
+        }
     }
 
     private async Task ApplyCurrentSettingsAsync()
     {
         try
         {
-            if (_configService == null || _serviceContext?.Config == null) 
+            if (_configService == null || _serviceContext?.Config == null)
+            {
+                Log.Warning("ConfigService или ServiceContext.Config недоступны для применения настроек");
                 return;
+            }
 
             var config = _serviceContext.Config; // Используем существующий объект
 
@@ -203,23 +257,25 @@ public partial class AudioSettingsView : Page
                 await _audioCaptureService.SetActiveDeviceAsync(newDeviceId);
             }
 
-            Console.WriteLine("Настройки автоматически сохранены и применены");
+            Log.Debug("Настройки аудио автоматически сохранены и применены");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка автоприменения настроек: {ex.Message}");
+            Log.Error(ex, "Ошибка автоприменения настроек аудио");
         }
     }
-
-
 
     private async Task LoadMicrophoneDevicesAsync()
     {
         try
         {
-            if (_audioCaptureService == null) return;
+            if (_audioCaptureService == null)
+            {
+                Log.Warning("AudioCaptureService недоступен для загрузки устройств");
+                return;
+            }
 
-            var devices = await _audioCaptureService.GetAvailableDevicesAsync();
+            var devices = (await _audioCaptureService.GetAvailableDevicesAsync()).ToList();
             
             MicrophoneComboBox.Items.Clear();
             foreach (var device in devices)
@@ -241,10 +297,12 @@ public partial class AudioSettingsView : Page
             }
 
             UpdateMicrophoneStatus("Микрофон готов", "#4caf50");
+            Log.Information("Загружено {Count} аудио устройств", devices.Count);
         }
         catch (Exception ex)
         {
             UpdateMicrophoneStatus($"Ошибка загрузки устройств: {ex.Message}", "#f44336");
+            Log.Error(ex, "Ошибка загрузки аудио устройств");
         }
     }
 
@@ -252,7 +310,11 @@ public partial class AudioSettingsView : Page
     {
         try
         {
-            if (_speechRecognitionService == null) return;
+            if (_speechRecognitionService == null)
+            {
+                Log.Warning("SpeechRecognitionService недоступен для проверки модели");
+                return;
+            }
 
             // Проверяем доступность текущей выбранной модели
             var selectedItem = WhisperModelComboBox.SelectedItem as ComboBoxItem;
@@ -264,6 +326,7 @@ public partial class AudioSettingsView : Page
                 {
                     UpdateModelStatus("Модель готова", "#4caf50");
                     DownloadModelButton.Visibility = Visibility.Collapsed;
+                    Log.Debug("Модель {Model} доступна", model);
                 }
                 else
                 {
@@ -271,19 +334,26 @@ public partial class AudioSettingsView : Page
                     string sizeText = FormatFileSize(sizeBytes);
                     UpdateModelStatus($"Модель не скачана ({sizeText})", "#ff9800");
                     DownloadModelButton.Visibility = Visibility.Visible;
+                    Log.Debug("Модель {Model} не доступна, размер: {Size}", model, sizeText);
                 }
             }
         }
         catch (Exception ex)
         {
             UpdateModelStatus($"Ошибка проверки модели: {ex.Message}", "#f44336");
+            Log.Error(ex, "Ошибка проверки статуса модели");
         }
     }
 
-    private async void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
+    private void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isTestingMicrophone || _audioCaptureService == null) return;
 
+        _ = HandleTestMicrophoneAsync();
+    }
+
+    private async Task HandleTestMicrophoneAsync()
+    {
         try
         {
             _isTestingMicrophone = true;
@@ -294,24 +364,27 @@ public partial class AudioSettingsView : Page
             var selectedItem = MicrophoneComboBox.SelectedItem as ComboBoxItem;
             if (selectedItem?.Tag is string deviceId)
             {
-                await _audioCaptureService.SetActiveDeviceAsync(deviceId);
+                await _audioCaptureService!.SetActiveDeviceAsync(deviceId);
             }
 
             // Тестируем микрофон
-            bool testResult = await _audioCaptureService.TestMicrophoneAsync();
+            bool testResult = await _audioCaptureService!.TestMicrophoneAsync();
 
             if (testResult)
             {
                 UpdateMicrophoneStatus("Микрофон работает", "#4caf50");
+                Log.Information("Тест микрофона прошел успешно");
             }
             else
             {
                 UpdateMicrophoneStatus("Проблема с микрофоном", "#f44336");
+                Log.Warning("Тест микрофона не прошел");
             }
         }
         catch (Exception ex)
         {
             UpdateMicrophoneStatus($"Ошибка тестирования: {ex.Message}", "#f44336");
+            Log.Error(ex, "Ошибка тестирования микрофона");
         }
         finally
         {
@@ -320,10 +393,15 @@ public partial class AudioSettingsView : Page
         }
     }
 
-    private async void DownloadModelButton_Click(object sender, RoutedEventArgs e)
+    private void DownloadModelButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isDownloadingModel || _speechRecognitionService == null) return;
 
+        _ = HandleDownloadModelAsync();
+    }
+
+    private async Task HandleDownloadModelAsync()
+    {
         try
         {
             _isDownloadingModel = true;
@@ -333,9 +411,10 @@ public partial class AudioSettingsView : Page
             if (selectedItem?.Tag is string modelTag && Enum.TryParse<WhisperModel>(modelTag, out var model))
             {
                 UpdateModelStatus("Начинаем загрузку...", "#ff9800");
+                Log.Information("Начинаем загрузку модели {Model}", model);
 
                 // Подписываемся на события загрузки
-                _speechRecognitionService.DownloadProgress += OnModelDownloadProgress;
+                _speechRecognitionService!.DownloadProgress += OnModelDownloadProgress;
                 _speechRecognitionService.DownloadCompleted += OnModelDownloadCompleted;
 
                 // Инициализируем модель (это запустит загрузку если нужно)
@@ -346,6 +425,7 @@ public partial class AudioSettingsView : Page
         catch (Exception ex)
         {
             UpdateModelStatus($"Ошибка загрузки: {ex.Message}", "#f44336");
+            Log.Error(ex, "Ошибка загрузки модели");
             _isDownloadingModel = false;
             DownloadModelButton.IsEnabled = true;
         }
@@ -374,10 +454,12 @@ public partial class AudioSettingsView : Page
             {
                 UpdateModelStatus("Модель готова", "#4caf50");
                 DownloadModelButton.Visibility = Visibility.Collapsed;
+                Log.Information("Модель успешно загружена");
             }
             else
             {
                 UpdateModelStatus($"Ошибка загрузки: {e.ErrorMessage}", "#f44336");
+                Log.Error("Ошибка загрузки модели: {Error}", e.ErrorMessage);
             }
 
             _isDownloadingModel = false;
@@ -410,7 +492,7 @@ public partial class AudioSettingsView : Page
         return $"{bytes} bytes";
     }
 
-    // Cleanup при выгрузке страницы
+    // Cleanup при выгрузке страницы - ВАЖНО оставить для отписки от событий
     private void Page_Unloaded(object sender, RoutedEventArgs e)
     {
         try
@@ -420,11 +502,14 @@ public partial class AudioSettingsView : Page
             {
                 _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
                 _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
+                Log.Debug("Отписались от событий SpeechRecognitionService");
             }
+            
+            Log.Debug("AudioSettingsView выгружен");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка при выгрузке AudioSettingsView: {ex.Message}");
+            Log.Error(ex, "Ошибка при выгрузке AudioSettingsView");
         }
     }
 }

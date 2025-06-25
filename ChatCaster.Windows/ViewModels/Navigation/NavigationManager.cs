@@ -4,12 +4,16 @@ using System.Windows.Controls;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Settings;
 using ChatCaster.Windows.Views.ViewSettings;
+using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation
 {
     public class NavigationManager
     {
         private readonly Dictionary<string, Page> _cachedPages = new();
+        
+        // Singleton ViewModel для MainPage
+        private ViewModels.MainPageViewModel? _mainPageViewModel;
         
         // Сервисы для создания страниц
         private readonly AudioCaptureService _audioService;
@@ -56,6 +60,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             CurrentPage = page;
             CurrentPageTag = pageTag;
 
+            Log.Debug("Навигация на страницу: {PageTag}", pageTag);
+
             // Уведомляем ViewModel об изменении
             NavigationChanged?.Invoke(this, new NavigationChangedEventArgs(pageTag, page));
         }
@@ -65,29 +71,34 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             NavigateToPage(NavigationConstants.InterfacePage);
         }
 
-        public MainPageView? GetMainPageIfVisible()
-        {
-            return CurrentPageTag == NavigationConstants.MainPage && 
-                   _cachedPages.TryGetValue(NavigationConstants.MainPage, out var page) && 
-                   page is MainPageView mainPage ? mainPage : null;
-        }
-
         private void LoadMainPage()
         {
-            var mainPage = new MainPageView(_audioService, _serviceContext);
+            // Создаем ViewModel только один раз
+            _mainPageViewModel = new ViewModels.MainPageViewModel(_audioService, _serviceContext);
+            
+            var mainPage = new MainPageView();
+            mainPage.DataContext = _mainPageViewModel;
+            
             _cachedPages[NavigationConstants.MainPage] = mainPage;
             CurrentPage = mainPage;
             CurrentPageTag = NavigationConstants.MainPage;
+            
+            Log.Debug("Главная страница загружена с Singleton ViewModel");
         }
 
         private Page GetOrCreatePage(string pageTag)
         {
             if (_cachedPages.TryGetValue(pageTag, out var cachedPage))
+            {
+                Log.Debug("Используем кешированную страницу: {PageTag}", pageTag);
                 return cachedPage;
+            }
+
+            Log.Debug("Создаем новую страницу: {PageTag}", pageTag);
 
             Page newPage = pageTag switch
             {
-                NavigationConstants.MainPage => new MainPageView(_audioService, _serviceContext),
+                NavigationConstants.MainPage => CreateMainPage(),
                 NavigationConstants.AudioPage => new AudioSettingsView(_audioService, _speechService, _configService, _serviceContext),
                 NavigationConstants.InterfacePage => new InterfaceSettingsView(_overlayService, _configService, _serviceContext),
                 NavigationConstants.ControlPage => new ControlSettingsView(_gamepadService, _systemService, _configService, _serviceContext),
@@ -98,63 +109,80 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             return newPage;
         }
         
-        // В NavigationManager.cs добавить в конец класса:
-
-public void CleanupAllPages()
-{
-    Console.WriteLine("🧹 [NavigationManager] Очистка всех страниц...");
-    
-    foreach (var kvp in _cachedPages)
-    {
-        var pageTag = kvp.Key;
-        var page = kvp.Value;
-        
-        try
+        private Page CreateMainPage()
         {
-            Console.WriteLine($"🧹 [NavigationManager] Очищаем страницу: {pageTag}");
+            // Переиспользуем существующий ViewModel
+            _mainPageViewModel ??= new ViewModels.MainPageViewModel(_audioService, _serviceContext);
             
-            // Очищаем ViewModels страниц
-            switch (page)
-            {
-                case ControlSettingsView controlPage:
-                    // Получаем ViewModel из DataContext
-                    if (controlPage.DataContext is ControlSettingsViewModel controlVM)
-                    {
-                        Console.WriteLine("🧹 [NavigationManager] Вызываем Cleanup для ControlSettingsViewModel");
-                        controlVM.Cleanup();
-                    }
-                    break;
-                    
-                case AudioSettingsView audioPage:
-                    if (audioPage.DataContext is AudioSettingsViewModel audioVM)
-                    {
-                        Console.WriteLine("🧹 [NavigationManager] Вызываем Cleanup для AudioSettingsViewModel");
-                        audioVM.Cleanup();
-                    }
-                    break;
-                    
-                case InterfaceSettingsView interfacePage:
-                    if (interfacePage.DataContext is InterfaceSettingsViewModel interfaceVM)
-                    {
-                        Console.WriteLine("🧹 [NavigationManager] Вызываем Cleanup для InterfaceSettingsViewModel");
-                        interfaceVM.Cleanup();
-                    }
-                    break;
-                    
-                // MainPageView не имеет Cleanup, пропускаем
-                case MainPageView:
-                    Console.WriteLine("🧹 [NavigationManager] MainPageView не требует Cleanup");
-                    break;
-            }
+            var mainPage = new MainPageView();
+            mainPage.DataContext = _mainPageViewModel;
+            
+            Log.Debug("MainPage создана с переиспользованием ViewModel");
+            return mainPage;
         }
-        catch (Exception ex)
+
+        public void CleanupAllPages()
         {
-            Console.WriteLine($"❌ [NavigationManager] Ошибка очистки страницы {pageTag}: {ex.Message}");
+            Log.Information("Очистка всех страниц NavigationManager...");
+            
+            // Сначала очищаем Singleton MainPageViewModel
+            if (_mainPageViewModel != null)
+            {
+                Log.Debug("Вызываем Cleanup для Singleton MainPageViewModel");
+                _mainPageViewModel.Cleanup();
+                _mainPageViewModel = null;
+            }
+            
+            foreach (var kvp in _cachedPages)
+            {
+                var pageTag = kvp.Key;
+                var page = kvp.Value;
+                
+                try
+                {
+                    Log.Debug("Очищаем страницу: {PageTag}", pageTag);
+                    
+                    // Очищаем ViewModels страниц (кроме MainPage - уже очищен выше)
+                    switch (page)
+                    {
+                        case MainPageView:
+                            // MainPageViewModel уже очищен выше как Singleton
+                            Log.Debug("MainPageView - ViewModel уже очищен");
+                            break;
+
+                        case ControlSettingsView controlPage:
+                            if (controlPage.DataContext is ControlSettingsViewModel controlVM)
+                            {
+                                Log.Debug("Вызываем Cleanup для ControlSettingsViewModel");
+                                controlVM.Cleanup();
+                            }
+                            break;
+                            
+                        case AudioSettingsView audioPage:
+                            if (audioPage.DataContext is AudioSettingsViewModel audioVM)
+                            {
+                                Log.Debug("Вызываем Cleanup для AudioSettingsViewModel");
+                                audioVM.Cleanup();
+                            }
+                            break;
+                            
+                        case InterfaceSettingsView interfacePage:
+                            if (interfacePage.DataContext is InterfaceSettingsViewModel interfaceVM)
+                            {
+                                Log.Debug("Вызываем Cleanup для InterfaceSettingsViewModel");
+                                interfaceVM.Cleanup();
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Ошибка очистки страницы {PageTag}", pageTag);
+                }
+            }
+            
+            _cachedPages.Clear();
+            Log.Information("Очистка всех страниц NavigationManager завершена");
         }
-    }
-    
-    _cachedPages.Clear();
-    Console.WriteLine("✅ [NavigationManager] Очистка всех страниц завершена");
-}
     }
 }

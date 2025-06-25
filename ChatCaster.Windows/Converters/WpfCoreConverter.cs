@@ -1,13 +1,11 @@
 using ChatCaster.Core.Models;
-using System.Collections.Generic;
-
 // Алиасы для ясности
 using WpfKey = System.Windows.Input.Key;
 using WpfModifierKeys = System.Windows.Input.ModifierKeys;
 using CoreKey = ChatCaster.Core.Models.Key;
 using CoreModifierKeys = ChatCaster.Core.Models.ModifierKeys;
 
-namespace ChatCaster.Windows.Utilities
+namespace ChatCaster.Windows.Converters
 {
     /// <summary>
     /// Статический конвертер для преобразования между WPF и Core моделями клавиш
@@ -16,7 +14,7 @@ namespace ChatCaster.Windows.Utilities
     {
         #region Key Conversion Dictionary
 
-        private static readonly Dictionary<WpfKey, CoreKey> KeyMap = new()
+        private readonly static Dictionary<WpfKey, CoreKey> KeyMap = new()
         {
             // Буквы
             [WpfKey.A] = CoreKey.A, [WpfKey.B] = CoreKey.B, [WpfKey.C] = CoreKey.C,
@@ -68,7 +66,7 @@ namespace ChatCaster.Windows.Utilities
             [WpfKey.Tab] = CoreKey.Tab, [WpfKey.Escape] = CoreKey.Escape
         };
 
-        private static readonly Dictionary<CoreKey, WpfKey> ReverseKeyMap;
+        private readonly static Dictionary<CoreKey, WpfKey> ReverseKeyMap;
 
         #endregion
 
@@ -93,7 +91,7 @@ namespace ChatCaster.Windows.Utilities
         /// </summary>
         /// <param name="wpfKey">WPF клавиша</param>
         /// <returns>Core клавиша или null если конверсия невозможна</returns>
-        public static CoreKey? ConvertToCore(WpfKey wpfKey)
+        private static CoreKey? ConvertToCore(WpfKey wpfKey)
         {
             return KeyMap.TryGetValue(wpfKey, out var coreKey) ? coreKey : null;
         }
@@ -113,7 +111,7 @@ namespace ChatCaster.Windows.Utilities
         /// </summary>
         /// <param name="wpfModifiers">WPF модификаторы</param>
         /// <returns>Core модификаторы</returns>
-        public static CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
+        private static CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
         {
             var coreModifiers = CoreModifierKeys.None;
 

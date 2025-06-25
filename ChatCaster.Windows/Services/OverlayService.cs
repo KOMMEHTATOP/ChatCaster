@@ -21,7 +21,6 @@ public class OverlayService : IOverlayService, IDisposable
     private OverlayConfig? _currentConfig;
     private bool _isDisposed;
     
-    // ✅ ДОБАВЛЯЕМ недостающие поля
     private IVoiceRecordingService? _voiceService;
     private IConfigurationService? _configService;
 
@@ -299,10 +298,16 @@ public class OverlayService : IOverlayService, IDisposable
     {
         try
         {
+            Console.WriteLine($"🔍 ApplyConfigInternal вызван: Position={config.Position}");
             _currentConfig = config;
             if (_overlayWindow != null)
             {
+                Console.WriteLine($"🔍 Применяем к существующему окну: {config.Position}");
                 ApplyConfigToWindow(_overlayWindow, config);
+            }
+            else
+            {
+                Console.WriteLine("🔍 Окно еще не создано, сохраняем конфигурацию");
             }
             Debug.WriteLine("Конфигурация overlay применена");
             return true;
@@ -313,18 +318,22 @@ public class OverlayService : IOverlayService, IDisposable
             return false;
         }
     }
-
+    
     private void CreateOverlayWindow()
     {
         try
         {
+            Console.WriteLine($"🔍 CreateOverlayWindow: _currentConfig = {(_currentConfig != null ? $"Position={_currentConfig.Position}" : "NULL")}");
+        
             _overlayWindow = new OverlayWindow();
             if (_currentConfig != null)
             {
+                Console.WriteLine($"🔍 Применяем сохраненную конфигурацию: {_currentConfig.Position}");
                 ApplyConfigToWindow(_overlayWindow, _currentConfig);
             }
             else
             {
+                Console.WriteLine("🔍 Применяем дефолтную конфигурацию: TopRight");
                 var defaultConfig = new OverlayConfig
                 {
                     Position = OverlayPosition.TopRight,

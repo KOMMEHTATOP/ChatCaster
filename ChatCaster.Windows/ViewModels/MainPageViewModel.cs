@@ -1,6 +1,4 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,6 +6,7 @@ using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
+using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -16,7 +15,6 @@ namespace ChatCaster.Windows.ViewModels
         #region Private Services
         private readonly AudioCaptureService? _audioCaptureService;
         private readonly ServiceContext? _serviceContext;
-        private readonly OverlayService? _overlayService;
         #endregion
 
         #region Observable Properties
@@ -43,7 +41,7 @@ namespace ChatCaster.Windows.ViewModels
         private Brush _resultTextBrush = new SolidColorBrush(Color.FromRgb(102, 102, 102)); // #666666
 
         [ObservableProperty]
-        private System.Windows.FontStyle _resultFontStyle = System.Windows.FontStyles.Italic;
+        private FontStyle _resultFontStyle = FontStyles.Italic;
 
         [ObservableProperty]
         private string _confidenceText = "Уверенность: -";
@@ -72,19 +70,19 @@ namespace ChatCaster.Windows.ViewModels
 
                 if (voiceService.IsRecording)
                 {
-                    Console.WriteLine("🛑 [MainPageViewModel] Останавливаем запись через VoiceRecordingService");
+                    Log.Debug("Останавливаем запись через VoiceRecordingService");
                     await voiceService.StopRecordingAsync();
                 }
                 else
                 {
-                    Console.WriteLine("🎤 [MainPageViewModel] Начинаем запись через VoiceRecordingService");
+                    Log.Debug("Начинаем запись через VoiceRecordingService");
                     await voiceService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
                 ShowError($"Ошибка: {ex.Message}");
-                Console.WriteLine($"❌ [MainPageViewModel] Ошибка в ToggleRecording: {ex.Message}");
+                Log.Error(ex, "Ошибка в ToggleRecording");
             }
         }
 
@@ -93,18 +91,21 @@ namespace ChatCaster.Windows.ViewModels
         #region Constructor
         public MainPageViewModel(
             AudioCaptureService? audioCaptureService,
-            ServiceContext? serviceContext,
-            OverlayService? overlayService)
+            ServiceContext? serviceContext)
         {
             _audioCaptureService = audioCaptureService;
             _serviceContext = serviceContext;
-            _overlayService = overlayService;
 
             // Подписываемся на события VoiceRecordingService
             if (serviceContext?.VoiceRecordingService != null)
             {
                 serviceContext.VoiceRecordingService.StatusChanged += OnRecordingStatusChanged;
                 serviceContext.VoiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
+                Log.Debug("MainPageViewModel подписался на события VoiceRecordingService");
+            }
+            else
+            {
+                Log.Warning("VoiceRecordingService недоступен в MainPageViewModel");
             }
 
             // Загружаем информацию о текущем устройстве
@@ -115,55 +116,21 @@ namespace ChatCaster.Windows.ViewModels
         #region Public Methods
 
         /// <summary>
-        /// Метод для вызова записи через хоткей
-        /// </summary>
-        public async Task TriggerRecordingFromHotkeyAsync()
-        {
-            try
-            {
-                Console.WriteLine($"🎤 [MainPageViewModel] TriggerRecordingFromHotkey - переадресация к VoiceRecordingService");
-                
-                var voiceService = _serviceContext?.VoiceRecordingService;
-                if (voiceService == null)
-                {
-                    Console.WriteLine($"❌ [MainPageViewModel] VoiceRecordingService недоступен");
-                    ShowError("Сервис записи недоступен");
-                    return;
-                }
-
-                if (voiceService.IsRecording)
-                {
-                    Console.WriteLine($"📝 [MainPageViewModel] Останавливаем запись через сервис");
-                    await voiceService.StopRecordingAsync();
-                }
-                else
-                {
-                    Console.WriteLine($"📝 [MainPageViewModel] Начинаем запись через сервис");
-                    await voiceService.StartRecordingAsync();
-                }
-
-                Console.WriteLine($"🎤 [MainPageViewModel] TriggerRecordingFromHotkey завершен");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ [MainPageViewModel] Ошибка в TriggerRecordingFromHotkey: {ex.Message}");
-                ShowError($"Ошибка хоткея: {ex.Message}");
-            }
-        }
-
-        /// <summary>
         /// Обновление статуса подключения устройств
         /// </summary>
         public void UpdateConnectionStatus(bool isConnected)
         {
-            if (isConnected)
+            Application.Current?.Dispatcher.InvokeAsync(() =>
             {
-                UpdateRecordingStatus("Готов к записи", "#4caf50");
-            }
-            else
-            {
-                UpdateRecordingStatus("Не подключен", "#f44336");
-            }
+                if (isConnected)
+                {
+                    UpdateRecordingStatus("Готов к записи", "#4caf50");
+                }
+                else
+                {
+                    UpdateRecordingStatus("Не подключен", "#f44336");
+                }
+            });
         }
 
         /// <summary>
@@ -180,11 +147,11 @@ namespace ChatCaster.Windows.ViewModels
                     _serviceContext.VoiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
                 }
 
-                Console.WriteLine($"🧹 [MainPageViewModel] Очистка завершена");
+                Log.Debug("MainPageViewModel cleanup завершен");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [MainPageViewModel] Ошибка при cleanup: {ex.Message}");
+                Log.Error(ex, "Ошибка при cleanup MainPageViewModel");
             }
         }
 
@@ -198,93 +165,137 @@ namespace ChatCaster.Windows.ViewModels
             {
                 if (_audioCaptureService != null)
                 {
-                    var devices = await _audioCaptureService.GetAvailableDevicesAsync();
+                    var devices = (await _audioCaptureService.GetAvailableDevicesAsync()).ToList();
                     var defaultDevice = devices.FirstOrDefault(d => d.IsDefault) ?? devices.FirstOrDefault();
-                    CurrentDeviceText = $"Устройство: {defaultDevice?.Name ?? "Не найдено"}";
+                    
+                    // Обновляем UI в UI потоке
+                    Application.Current?.Dispatcher.InvokeAsync(() =>
+                    {
+                        CurrentDeviceText = $"Устройство: {defaultDevice?.Name ?? "Не найдено"}";
+                    });
+                    
+                    Log.Debug("Загружено аудио устройство: {DeviceName}", defaultDevice?.Name ?? "Не найдено");
                 }
                 else
                 {
-                    CurrentDeviceText = "Устройство: Сервис недоступен";
+                    Application.Current?.Dispatcher.InvokeAsync(() =>
+                    {
+                        CurrentDeviceText = "Устройство: Сервис недоступен";
+                    });
+                    
+                    Log.Warning("AudioCaptureService недоступен при загрузке устройства");
                 }
             }
             catch (Exception ex)
             {
-                CurrentDeviceText = $"Ошибка: {ex.Message}";
+                Application.Current?.Dispatcher.InvokeAsync(() =>
+                {
+                    CurrentDeviceText = $"Ошибка: {ex.Message}";
+                });
+                
+                Log.Error(ex, "Ошибка при загрузке аудио устройства");
             }
         }
 
         private void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
         {
-            switch (e.NewStatus)
+            // КРИТИЧНО: обновляем UI только в UI потоке
+            Application.Current?.Dispatcher.InvokeAsync(() =>
             {
-                case RecordingStatus.Recording:
-                    UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
-                    UpdateRecordingStatus("Запись...", "#ff9800");
-                    ClearResults();
-                    IsRecording = true;
-                    break;
+                Log.Debug("MainPageViewModel получил событие StatusChanged: {Status}", e.NewStatus);
                 
-                case RecordingStatus.Processing:
-                    UpdateRecordingStatus("Обработка...", "#2196f3");
-                    break;
-                
-                case RecordingStatus.Completed:
-                case RecordingStatus.Idle:
-                    UpdateRecordingButton("🎙️ Записать", "Mic24");
-                    UpdateRecordingStatus("Готов к записи", "#4caf50");
-                    IsRecording = false;
-                    break;
-                
-                case RecordingStatus.Error:
-                case RecordingStatus.Cancelled:
-                    UpdateRecordingButton("🎙️ Записать", "Mic24");
-                    UpdateRecordingStatus("Ошибка", "#f44336");
-                    IsRecording = false;
-                    break;
-            }
+                switch (e.NewStatus)
+                {
+                    case RecordingStatus.Recording:
+                        UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
+                        UpdateRecordingStatus("Запись...", "#ff9800");
+                        ClearResults();
+                        IsRecording = true;
+                        break;
+                    
+                    case RecordingStatus.Processing:
+                        UpdateRecordingStatus("Обработка...", "#2196f3");
+                        break;
+                    
+                    case RecordingStatus.Completed:
+                    case RecordingStatus.Idle:
+                        UpdateRecordingButton("🎙️ Записать", "Mic24");
+                        UpdateRecordingStatus("Готов к записи", "#4caf50");
+                        IsRecording = false;
+                        break;
+                    
+                    case RecordingStatus.Error:
+                    case RecordingStatus.Cancelled:
+                        UpdateRecordingButton("🎙️ Записать", "Mic24");
+                        UpdateRecordingStatus("Ошибка", "#f44336");
+                        IsRecording = false;
+                        break;
+                }
+            });
         }
 
         private void OnRecognitionCompleted(object? sender, VoiceRecognitionCompletedEvent e)
         {
-            var result = e.Result;
-            
-            if (result.Success && !string.IsNullOrWhiteSpace(result.RecognizedText))
+            // КРИТИЧНО: обновляем UI только в UI потоке
+            Application.Current?.Dispatcher.InvokeAsync(() =>
             {
-                ResultText = result.RecognizedText;
-                ResultTextBrush = Brushes.White;
-                ResultFontStyle = System.Windows.FontStyles.Normal;
+                Log.Debug("MainPageViewModel получил событие RecognitionCompleted");
+                
+                var result = e.Result;
+                
+                if (result.Success && !string.IsNullOrWhiteSpace(result.RecognizedText))
+                {
+                    ResultText = result.RecognizedText;
+                    ResultTextBrush = Brushes.White;
+                    ResultFontStyle = FontStyles.Normal;
 
-                ConfidenceText = $"Уверенность: {result.Confidence:P0}";
-                ProcessingTimeText = $"Время: {result.ProcessingTime.TotalMilliseconds:F0}мс";
+                    ConfidenceText = $"Уверенность: {result.Confidence:P0}";
+                    ProcessingTimeText = $"Время: {result.ProcessingTime.TotalMilliseconds:F0}мс";
 
-                Console.WriteLine($"✅ [MainPageViewModel] Отображаем результат: '{result.RecognizedText}'");
-            }
-            else
-            {
-                string errorMessage = result.ErrorMessage ?? "Не удалось распознать речь";
-                ShowError(errorMessage);
-            }
+                    Log.Information("Распознавание завершено: '{Text}' (уверенность: {Confidence:P0}, время: {ProcessingTime}мс)", 
+                        result.RecognizedText, result.Confidence, result.ProcessingTime.TotalMilliseconds);
+                }
+                else
+                {
+                    string errorMessage = result.ErrorMessage ?? "Не удалось распознать речь";
+                    ShowError(errorMessage);
+                    Log.Warning("Распознавание не удалось: {Error}", errorMessage);
+                }
+            });
         }
 
         private void ShowError(string message)
         {
+            // Эта функция уже вызывается из UI потока, но для безопасности добавим проверку
+            if (Application.Current?.Dispatcher.CheckAccess() == true)
+            {
+                ShowErrorInternal(message);
+            }
+            else
+            {
+                Application.Current?.Dispatcher.InvokeAsync(() => ShowErrorInternal(message));
+            }
+        }
+
+        private void ShowErrorInternal(string message)
+        {
             ResultText = message;
             ResultTextBrush = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // #f44336
-            ResultFontStyle = System.Windows.FontStyles.Italic;
+            ResultFontStyle = FontStyles.Italic;
 
             ConfidenceText = "Уверенность: -";
             ProcessingTimeText = "Время: -";
 
             UpdateRecordingStatus("Ошибка", "#f44336");
             
-            Console.WriteLine($"❌ [MainPageViewModel] Ошибка: {message}");
+            Log.Warning("Отображена ошибка: {Message}", message);
         }
 
         private void ClearResults()
         {
             ResultText = "Обработка...";
             ResultTextBrush = new SolidColorBrush(Color.FromRgb(153, 153, 153)); // #999999
-            ResultFontStyle = System.Windows.FontStyles.Italic;
+            ResultFontStyle = FontStyles.Italic;
 
             ConfidenceText = "Уверенность: -";
             ProcessingTimeText = "Время: -";
