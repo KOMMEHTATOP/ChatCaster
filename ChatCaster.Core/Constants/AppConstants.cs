@@ -52,4 +52,31 @@ public static class AppConstants
     public const int DefaultMaxTokens = 224;
     public const int MinMaxTokens = 50;
     public const int MaxMaxTokens = 500;
+    
+    // Логирование - ДОБАВЛЕНО
+    public static class Logging
+    {
+        public const string LogOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+        public const string ConsoleOutputTemplate = "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+        public const string DebugOutputTemplate = "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+        
+        public const int DefaultRetainedFileCount = 7;
+        public const long DefaultMaxFileSizeBytes = 10_000_000; // 10MB
+    }
+    
+    // Методы для путей - ДОБАВЛЕНО
+    public static class Paths
+    {
+        public static string GetAppDataDirectory()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                AppName);
+        }
+        
+        public static string GetDefaultLogDirectory()
+        {
+            return Path.Combine(GetAppDataDirectory(), "logs");
+        }
+    }
 }

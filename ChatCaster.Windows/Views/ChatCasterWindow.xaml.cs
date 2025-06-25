@@ -3,17 +3,18 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using Wpf.Ui.Controls;
 using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.ViewModels;
 using System.Windows.Threading;
 using WpfKey = System.Windows.Input.Key;
 using WpfModifierKeys = System.Windows.Input.ModifierKeys;
+using ChatCaster.Core.Logging;
+using Serilog;
 
 namespace ChatCaster.Windows.Views
 {
-    public partial class ChatCasterWindow : FluentWindow
+    public partial class ChatCasterWindow
     {
         private readonly ChatCasterWindowViewModel _viewModel;
 
@@ -25,6 +26,12 @@ namespace ChatCaster.Windows.Views
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.InputEncoding = System.Text.Encoding.UTF8;
 
+            // Инициализация логирования
+            InitializeLogging();
+
+            Log.Information("ChatCaster запускается...");
+            Log.Debug("Инициализация сервисов");
+
             // Создание сервисов
             var audioService = new AudioCaptureService();
             var speechService = new SpeechRecognitionService();
@@ -32,7 +39,9 @@ namespace ChatCaster.Windows.Views
             var systemService = new SystemIntegrationService();
             var overlayService = new OverlayService();
             var configService = new ConfigurationService();
-            
+
+            Log.Debug("Основные сервисы созданы");
+
             // Создание VoiceRecordingService
             var voiceRecordingService = new VoiceRecordingService(
                 audioService,
@@ -57,15 +66,17 @@ namespace ChatCaster.Windows.Views
             // Создание TrayService
             var trayService = new TrayService(this);
             trayService.Initialize();
-            
+
+            Log.Debug("TrayService инициализирован");
+
             var gamepadVoiceCoordinator = new Services.GamepadService.GamepadVoiceCoordinator(
                 gamepadService,
                 voiceRecordingService,
                 systemService,
                 configService,
                 trayService);
-            
-            
+
+
             // Добавляем координатор в ServiceContext
             serviceContext.GamepadVoiceCoordinator = gamepadVoiceCoordinator;
 
@@ -87,40 +98,85 @@ namespace ChatCaster.Windows.Views
             // Подписка на события (убираем PropertyChanged для навигации)
             Closing += ChatCasterWindow_Closing;
             Loaded += ChatCasterWindow_Loaded;
+
+            Log.Information("ChatCaster успешно инициализирован");
+        }
+
+        private void InitializeLogging()
+        {
+            try
+            {
+                // Создаем дефолтную конфигурацию логирования
+                var loggingConfig = new LoggingConfig();
+
+                // В Debug режиме включаем консольный вывод
+#if DEBUG
+                loggingConfig.EnableConsoleLogging = true;
+                loggingConfig.MinimumLevel = LogLevel.Debug;
+#else
+               loggingConfig.EnableConsoleLogging = false;
+               loggingConfig.MinimumLevel = LogLevel.Information;
+#endif
+
+                // Инициализируем глобальный логгер Serilog
+                Log.Logger = LoggingConfiguration.CreateLogger(loggingConfig);
+
+                Log.Information("Система логирования инициализирована");
+            }
+            catch (Exception ex)
+            {
+                // Если логирование не удалось инициализировать, выводим в консоль
+                Console.WriteLine($"Ошибка инициализации логирования: {ex.Message}");
+            }
         }
 
         private async void ChatCasterWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Сначала устанавливаем начальную страницу БЕЗ анимации
-            if (_viewModel.CurrentPage != null)
+            try
             {
-                ContentFrame.Navigate(_viewModel.CurrentPage);
+                Log.Debug("Загрузка главного окна");
+
+                // Сначала устанавливаем начальную страницу БЕЗ анимации
+                if (_viewModel.CurrentPage != null)
+                {
+                    ContentFrame.Navigate(_viewModel.CurrentPage);
+                }
+
+                // Затем инициализируем ViewModel
+                await _viewModel.InitializeAsync();
+
+                // Устанавливаем фокус через Dispatcher чтобы дождаться полной загрузки
+                await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    Activate();
+                    Focus();
+                    Keyboard.Focus(this);
+                }));
+
+                Log.Information("Главное окно загружено и готово к работе");
             }
-            
-            // Затем инициализируем ViewModel
-            await _viewModel.InitializeAsync();
-            
-            // Устанавливаем фокус через Dispatcher чтобы дождаться полной загрузки
-            await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            catch (Exception ex)
             {
-                this.Activate();
-                this.Focus();
-                Keyboard.Focus(this);
-            }));
+                Log.Error(ex, "Ошибка при загрузке главного окна");
+            }
         }
 
         private void ChatCasterWindow_Closing(object? sender, CancelEventArgs e)
         {
+            Log.Debug("Попытка закрытия окна");
+
             // Проверяем конфигурацию через ViewModel
             if (_viewModel.CurrentConfig?.System?.AllowCompleteExit != true)
             {
                 e.Cancel = true;
-                this.Hide();
-                this.ShowInTaskbar = false;
+                Hide();
+                ShowInTaskbar = false;
+                Log.Information("Окно скрыто в трей");
             }
             else
             {
                 // Всегда вызываем Cleanup при реальном закрытии
+                Log.Information("Завершение работы ChatCaster");
                 _viewModel.Cleanup();
             }
         }
@@ -133,20 +189,32 @@ namespace ChatCaster.Windows.Views
         // Обработчики событий UI (только анимации и UI-специфичные вещи)
         private async void NavigationButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Wpf.Ui.Controls.Button { Tag: string pageTag }) return;
+            try
+            {
+                if (sender is not Wpf.Ui.Controls.Button { Tag: string pageTag }) return;
 
-            // Выполняем навигацию С анимацией
-            await NavigateToPageWithAnimation(pageTag);
+                // Выполняем навигацию С анимацией
+                await NavigateToPageWithAnimation(pageTag);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка при навигации на страницу");
+            }
         }
-
+        
         private async Task NavigateToPageWithAnimation(string pageTag)
         {
+            Log.Debug("Навигация на страницу: {PageTag}", pageTag);
+
             // Fade out текущей страницы
             var fadeOut = new DoubleAnimation
             {
                 To = 0,
                 Duration = TimeSpan.FromMilliseconds(150),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
             };
 
             ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeOut);
@@ -154,7 +222,7 @@ namespace ChatCaster.Windows.Views
 
             // обновляет CurrentPage и кнопки
             _viewModel.NavigateToPageCommand.Execute(pageTag);
-            
+
             // И навигацию в Frame
             if (_viewModel.CurrentPage != null)
             {
@@ -167,7 +235,10 @@ namespace ChatCaster.Windows.Views
                 From = 0,
                 To = 1,
                 Duration = TimeSpan.FromMilliseconds(150),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
             };
 
             ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeIn);
@@ -182,7 +253,10 @@ namespace ChatCaster.Windows.Views
             {
                 To = _viewModel.IsSidebarVisible ? 280 : 0,
                 Duration = TimeSpan.FromMilliseconds(300),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
             };
 
             SidebarBorder.BeginAnimation(Border.WidthProperty, animation);
@@ -202,38 +276,51 @@ namespace ChatCaster.Windows.Views
         {
             if (e.ButtonState == MouseButtonState.Pressed)
             {
-                this.DragMove();
+                DragMove();
             }
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
         {
-            base.OnKeyDown(e);
-
-            switch (e.Key)
+            try
             {
-                case WpfKey.F1:
-                    await NavigateToPageWithAnimation("Main");
-                    break;
-                case WpfKey.F2:
-                    await NavigateToPageWithAnimation("Audio");
-                    break;
-                case WpfKey.F3:
-                    await NavigateToPageWithAnimation("Interface");
-                    break;
-                case WpfKey.F4:
-                    await NavigateToPageWithAnimation("Control");
-                    break;
-                case WpfKey.Tab when Keyboard.Modifiers == WpfModifierKeys.Control:
-                    _viewModel.ToggleMenuCommand.Execute(null);
-                    break;
+                base.OnKeyDown(e);
+
+                switch (e.Key)
+                {
+                    case WpfKey.F1:
+                        await NavigateToPageWithAnimation("Main");
+                        break;
+                    case WpfKey.F2:
+                        await NavigateToPageWithAnimation("Audio");
+                        break;
+                    case WpfKey.F3:
+                        await NavigateToPageWithAnimation("Interface");
+                        break;
+                    case WpfKey.F4:
+                        await NavigateToPageWithAnimation("Control");
+                        break;
+                    case WpfKey.Tab when Keyboard.Modifiers == WpfModifierKeys.Control:
+                        _viewModel.ToggleMenuCommand.Execute(null);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка при обработке клавиши: {Key}", e.Key);
             }
         }
-
+        
         protected override void OnClosed(EventArgs e)
         {
+            Log.Information("Окно ChatCaster закрыто");
+
             // Гарантированная очистка при любом закрытии окна
             _viewModel.Cleanup();
+
+            // Закрываем логгер
+            Log.CloseAndFlush();
+
             base.OnClosed(e);
         }
     }

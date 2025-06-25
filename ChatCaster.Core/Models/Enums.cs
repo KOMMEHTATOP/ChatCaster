@@ -114,19 +114,6 @@ public enum WhisperModel
 }
 
 /// <summary>
-/// Уровни логирования
-/// </summary>
-public enum LogLevel
-{
-    Trace,
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Fatal
-}
-
-/// <summary>
 /// Типы аудио устройств
 /// </summary>
 public enum AudioDeviceType
@@ -151,4 +138,17 @@ public enum RecordingStatus
     Completed,  // Завершено успешно
     Error,      // Ошибка
     Cancelled   // Отменено пользователем
+}
+
+/// <summary>
+/// Уровни логирования
+/// </summary>
+public enum LogLevel
+{
+    Verbose = 0,
+    Debug = 1,
+    Information = 2,
+    Warning = 3,
+    Error = 4,
+    Fatal = 5
 }
