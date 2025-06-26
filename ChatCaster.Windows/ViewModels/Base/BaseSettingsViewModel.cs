@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
+using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Base
 {
@@ -64,7 +65,7 @@ namespace ChatCaster.Windows.ViewModels.Base
             catch (Exception ex)
             {
                 StatusMessage = $"Ошибка загрузки: {ex.Message}";
-                Console.WriteLine($"❌ [{GetType().Name}] Ошибка загрузки настроек: {ex.Message}");
+                Log.Error(ex, "[{ViewModelName}] Ошибка загрузки настроек", GetType().Name);
             }
             finally
             {
@@ -81,24 +82,29 @@ namespace ChatCaster.Windows.ViewModels.Base
             {
                 StatusMessage = "Сохранение настроек...";
 
+                // ✅ ДИАГНОСТИКА: Логируем применение настроек
+                Log.Information("[{ViewModelName}] === ПРИМЕНЕНИЕ НАСТРОЕК ===", GetType().Name);
+
                 // Применяем настройки к конфигурации
                 await ApplySettingsToConfigAsync(_serviceContext.Config);
 
                 // Сохраняем конфигурацию
                 await _configurationService.SaveConfigAsync(_serviceContext.Config);
+                Log.Information("[{ViewModelName}] Конфигурация сохранена в файл", GetType().Name);
 
                 // Применяем настройки к сервисам
                 await ApplySettingsToServicesAsync();
+                Log.Information("[{ViewModelName}] Настройки применены к сервисам", GetType().Name);
 
                 HasUnsavedChanges = false;
                 StatusMessage = "Настройки сохранены";
 
-                Console.WriteLine($"✅ [{GetType().Name}] Настройки успешно применены");
+                Log.Information("[{ViewModelName}] Настройки успешно применены", GetType().Name);
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Ошибка сохранения: {ex.Message}";
-                Console.WriteLine($"❌ [{GetType().Name}] Ошибка применения настроек: {ex.Message}");
+                Log.Error(ex, "[{ViewModelName}] Ошибка применения настроек", GetType().Name);
             }
         }
 
@@ -114,11 +120,11 @@ namespace ChatCaster.Windows.ViewModels.Base
                 // Специфичная очистка страницы
                 CleanupPageSpecific();
 
-                Console.WriteLine($"🧹 [{GetType().Name}] Cleanup завершен");
+                Log.Debug("[{ViewModelName}] Cleanup завершен", GetType().Name);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [{GetType().Name}] Ошибка при cleanup: {ex.Message}");
+                Log.Error(ex, "[{ViewModelName}] Ошибка при cleanup", GetType().Name);
             }
         }
 
@@ -136,7 +142,7 @@ namespace ChatCaster.Windows.ViewModels.Base
             catch (Exception ex)
             {
                 StatusMessage = $"Ошибка инициализации: {ex.Message}";
-                Console.WriteLine($"❌ [{GetType().Name}] Ошибка инициализации данных: {ex.Message}");
+                Log.Error(ex, "[{ViewModelName}] Ошибка инициализации данных", GetType().Name);
             }
         }
 
@@ -218,6 +224,9 @@ namespace ChatCaster.Windows.ViewModels.Base
         {
             if (IsLoadingUI) return;
 
+            // ✅ ДИАГНОСТИКА: Логируем изменение настроек в UI
+            Log.Debug("[{ViewModelName}] UI настройка изменена, применяем...", GetType().Name);
+
             HasUnsavedChanges = true;
             await ApplySettingsAsync();
         }
@@ -230,11 +239,11 @@ namespace ChatCaster.Windows.ViewModels.Base
             StatusMessage = message;
             if (isError)
             {
-                Console.WriteLine($"❌ [{GetType().Name}] {message}");
+                Log.Error("[{ViewModelName}] {Message}", GetType().Name, message);
             }
             else
             {
-                Console.WriteLine($"📝 [{GetType().Name}] {message}");
+                Log.Information("[{ViewModelName}] {Message}", GetType().Name, message);
             }
         }
 
@@ -245,19 +254,19 @@ namespace ChatCaster.Windows.ViewModels.Base
         {
             if (IsLoadingUI)
             {
-                Console.WriteLine($"⏳ [{GetType().Name}] Операция пропущена - идет загрузка UI");
+                Log.Debug("[{ViewModelName}] Операция пропущена - идет загрузка UI", GetType().Name);
                 return false;
             }
 
             if (_serviceContext?.Config == null)
             {
-                Console.WriteLine($"❌ [{GetType().Name}] ServiceContext.Config недоступен");
+                Log.Warning("[{ViewModelName}] ServiceContext.Config недоступен", GetType().Name);
                 return false;
             }
 
             if (_configurationService == null)
             {
-                Console.WriteLine($"❌ [{GetType().Name}] ConfigurationService недоступен");
+                Log.Warning("[{ViewModelName}] ConfigurationService недоступен", GetType().Name);
                 return false;
             }
 
@@ -303,7 +312,7 @@ namespace ChatCaster.Windows.ViewModels.Base
         {
             try
             {
-                Console.WriteLine($"🔥 [{GetType().Name}] Начинаем инициализацию");
+                Log.Information("[{ViewModelName}] Начинаем инициализацию", GetType().Name);
 
                 // 1. Инициализируем данные страницы
                 await InitializePageDataAsync();
@@ -311,11 +320,11 @@ namespace ChatCaster.Windows.ViewModels.Base
                 // 2. Загружаем настройки
                 await LoadSettingsAsync();
 
-                Console.WriteLine($"✅ [{GetType().Name}] Инициализация завершена");
+                Log.Information("[{ViewModelName}] Инициализация завершена", GetType().Name);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [{GetType().Name}] Критическая ошибка инициализации: {ex.Message}");
+                Log.Error(ex, "[{ViewModelName}] Критическая ошибка инициализации", GetType().Name);
                 UpdateStatus($"Критическая ошибка: {ex.Message}", true);
             }
         }

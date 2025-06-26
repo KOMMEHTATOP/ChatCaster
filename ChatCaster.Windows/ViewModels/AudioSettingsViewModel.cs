@@ -1,434 +1,411 @@
-using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
+using ChatCaster.Windows.ViewModels.Settings.Speech;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Serilog;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
 
-namespace ChatCaster.Windows.ViewModels
+namespace ChatCaster.Windows.ViewModels;
+
+public partial class AudioSettingsViewModel : BaseSettingsViewModel
 {
-    public partial class AudioSettingsViewModel : BaseSettingsViewModel
+    #region Private Fields
+    
+    private readonly WhisperModelManager _whisperModelManager;
+    
+    // UI Controls
+    private ComboBox? _deviceComboBox;
+    private ComboBox? _modelComboBox;
+    private ComboBox? _languageComboBox;
+    private Slider? _maxRecordingSecondsSlider;
+    
+    #endregion
+
+    #region Observable Properties
+
+    [ObservableProperty]
+    private List<AudioDevice> _availableDevices = new();
+
+    [ObservableProperty]
+    private AudioDevice? _selectedDevice;
+
+    [ObservableProperty]
+    private WhisperModelItem? _selectedModel;
+
+    [ObservableProperty]
+    private string _selectedLanguage = "ru";
+
+    [ObservableProperty]
+    private int _maxRecordingSeconds = 30;
+
+    [ObservableProperty]
+    private List<int> _availableSampleRates = new() { 8000, 16000, 22050, 44100, 48000 };
+
+    [ObservableProperty]
+    private int _selectedSampleRate = 16000;
+
+    #endregion
+
+    #region Public Properties for UI Binding
+
+    /// <summary>
+    /// Коллекция доступных моделей Whisper для привязки к UI
+    /// </summary>
+    public ObservableCollection<WhisperModelItem> AvailableModels => _whisperModelManager.AvailableModels;
+
+    #endregion
+
+    #region Constructor
+
+    public AudioSettingsViewModel(
+        ConfigurationService configurationService,
+        ServiceContext serviceContext,
+        WhisperModelManager whisperModelManager) 
+        : base(configurationService, serviceContext)
     {
-        #region Private Services
-        private readonly AudioCaptureService? _audioCaptureService;
-        private readonly SpeechRecognitionService? _speechRecognitionService;
-        #endregion
+        _whisperModelManager = whisperModelManager ?? throw new ArgumentNullException(nameof(whisperModelManager));
+        
+        Log.Information("AudioSettingsViewModel создан с WhisperModelManager");
+    }
 
-        #region Observable Properties
+    #endregion
 
-        [ObservableProperty]
-        private ObservableCollection<AudioDeviceItem> _availableDevices = new();
+    #region Observable Property Changed Handlers
 
-        [ObservableProperty]
-        private AudioDeviceItem? _selectedDevice;
+    /// <summary>
+    /// Обработчик изменения выбранной модели
+    /// </summary>
+    partial void OnSelectedModelChanged(WhisperModelItem? value)
+    {
+        // Синхронизируем с Manager
+        _whisperModelManager.SelectedModel = value;
+        
+        Log.Information("SelectedModel изменен на: {Model} ({DisplayName})", 
+            value?.Model, value?.DisplayName);
+    }
 
-        [ObservableProperty]
-        private ObservableCollection<WhisperModelItem> _availableModels = new();
+    #endregion
 
-        [ObservableProperty]
-        private WhisperModelItem? _selectedModel;
+    #region UI Controls Setup
 
-        [ObservableProperty]
-        private ObservableCollection<LanguageItem> _availableLanguages = new();
+    /// <summary>
+    /// Связывает UI элементы с ViewModel
+    /// </summary>
+    public void SetUIControls(
+        ComboBox deviceComboBox,
+        ComboBox modelComboBox, 
+        ComboBox languageComboBox,
+        Slider maxRecordingSecondsSlider)
+    {
+        _deviceComboBox = deviceComboBox;
+        _modelComboBox = modelComboBox;
+        _languageComboBox = languageComboBox;
+        _maxRecordingSecondsSlider = maxRecordingSecondsSlider;
+        
+        Log.Information("UI Controls связаны с ViewModel");
+    }
 
-        [ObservableProperty]
-        private LanguageItem? _selectedLanguage;
+    #endregion
 
-        [ObservableProperty]
-        private int _maxRecordingDuration = 30;
+    #region BaseSettingsViewModel Implementation
 
-        [ObservableProperty]
-        private string _maxDurationText = "30с";
-
-        [ObservableProperty]
-        private string _microphoneStatusText = "Микрофон готов";
-
-        [ObservableProperty]
-        private string _microphoneStatusColor = "#4caf50";
-
-        [ObservableProperty]
-        private string _modelStatusText = "Модель готова";
-
-        [ObservableProperty]
-        private string _modelStatusColor = "#4caf50";
-
-        [ObservableProperty]
-        private bool _isTestingMicrophone = false;
-
-        [ObservableProperty]
-        private bool _isDownloadingModel = false;
-
-        [ObservableProperty]
-        private bool _isDownloadButtonVisible = false;
-
-        #endregion
-
-        #region Commands
-
-        [RelayCommand]
-        private async Task TestMicrophone()
+    protected override async Task LoadPageSpecificSettingsAsync()
+    {
+        try
         {
-            if (IsTestingMicrophone || _audioCaptureService == null) return;
-
-            try
-            {
-                IsTestingMicrophone = true;
-                UpdateMicrophoneStatus("Тестируется...", "#ff9800");
-
-                // Устанавливаем выбранное устройство
-                if (SelectedDevice != null)
-                {
-                    await _audioCaptureService.SetActiveDeviceAsync(SelectedDevice.Id);
-                }
-
-                // Тестируем микрофон
-                bool testResult = await _audioCaptureService.TestMicrophoneAsync();
-
-                if (testResult)
-                {
-                    UpdateMicrophoneStatus("Микрофон работает", "#4caf50");
-                }
-                else
-                {
-                    UpdateMicrophoneStatus("Проблема с микрофоном", "#f44336");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateMicrophoneStatus($"Ошибка тестирования: {ex.Message}", "#f44336");
-            }
-            finally
-            {
-                IsTestingMicrophone = false;
-            }
-        }
-
-        [RelayCommand]
-        private async Task DownloadModel()
-        {
-            if (IsDownloadingModel || _speechRecognitionService == null || SelectedModel == null) return;
-
-            try
-            {
-                IsDownloadingModel = true;
-                UpdateModelStatus("Начинаем загрузку...", "#ff9800");
-
-                // Подписываемся на события загрузки
-                _speechRecognitionService.DownloadProgress += OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted += OnModelDownloadCompleted;
-
-                // Инициализируем модель (это запустит загрузку если нужно)
-                var config = new WhisperConfig { Model = SelectedModel.Model };
-                await _speechRecognitionService.InitializeAsync(config);
-            }
-            catch (Exception ex)
-            {
-                UpdateModelStatus($"Ошибка загрузки: {ex.Message}", "#f44336");
-                IsDownloadingModel = false;
-            }
-        }
-
-        #endregion
-
-        #region Constructor
-        public AudioSettingsViewModel(
-            ConfigurationService? configurationService,
-            ServiceContext? serviceContext,
-            AudioCaptureService? audioCaptureService,
-            SpeechRecognitionService? speechRecognitionService) : base(configurationService, serviceContext)
-        {
-            _audioCaptureService = audioCaptureService;
-            _speechRecognitionService = speechRecognitionService;
+            Log.Information("Загружаем настройки Audio страницы...");
             
-            InitializeStaticData();
+            // Загружаем аудио устройства (через ServiceContext)
+            await LoadAudioDevicesAsync().ConfigureAwait(false);
+            
+            // Применяем настройки из конфига к UI (должно быть в UI потоке)
+            await Application.Current.Dispatcher.InvokeAsync(() => ApplyConfigToUI());
+            
+            Log.Information("Настройки Audio страницы загружены");
         }
-        #endregion
-
-        #region BaseSettingsViewModel Implementation
-
-        protected override async Task LoadPageSpecificSettingsAsync()
+        catch (Exception ex)
         {
-            if (_serviceContext?.Config == null) return;
-
-            var config = _serviceContext.Config;
-
-            // Применяем настройки аудио
-            MaxRecordingDuration = config.Audio.MaxRecordingSeconds;
-            MaxDurationText = $"{config.Audio.MaxRecordingSeconds}с";
-
-            // Выбираем сохраненное устройство
-            if (!string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
-            {
-                SelectedDevice = AvailableDevices.FirstOrDefault(d => d.Id == config.Audio.SelectedDeviceId);
-            }
-
-            // Выбираем сохраненную модель Whisper
-            SelectedModel = AvailableModels.FirstOrDefault(m => m.Model == config.Whisper.Model);
-
-            // Выбираем сохраненный язык
-            SelectedLanguage = AvailableLanguages.FirstOrDefault(l => l.Code == config.Whisper.Language);
-
-            Console.WriteLine("Настройки аудио загружены");
+            Log.Error(ex, "Ошибка загрузки настроек Audio страницы");
         }
+    }
 
-        protected override async Task ApplySettingsToConfigAsync(AppConfig config)
+    protected override async Task ApplySettingsToConfigAsync(AppConfig config)
+    {
+        try
         {
-            // Собираем данные из UI и обновляем конфигурацию
-            if (SelectedDevice != null)
-            {
-                config.Audio.SelectedDeviceId = SelectedDevice.Id;
-            }
+            // Переключаемся на background поток для работы с конфигом
+            await Task.Yield();
+            
+            Log.Information("Применяем настройки Audio к конфигурации...");
+            
+            // Применяем аудио настройки
+            config.Audio.SelectedDeviceId = SelectedDevice?.Id ?? "";
+            config.Audio.SampleRate = SelectedSampleRate;
+            config.Audio.MaxRecordingSeconds = MaxRecordingSeconds;
+            
+            // Применяем Whisper настройки
+            config.Whisper.Model = SelectedModel?.Model ?? WhisperModel.Base;
+            config.Whisper.Language = SelectedLanguage;
+            
+            Log.Information("Настройки применены к конфигурации: Device={DeviceId}, Model={Model}, Language={Language}", 
+                config.Audio.SelectedDeviceId, config.Whisper.Model, config.Whisper.Language);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка применения настроек к конфигурации");
+            throw;
+        }
+    }
 
+    protected override async Task ApplySettingsToServicesAsync()
+    {
+        try
+        {
+            Log.Information("Применяем настройки к сервисам...");
+            
+            // Проверяем и переинициализируем модель через WhisperModelManager
             if (SelectedModel != null)
             {
-                config.Whisper.Model = SelectedModel.Model;
+                _whisperModelManager.SelectedModel = SelectedModel;
+                await _whisperModelManager.CheckModelStatusAsync().ConfigureAwait(false);
             }
-
-            if (SelectedLanguage != null)
-            {
-                config.Whisper.Language = SelectedLanguage.Code;
-            }
-
-            config.Audio.MaxRecordingSeconds = MaxRecordingDuration;
-
-            await Task.CompletedTask;
-        }
-
-        protected override async Task ApplySettingsToServicesAsync()
-        {
-            // Применяем к аудио сервису если выбрано новое устройство
-            if (_audioCaptureService != null && SelectedDevice != null)
-            {
-                await _audioCaptureService.SetActiveDeviceAsync(SelectedDevice.Id);
-            }
-        }
-
-        protected override async Task InitializePageSpecificDataAsync()
-        {
-            await LoadMicrophoneDevicesAsync();
-            await CheckModelStatusAsync();
-        }
-
-        public override void SubscribeToUIEvents()
-        {
-            // Подписываемся на изменения выбора через PropertyChanged
-            PropertyChanged += OnPropertyChanged;
-        }
-
-        protected override void UnsubscribeFromUIEvents()
-        {
-            PropertyChanged -= OnPropertyChanged;
             
-            // Отписываемся от событий загрузки модели если подписаны
-            if (_speechRecognitionService != null)
-            {
-                _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
-            }
+            Log.Information("Настройки применены к сервисам");
         }
-
-        #endregion
-
-        #region Private Methods
-
-        private void InitializeStaticData()
+        catch (Exception ex)
         {
-            // Инициализируем доступные модели Whisper
-            AvailableModels.Clear();
-            AvailableModels.Add(new WhisperModelItem(WhisperModel.Tiny, "🏃 Tiny (~76 MB)"));
-            AvailableModels.Add(new WhisperModelItem(WhisperModel.Base, "⚡ Base (~145 MB)"));
-            AvailableModels.Add(new WhisperModelItem(WhisperModel.Small, "🎯 Small (~476 MB)"));
-            AvailableModels.Add(new WhisperModelItem(WhisperModel.Medium, "🔥 Medium (~1.5 GB)"));
-            AvailableModels.Add(new WhisperModelItem(WhisperModel.Large, "🚀 Large (~3.0 GB)"));
-
-            // Инициализируем доступные языки
-            AvailableLanguages.Clear();
-            AvailableLanguages.Add(new LanguageItem("ru", "🇷🇺 Русский"));
-            AvailableLanguages.Add(new LanguageItem("en", "🇺🇸 English"));
-
-            // Устанавливаем значения по умолчанию
-            SelectedModel = AvailableModels.FirstOrDefault(m => m.Model == WhisperModel.Base);
-            SelectedLanguage = AvailableLanguages.FirstOrDefault(l => l.Code == "ru");
+            Log.Error(ex, "Ошибка применения настроек к сервисам");
+            throw;
         }
+    }
 
-        private async Task LoadMicrophoneDevicesAsync()
+    public override void SubscribeToUIEvents()
+    {
+        try
         {
-            try
+            Log.Information("=== ПОДПИСКА НА UI СОБЫТИЯ ===");
+            Log.Information("ModelComboBox: {IsNotNull}", _modelComboBox != null);
+            Log.Information("DeviceComboBox: {IsNotNull}", _deviceComboBox != null);
+            Log.Information("LanguageComboBox: {IsNotNull}", _languageComboBox != null);
+            
+            if (_modelComboBox != null)
             {
-                if (_audioCaptureService == null) return;
-
-                var devices = await _audioCaptureService.GetAvailableDevicesAsync();
-                
-                AvailableDevices.Clear();
-                foreach (var device in devices)
-                {
-                    var deviceItem = new AudioDeviceItem(device.Id, device.Name, device.IsDefault);
-                    AvailableDevices.Add(deviceItem);
-
-                    // Выбираем устройство по умолчанию если нет выбранного
-                    if (SelectedDevice == null && device.IsDefault)
-                    {
-                        SelectedDevice = deviceItem;
-                    }
-                }
-
-                UpdateMicrophoneStatus("Микрофон готов", "#4caf50");
-            }
-            catch (Exception ex)
-            {
-                UpdateMicrophoneStatus($"Ошибка загрузки устройств: {ex.Message}", "#f44336");
-            }
-        }
-
-        private async Task CheckModelStatusAsync()
-        {
-            try
-            {
-                if (_speechRecognitionService == null || SelectedModel == null) return;
-
-                bool isAvailable = await _speechRecognitionService.IsModelAvailableAsync(SelectedModel.Model);
-                
-                if (isAvailable)
-                {
-                    UpdateModelStatus("Модель готова", "#4caf50");
-                    IsDownloadButtonVisible = false;
-                }
-                else
-                {
-                    long sizeBytes = await _speechRecognitionService.GetModelSizeAsync(SelectedModel.Model);
-                    string sizeText = FormatFileSize(sizeBytes);
-                    UpdateModelStatus($"Модель не скачана ({sizeText})", "#ff9800");
-                    IsDownloadButtonVisible = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateModelStatus($"Ошибка проверки модели: {ex.Message}", "#f44336");
-            }
-        }
-
-        private async void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (IsLoadingUI) return;
-
-            switch (e.PropertyName)
-            {
-                case nameof(SelectedDevice):
-                case nameof(SelectedLanguage):
-                case nameof(MaxRecordingDuration):
-                    await OnUISettingChangedAsync();
-                    break;
-                    
-                case nameof(SelectedModel):
-                    await OnUISettingChangedAsync();
-                    await CheckModelStatusAsync();
-                    break;
-            }
-        }
-
-        partial void OnMaxRecordingDurationChanged(int value)
-        {
-            MaxDurationText = $"{value}с";
-        }
-
-        private void OnModelDownloadProgress(object? sender, ModelDownloadProgressEvent e)
-        {
-            UpdateModelStatus($"Загрузка {e.ProgressPercentage}%...", "#ff9800");
-        }
-
-        private void OnModelDownloadCompleted(object? sender, ModelDownloadCompletedEvent e)
-        {
-            // Отписываемся от событий
-            if (_speechRecognitionService != null)
-            {
-                _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
-            }
-
-            if (e.Success)
-            {
-                UpdateModelStatus("Модель готова", "#4caf50");
-                IsDownloadButtonVisible = false;
+                _modelComboBox.SelectionChanged += OnModelSelectionChanged;
+                Log.Information("✅ Подписались на ModelComboBox.SelectionChanged");
             }
             else
             {
-                UpdateModelStatus($"Ошибка загрузки: {e.ErrorMessage}", "#f44336");
+                Log.Warning("❌ ModelComboBox is null - не можем подписаться на события");
             }
 
-            IsDownloadingModel = false;
-        }
+            if (_deviceComboBox != null)
+            {
+                _deviceComboBox.SelectionChanged += OnDeviceSelectionChanged;
+                Log.Information("✅ Подписались на DeviceComboBox.SelectionChanged");
+            }
 
-        private void UpdateMicrophoneStatus(string text, string color)
+            if (_languageComboBox != null)
+            {
+                _languageComboBox.SelectionChanged += OnLanguageSelectionChanged;
+                Log.Information("✅ Подписались на LanguageComboBox.SelectionChanged");
+            }
+
+            if (_maxRecordingSecondsSlider != null)
+            {
+                _maxRecordingSecondsSlider.ValueChanged += OnMaxRecordingSecondsSliderChanged;
+                Log.Information("✅ Подписались на MaxRecordingSecondsSlider.ValueChanged");
+            }
+
+            Log.Information("События UI подписаны для AudioSettings");
+        }
+        catch (Exception ex)
         {
-            MicrophoneStatusText = text;
-            MicrophoneStatusColor = color;
+            Log.Error(ex, "Ошибка подписки на UI события AudioSettings");
         }
-
-        private void UpdateModelStatus(string text, string color)
-        {
-            ModelStatusText = text;
-            ModelStatusColor = color;
-        }
-
-        private static string FormatFileSize(long bytes)
-        {
-            if (bytes >= 1_073_741_824) // GB
-                return $"{bytes / 1_073_741_824.0:F1} GB";
-            if (bytes >= 1_048_576) // MB
-                return $"{bytes / 1_048_576.0:F0} MB";
-            if (bytes >= 1024) // KB
-                return $"{bytes / 1024.0:F0} KB";
-            return $"{bytes} bytes";
-        }
-
-        #endregion
     }
 
-    #region Helper Classes
-
-    public class AudioDeviceItem
+    protected override void UnsubscribeFromUIEvents()
     {
-        public string Id { get; }
-        public string Name { get; }
-        public bool IsDefault { get; }
-
-        public AudioDeviceItem(string id, string name, bool isDefault)
+        try
         {
-            Id = id;
-            Name = name;
-            IsDefault = isDefault;
-        }
+            if (_modelComboBox != null)
+                _modelComboBox.SelectionChanged -= OnModelSelectionChanged;
 
-        public override string ToString() => Name;
+            if (_deviceComboBox != null)
+                _deviceComboBox.SelectionChanged -= OnDeviceSelectionChanged;
+
+            if (_languageComboBox != null)
+                _languageComboBox.SelectionChanged -= OnLanguageSelectionChanged;
+
+            if (_maxRecordingSecondsSlider != null)
+                _maxRecordingSecondsSlider.ValueChanged -= OnMaxRecordingSecondsSliderChanged;
+
+            Log.Debug("События UI отписаны для AudioSettings");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка отписки от UI событий AudioSettings");
+        }
     }
 
-    public class WhisperModelItem
+    protected override void CleanupPageSpecific()
     {
-        public WhisperModel Model { get; }
-        public string DisplayName { get; }
-
-        public WhisperModelItem(WhisperModel model, string displayName)
+        try
         {
-            Model = model;
-            DisplayName = displayName;
+            _whisperModelManager?.Cleanup();
+            Log.Debug("WhisperModelManager очищен");
         }
-
-        public override string ToString() => DisplayName;
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка очистки WhisperModelManager");
+        }
     }
 
-    public class LanguageItem
+    #endregion
+
+    #region Event Handlers
+
+    private void OnModelSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        public string Code { get; }
-        public string DisplayName { get; }
+        if (IsLoadingUI) return;
 
-        public LanguageItem(string code, string displayName)
+        Log.Information("🔄 OnModelSelectionChanged ВЫЗВАН!");
+        Log.Information("Sender: {Sender}", sender?.GetType().Name);
+        
+        if (sender is ComboBox comboBox && comboBox.SelectedItem is WhisperModelItem selectedModel)
         {
-            Code = code;
-            DisplayName = displayName;
+            Log.Information("Выбранная модель: {Model} ({DisplayName})", 
+                selectedModel.Model, selectedModel.DisplayName);
+            
+            SelectedModel = selectedModel;
+            _ = OnModelSelectionChangedAsync();
         }
+        else
+        {
+            Log.Warning("Неожиданный тип SelectedItem: {Type}", 
+                ((ComboBox?)sender)?.SelectedItem?.GetType().Name ?? "null");
+        }
+    }
 
-        public override string ToString() => DisplayName;
+    private void OnDeviceSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoadingUI) return;
+        
+        if (sender is ComboBox comboBox && comboBox.SelectedItem is AudioDevice device)
+        {
+            SelectedDevice = device;
+            _ = OnUISettingChangedAsync();
+        }
+    }
+
+    private void OnLanguageSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoadingUI) return;
+        
+        if (sender is ComboBox comboBox && comboBox.SelectedItem is string language)
+        {
+            SelectedLanguage = language;
+            _ = OnUISettingChangedAsync();
+        }
+    }
+
+    private void OnMaxRecordingSecondsSliderChanged(object? sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (IsLoadingUI) return;
+        
+        MaxRecordingSeconds = (int)e.NewValue;
+        _ = OnUISettingChangedAsync();
+    }
+
+    private async Task OnModelSelectionChangedAsync()
+    {
+        try
+        {
+            Log.Information("=== СМЕНА МОДЕЛИ В UI ===");
+            Log.Information("Новая выбранная модель: {Model} ({DisplayName})", 
+                SelectedModel?.Model, SelectedModel?.DisplayName);
+            
+            await OnUISettingChangedAsync();
+            
+            // Проверяем и переинициализируем модель
+            if (SelectedModel != null)
+            {
+                Log.Information("Вызываем CheckModelStatusAsync для переинициализации...");
+                
+                try
+                {
+                    await _whisperModelManager.CheckModelStatusAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Ошибка при проверке статуса модели");
+                }
+            }
+            
+            Log.Information("Модель изменена на {ModelName}", SelectedModel?.DisplayName ?? "None");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при изменении модели");
+        }
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private async Task LoadAudioDevicesAsync()
+    {
+        try
+        {
+            // Симулируем асинхронную загрузку устройств
+            await Task.Yield();
+            
+            // Здесь нужно загрузить устройства через сервис из ServiceContext
+            // Пока заглушка - в реальном коде нужен доступ к AudioCaptureService
+            AvailableDevices = new List<AudioDevice>();
+            
+            Log.Information("Загружено {Count} аудио устройств", AvailableDevices.Count);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка загрузки аудио устройств");
+            throw;
+        }
+    }
+
+    private void ApplyConfigToUI()
+    {
+        if (!IsReadyForOperation()) return;
+
+        try
+        {
+            var config = _serviceContext!.Config!;
+            
+            // Применяем аудио настройки
+            MaxRecordingSeconds = config.Audio.MaxRecordingSeconds;
+            SelectedSampleRate = config.Audio.SampleRate;
+            
+            // Применяем Whisper настройки
+            SelectedModel = _whisperModelManager.FindModelByEnum(config.Whisper.Model);
+            SelectedLanguage = config.Whisper.Language;
+            
+            // Устанавливаем выбранную модель в менеджере
+            if (SelectedModel != null)
+            {
+                _whisperModelManager.SelectedModel = SelectedModel;
+            }
+            
+            Log.Information("Настройки применены к UI: Device={DeviceId}, Model={Model}, Language={Language}", 
+                config.Audio.SelectedDeviceId, config.Whisper.Model, config.Whisper.Language);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка применения настроек к UI");
+        }
     }
 
     #endregion

@@ -126,13 +126,10 @@
                             <ComboBox Grid.Row="0" Grid.Column="1" 
                                          x:Name="WhisperModelComboBox"
                                          Margin="0,0,10,0"
-                                         FontSize="14">
-                                <ComboBoxItem Content="🏃 Tiny (~76 MB)" Tag="Tiny"/>
-                                <ComboBoxItem Content="⚡ Base (~145 MB)" Tag="Base" IsSelected="True"/>
-                                <ComboBoxItem Content="🎯 Small (~476 MB)" Tag="Small"/>
-                                <ComboBoxItem Content="🔥 Medium (~1.5 GB)" Tag="Medium"/>
-                                <ComboBoxItem Content="🚀 Large (~3.0 GB)" Tag="Large"/>
-                            </ComboBox>
+                                         FontSize="14"
+                                         ItemsSource="{Binding AvailableModels}"
+                                         SelectedItem="{Binding SelectedModel}"
+                                         DisplayMemberPath="DisplayName"/>
                             
                             <ui:Button Grid.Row="0" Grid.Column="2" 
                                        x:Name="DownloadModelButton"
