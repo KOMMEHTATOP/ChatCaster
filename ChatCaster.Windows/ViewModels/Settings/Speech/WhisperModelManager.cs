@@ -33,6 +33,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
         #region Constructor
         public WhisperModelManager(SpeechRecognitionService? speechRecognitionService)
         {
+            Log.Information("[WMM] Конструктор вызван");
             _speechRecognitionService = speechRecognitionService;
             InitializeStaticData();
             Log.Debug("WhisperModelManager инициализирован");
@@ -198,6 +199,8 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
 
         private void InitializeStaticData()
         {
+            Log.Information("[WMM] InitializeStaticData вызван");
+
             // Инициализируем доступные модели Whisper
             AvailableModels.Clear();
             var models = WhisperModelFactory.CreateAvailableModels();
@@ -214,6 +217,8 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
             // Устанавливаем значения по умолчанию
             SelectedModel = WhisperModelFactory.GetDefaultModel();
             SelectedLanguage = AvailableLanguages.FirstOrDefault(l => l.Code == "ru");
+            Log.Information("[WMM] AvailableModels после инициализации: " + string.Join(", ", AvailableModels.Select(m => m.Model)));
+
         }
 
         private void OnModelDownloadProgress(object? sender, ModelDownloadProgressEvent e)

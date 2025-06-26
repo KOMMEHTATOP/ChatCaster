@@ -5,6 +5,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels;
 using ChatCaster.Windows.ViewModels.Settings;
+using ChatCaster.Windows.ViewModels.Settings.Speech;
 using Serilog;
 using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.AudioSettingsViewModel;
 
@@ -67,12 +68,6 @@ public partial class AudioSettingsView
             Log.Error(ex, "Ошибка установки ViewModel");
         }
     }
-
-    // ✅ УБРАЛИ: SubscribeToUIEvents() - теперь это делает ViewModel
-    // ✅ УБРАЛИ: OnSettingChanged() - теперь это делает ViewModel
-    // ✅ УБРАЛИ: ApplyCurrentSettingsAsync() - теперь это делает ViewModel
-
-    // ========== КНОПКИ ОСТАЮТСЯ В VIEW (UI логика) ==========
     
     private void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
     {
@@ -88,25 +83,37 @@ public partial class AudioSettingsView
             TestMicrophoneButton.IsEnabled = false;
             UpdateMicrophoneStatus("Тестируется...", "#ff9800");
 
-            // Устанавливаем выбранное устройство
-            var selectedItem = MicrophoneComboBox.SelectedItem as ComboBoxItem;
-            if (selectedItem?.Tag is string deviceId)
+            Log.Information("🔄 Начинаем тест микрофона");
+
+            // Получаем AudioDevice вместо ComboBoxItem
+            var selectedDevice = MicrophoneComboBox.SelectedItem as AudioDevice;
+            if (selectedDevice != null)
             {
-                await _audioCaptureService!.SetActiveDeviceAsync(deviceId);
+                Log.Information("Устанавливаем активное устройство: {DeviceId} ({DeviceName})", 
+                    selectedDevice.Id, selectedDevice.Name);
+            
+                await _audioCaptureService!.SetActiveDeviceAsync(selectedDevice.Id);
+            }
+            else
+            {
+                Log.Warning("Устройство не выбрано для тестирования");
+                UpdateMicrophoneStatus("Выберите устройство", "#ff9800");
+                return;
             }
 
             // Тестируем микрофон
+            Log.Information("Запускаем TestMicrophoneAsync()");
             bool testResult = await _audioCaptureService!.TestMicrophoneAsync();
 
             if (testResult)
             {
                 UpdateMicrophoneStatus("Микрофон работает", "#4caf50");
-                Log.Information("Тест микрофона прошел успешно");
+                Log.Information("✅ Тест микрофона прошел успешно");
             }
             else
             {
                 UpdateMicrophoneStatus("Проблема с микрофоном", "#f44336");
-                Log.Warning("Тест микрофона не прошел");
+                Log.Warning("❌ Тест микрофона не прошел");
             }
         }
         catch (Exception ex)
@@ -120,7 +127,7 @@ public partial class AudioSettingsView
             TestMicrophoneButton.IsEnabled = true;
         }
     }
-
+    
     private void DownloadModelButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isDownloadingModel || _speechRecognitionService == null) return;
@@ -134,11 +141,16 @@ public partial class AudioSettingsView
             _isDownloadingModel = true;
             DownloadModelButton.IsEnabled = false;
 
-            var selectedItem = WhisperModelComboBox.SelectedItem as ComboBoxItem;
-            if (selectedItem?.Tag is string modelTag && Enum.TryParse<WhisperModel>(modelTag, out var model))
+            Log.Information("🔄 Начинаем загрузку модели");
+
+            // ✅ ИСПРАВЛЕНО: Получаем WhisperModelItem вместо ComboBoxItem
+            var selectedModel = WhisperModelComboBox.SelectedItem as WhisperModelItem;
+            if (selectedModel != null)
             {
+                var model = selectedModel.Model;
+            
                 UpdateModelStatus("Начинаем загрузку...", "#ff9800");
-                Log.Information("Начинаем загрузку модели {Model}", model);
+                Log.Information("Начинаем загрузку модели {Model} ({DisplayName})", model, selectedModel.DisplayName);
 
                 // Подписываемся на события загрузки
                 _speechRecognitionService!.DownloadProgress += OnModelDownloadProgress;
@@ -147,6 +159,13 @@ public partial class AudioSettingsView
                 // Инициализируем модель (это запустит загрузку если нужно)
                 var config = new WhisperConfig { Model = model };
                 await _speechRecognitionService.InitializeAsync(config);
+            }
+            else
+            {
+                Log.Warning("Модель не выбрана для загрузки");
+                UpdateModelStatus("Выберите модель", "#ff9800");
+                _isDownloadingModel = false;
+                DownloadModelButton.IsEnabled = true;
             }
         }
         catch (Exception ex)
@@ -157,7 +176,7 @@ public partial class AudioSettingsView
             DownloadModelButton.IsEnabled = true;
         }
     }
-
+    
     private void OnModelDownloadProgress(object? sender, Core.Events.ModelDownloadProgressEvent e)
     {
         Dispatcher.Invoke(() =>

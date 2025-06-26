@@ -73,13 +73,15 @@
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center"/>
                             
+                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
                             <ComboBox Grid.Row="0" Grid.Column="1" 
                                          x:Name="MicrophoneComboBox"
                                          Margin="0,0,10,0"
-                                         FontSize="14">
-                                <ComboBoxItem Content="Microphone (Default)" IsSelected="True"/>
-                                <ComboBoxItem Content="USB Microphone"/>
-                                <ComboBoxItem Content="Bluetooth Headset"/>
+                                         FontSize="14"
+                                         ItemsSource="{Binding AvailableDevices}"
+                                         SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                         DisplayMemberPath="Name">
+                                <!-- Убрали жестко прописанные элементы -->
                             </ComboBox>
                             
                             <ui:Button Grid.Row="0" Grid.Column="2" 
@@ -123,12 +125,13 @@
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center"/>
                             
+                            <!-- УЖЕ ПРАВИЛЬНО: Привязано к ViewModel -->
                             <ComboBox Grid.Row="0" Grid.Column="1" 
                                          x:Name="WhisperModelComboBox"
                                          Margin="0,0,10,0"
                                          FontSize="14"
                                          ItemsSource="{Binding AvailableModels}"
-                                         SelectedItem="{Binding SelectedModel}"
+                                         SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
                                          DisplayMemberPath="DisplayName"/>
                             
                             <ui:Button Grid.Row="0" Grid.Column="2" 
@@ -178,23 +181,28 @@
                                 <Run Text="записи:"/>
                             </TextBlock>
                             
+                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
                             <Slider Grid.Row="0" Grid.Column="1" 
                                     x:Name="MaxDurationSlider"
                                     Minimum="1" 
                                     Maximum="30" 
-                                    Value="15"
+                                    Value="{Binding MaxRecordingSeconds, Mode=TwoWay}"
                                     TickFrequency="1"
                                     IsSnapToTickEnabled="True"
                                     Margin="10,0"/>
     
+                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel с конвертером -->
                             <TextBlock Grid.Row="0" Grid.Column="2" 
                                        x:Name="MaxDurationValueText"
-                                       Text="15с" 
                                        FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#1ba1e2"
                                        VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"/>
+                                       HorizontalAlignment="Center">
+                                <TextBlock.Text>
+                                    <Binding Path="MaxRecordingSeconds" StringFormat="{}{0}с"/>
+                                </TextBlock.Text>
+                            </TextBlock>
     
                             <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
                                         Orientation="Horizontal" 
@@ -223,10 +231,13 @@
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center"/>
                             
+                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
                             <ComboBox Grid.Column="1" 
                                          x:Name="LanguageComboBox"
-                                         FontSize="14">
-                                <ComboBoxItem Content="🇷🇺 Русский" Tag="ru" IsSelected="True"/>
+                                         FontSize="14"
+                                         SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                                         SelectedValuePath="Tag">
+                                <ComboBoxItem Content="🇷🇺 Русский" Tag="ru"/>
                                 <ComboBoxItem Content="🇺🇸 English" Tag="en"/>
                             </ComboBox>
                         </Grid>

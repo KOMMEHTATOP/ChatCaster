@@ -22,6 +22,9 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
     private ComboBox? _languageComboBox;
     private Slider? _maxRecordingSecondsSlider;
     
+    // Флаг для предотвращения циклических вызовов при программной установке значений
+    private bool _isUpdatingUI = false;
+    
     #endregion
 
     #region Observable Properties
@@ -66,6 +69,8 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
         WhisperModelManager whisperModelManager) 
         : base(configurationService, serviceContext)
     {
+        Log.Information("[VM] Конструктор AudioSettingsViewModel вызван");
+
         _whisperModelManager = whisperModelManager ?? throw new ArgumentNullException(nameof(whisperModelManager));
         
         Log.Information("AudioSettingsViewModel создан с WhisperModelManager");
@@ -106,6 +111,19 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
         _maxRecordingSecondsSlider = maxRecordingSecondsSlider;
         
         Log.Information("UI Controls связаны с ViewModel");
+        
+        // ВАЖНО: Применяем настройки сразу после связывания UI элементов
+        _ = Task.Run(async () =>
+        {
+            // Небольшая задержка для завершения инициализации UI
+            await Task.Delay(100);
+            
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                Log.Information("[VM] Повторная попытка применения настроек к UI после связывания элементов");
+                ApplyConfigToUI();
+            });
+        });
     }
 
     #endregion
@@ -114,6 +132,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     protected override async Task LoadPageSpecificSettingsAsync()
     {
+        Log.Information("[VM] LoadPageSpecificSettingsAsync вызван");
         try
         {
             Log.Information("Загружаем настройки Audio страницы...");
@@ -122,7 +141,18 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             await LoadAudioDevicesAsync().ConfigureAwait(false);
             
             // Применяем настройки из конфига к UI (должно быть в UI потоке)
-            await Application.Current.Dispatcher.InvokeAsync(() => ApplyConfigToUI());
+            await Application.Current.Dispatcher.InvokeAsync(() => 
+            {
+                if (IsReadyForOperation())
+                {
+                    Log.Information("[VM] UI элементы готовы, применяем настройки");
+                    ApplyConfigToUI();
+                }
+                else
+                {
+                    Log.Warning("[VM] UI элементы еще не готовы, настройки будут применены после связывания UI");
+                }
+            });
             
             Log.Information("Настройки Audio страницы загружены");
         }
@@ -270,7 +300,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     private void OnModelSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (IsLoadingUI) return;
+        if (IsLoadingUI || _isUpdatingUI) return;
 
         Log.Information("🔄 OnModelSelectionChanged ВЫЗВАН!");
         Log.Information("Sender: {Sender}", sender?.GetType().Name);
@@ -292,10 +322,13 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     private void OnDeviceSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (IsLoadingUI) return;
+        if (IsLoadingUI || _isUpdatingUI) return;
+        
+        Log.Information("🔄 OnDeviceSelectionChanged ВЫЗВАН!");
         
         if (sender is ComboBox comboBox && comboBox.SelectedItem is AudioDevice device)
         {
+            Log.Information("Выбранное устройство: {DeviceId} ({DeviceName})", device.Id, device.Name);
             SelectedDevice = device;
             _ = OnUISettingChangedAsync();
         }
@@ -303,10 +336,13 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     private void OnLanguageSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (IsLoadingUI) return;
+        if (IsLoadingUI || _isUpdatingUI) return;
+        
+        Log.Information("🔄 OnLanguageSelectionChanged ВЫЗВАН!");
         
         if (sender is ComboBox comboBox && comboBox.SelectedItem is string language)
         {
+            Log.Information("Выбранный язык: {Language}", language);
             SelectedLanguage = language;
             _ = OnUISettingChangedAsync();
         }
@@ -314,7 +350,10 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     private void OnMaxRecordingSecondsSliderChanged(object? sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (IsLoadingUI) return;
+        if (IsLoadingUI || _isUpdatingUI) return;
+        
+        Log.Information("🔄 OnMaxRecordingSecondsSliderChanged ВЫЗВАН!");
+        Log.Information("Новое значение: {NewValue}s", (int)e.NewValue);
         
         MaxRecordingSeconds = (int)e.NewValue;
         _ = OnUISettingChangedAsync();
@@ -361,36 +400,64 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
     {
         try
         {
-            // Симулируем асинхронную загрузку устройств
-            await Task.Yield();
-            
-            // Здесь нужно загрузить устройства через сервис из ServiceContext
-            // Пока заглушка - в реальном коде нужен доступ к AudioCaptureService
-            AvailableDevices = new List<AudioDevice>();
-            
+            if (_serviceContext.AudioService == null)
+            {
+                Log.Error("AudioService в ServiceContext не инициализирован!");
+                return;
+            }
+
+            // Загружаем устройства через ServiceContext
+            var devices = await _serviceContext!.AudioService.GetAvailableDevicesAsync();
+            AvailableDevices = devices.ToList();
+
             Log.Information("Загружено {Count} аудио устройств", AvailableDevices.Count);
+            
+            // Логируем каждое устройство для отладки
+            foreach (var device in AvailableDevices)
+            {
+                Log.Information("[VM] Устройство: {DeviceId} - {DeviceName}", device.Id, device.Name);
+            }
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка загрузки аудио устройств");
-            throw;
+            AvailableDevices = new List<AudioDevice>();
         }
     }
-
+    
     private void ApplyConfigToUI()
     {
-        if (!IsReadyForOperation()) return;
+        Log.Information("[VM] ApplyConfigToUI вызван");
 
         try
         {
+            // Устанавливаем флаг для предотвращения циклических вызовов
+            _isUpdatingUI = true;
+            
             var config = _serviceContext!.Config!;
             
             // Применяем аудио настройки
             MaxRecordingSeconds = config.Audio.MaxRecordingSeconds;
             SelectedSampleRate = config.Audio.SampleRate;
             
+            // Находим и устанавливаем выбранное устройство
+            if (!string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
+            {
+                SelectedDevice = AvailableDevices.FirstOrDefault(d => d.Id == config.Audio.SelectedDeviceId);
+                Log.Information("[VM] Устройство из конфига: {DeviceId} -> {Device}", 
+                    config.Audio.SelectedDeviceId, SelectedDevice?.Name ?? "не найдено");
+            }
+            else
+            {
+                Log.Warning("[VM] В конфиге нет ID устройства, устройство не выбрано");
+            }
+            
             // Применяем Whisper настройки
+            Log.Information("[VM] AvailableModels: " + string.Join(", ", _whisperModelManager.AvailableModels.Select(m => m.Model)));
+            Log.Information("[VM] Config.Model: " + config.Whisper.Model);
             SelectedModel = _whisperModelManager.FindModelByEnum(config.Whisper.Model);
+            Log.Information("[VM] FindModelByEnum result: " + SelectedModel?.DisplayName);
+
             SelectedLanguage = config.Whisper.Language;
             
             // Устанавливаем выбранную модель в менеджере
@@ -399,12 +466,70 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
                 _whisperModelManager.SelectedModel = SelectedModel;
             }
             
+            // СИНХРОНИЗИРУЕМ UI ЭЛЕМЕНТЫ С ОБНОВЛЕННЫМИ СВОЙСТВАМИ
+            SyncUIElementsWithProperties();
+            
             Log.Information("Настройки применены к UI: Device={DeviceId}, Model={Model}, Language={Language}", 
                 config.Audio.SelectedDeviceId, config.Whisper.Model, config.Whisper.Language);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка применения настроек к UI");
+        }
+        finally
+        {
+            // Снимаем флаг
+            _isUpdatingUI = false;
+        }
+    }
+
+    /// <summary>
+    /// Синхронизирует UI элементы с текущими значениями свойств ViewModel
+    /// </summary>
+    private void SyncUIElementsWithProperties()
+    {
+        try
+        {
+            Log.Information("[VM] Синхронизируем UI элементы с свойствами...");
+            
+            // Устройство
+            if (_deviceComboBox != null && SelectedDevice != null)
+            {
+                _deviceComboBox.SelectedItem = SelectedDevice;
+                Log.Information("[VM] DeviceComboBox.SelectedItem = {Device}", SelectedDevice.Name);
+            }
+            else if (_deviceComboBox != null && SelectedDevice == null)
+            {
+                _deviceComboBox.SelectedIndex = -1; // Ничего не выбрано
+                Log.Information("[VM] DeviceComboBox.SelectedIndex = -1 (устройство не найдено)");
+            }
+            
+            // Модель
+            if (_modelComboBox != null && SelectedModel != null)
+            {
+                _modelComboBox.SelectedItem = SelectedModel;
+                Log.Information("[VM] ModelComboBox.SelectedItem = {Model}", SelectedModel.DisplayName);
+            }
+            
+            // Язык
+            if (_languageComboBox != null)
+            {
+                _languageComboBox.SelectedItem = SelectedLanguage;
+                Log.Information("[VM] LanguageComboBox.SelectedItem = {Language}", SelectedLanguage);
+            }
+            
+            // Слайдер времени записи
+            if (_maxRecordingSecondsSlider != null)
+            {
+                _maxRecordingSecondsSlider.Value = MaxRecordingSeconds;
+                Log.Information("[VM] MaxRecordingSecondsSlider.Value = {Seconds}", MaxRecordingSeconds);
+            }
+            
+            Log.Information("[VM] Синхронизация UI элементов завершена");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка синхронизации UI элементов");
         }
     }
 

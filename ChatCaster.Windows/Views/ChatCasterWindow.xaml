@@ -134,6 +134,7 @@
                            Margin="12,0"
                            Click="ToggleMenu_Click"/>
                 
+                <!-- ✅ УПРОЩЕНО: Убран статус, остался только логотип и название -->
                 <StackPanel Grid.Column="1" 
                             Orientation="Horizontal" 
                             HorizontalAlignment="Center"
@@ -141,18 +142,12 @@
                     <Ellipse Width="32" Height="32" 
                              Fill="#1ba1e2"
                              Margin="0,0,12,0"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="ChatCaster" 
-                                   FontSize="16" 
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Foreground="#1ba1e2"/>
-                        <TextBlock Text="{Binding StatusText}" 
-                                   FontSize="12" 
-                                   Margin="8,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#cccccc"/>
-                    </StackPanel>
+                    <TextBlock Text="ChatCaster" 
+                               FontSize="16" 
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="#1ba1e2"/>
+                    <!-- ❌ УДАЛЕНО: StatusText больше не отображается -->
                 </StackPanel>
                 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
