@@ -23,7 +23,7 @@ public class AudioConfig
    public int Channels { get; set; } = 1; // Моно
    public int BitsPerSample { get; set; } = 16;
    public int RecordingTimeoutSeconds { get; set; } = 10;
-   public int MaxRecordingSeconds { get; set; } = 30;
+   public int MaxRecordingSeconds { get; set; } = 10; // ✅ ИСПРАВЛЕНО: 10 вместо 30
    public int MinRecordingSeconds { get; set; } = 1;
    public float VolumeThreshold { get; set; } = 0.01f; // Для автостопа по тишине
 }
@@ -147,7 +147,7 @@ public class OverlayConfig
 /// </summary>
 public class WhisperConfig
 {
-   public WhisperModel Model { get; set; } = WhisperModel.Tiny;
+   public WhisperModel Model { get; set; } = WhisperModel.Tiny; // ✅ УЖЕ ПРАВИЛЬНО: Tiny для экономии памяти
    public string Language { get; set; } = "ru"; // Основной язык
    public bool AutoDetectLanguage { get; set; } = false;
    public string UnrecognizedPlaceholder { get; set; } = "ХХХХХХ";

@@ -56,7 +56,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
         public static WhisperModelItem GetDefaultModel()
         {
             var models = CreateAvailableModels();
-            return models.First(m => m.Model == WhisperModel.Base);
+            return models.First(m => m.Model == WhisperModel.Tiny);
         }
 
         /// <summary>

@@ -6,193 +6,194 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
       d:DesignHeight="600" d:DesignWidth="800">
-    
+
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
-            
+
             <!-- Header секция -->
             <StackPanel Margin="0,0,0,40">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <ui:SymbolIcon Symbol="Mic24" 
-                                   FontSize="28" 
+                    <ui:SymbolIcon Symbol="Mic24"
+                                   FontSize="28"
                                    Foreground="#1ba1e2"
-                                   Margin="0,0,15,0"/>
-                    <TextBlock Text="Аудио и распознавание" 
-                               FontSize="24" 
+                                   Margin="0,0,15,0" />
+                    <TextBlock Text="Аудио и распознавание"
+                               FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="White"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center" />
                 </StackPanel>
-                <TextBlock Text="Настройка микрофона, модели Whisper и параметров записи" 
+                <TextBlock Text="Настройка микрофона, модели Whisper и параметров записи"
                            FontSize="14"
-                           Foreground="#cccccc"/>
+                           Foreground="#cccccc" />
             </StackPanel>
 
             <!-- Основные настройки -->
-            <Border Margin="0,0,0,30" 
+            <Border Margin="0,0,0,30"
                     CornerRadius="12"
                     MinHeight="200">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2d2d30" Offset="0"/>
-                        <GradientStop Color="#3a3a3d" Offset="1"/>
+                        <GradientStop Color="#2d2d30" Offset="0" />
+                        <GradientStop Color="#3a3a3d" Offset="1" />
                     </LinearGradientBrush>
                 </Border.Background>
                 <Grid Margin="25">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    
-                    <TextBlock Grid.Row="0" 
-                               Text="Основные настройки" 
-                               FontSize="18" 
+
+                    <TextBlock Grid.Row="0"
+                               Text="Основные настройки"
+                               FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="White"
-                               Margin="0,0,0,25"/>
-                    
+                               Margin="0,0,0,25" />
+
                     <StackPanel Grid.Row="1">
-                        
+
                         <!-- Микрофон -->
                         <Grid Margin="0,0,0,25">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Микрофон:" 
-                                       FontSize="14" 
+
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Микрофон:"
+                                       FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
-                                       VerticalAlignment="Center"/>
-                            
-                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
-                            <ComboBox Grid.Row="0" Grid.Column="1" 
-                                         x:Name="MicrophoneComboBox"
-                                         Margin="0,0,10,0"
-                                         FontSize="14"
-                                         ItemsSource="{Binding AvailableDevices}"
-                                         SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                                         DisplayMemberPath="Name">
-                                <!-- Убрали жестко прописанные элементы -->
-                            </ComboBox>
-                            
-                            <ui:Button Grid.Row="0" Grid.Column="2" 
+                                       VerticalAlignment="Center" />
+
+                            <!-- ✅ ПРИВЯЗАНО К OBSERVABLE СВОЙСТВАМ -->
+                            <ComboBox Grid.Row="0" Grid.Column="1"
+                                      x:Name="MicrophoneComboBox"
+                                      Margin="0,0,10,0"
+                                      FontSize="14"
+                                      ItemsSource="{Binding AvailableDevices}"
+                                      SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                      DisplayMemberPath="Name" />
+
+                            <ui:Button Grid.Row="0" Grid.Column="2"
                                        x:Name="TestMicrophoneButton"
                                        Icon="{ui:SymbolIcon Mic24}"
                                        Appearance="Primary"
                                        Width="44" Height="32"
                                        FontSize="14"
-                                       Click="TestMicrophoneButton_Click"/>
-                            
-                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
-                                        Orientation="Horizontal" 
+                                       Click="TestMicrophoneButton_Click" />
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                        Orientation="Horizontal"
                                         Margin="0,8,0,0">
-                                <Ellipse Width="10" Height="10" 
+                                <Ellipse Width="10" Height="10"
                                          x:Name="MicrophoneStatusIcon"
-                                         Fill="#4caf50" 
-                                         Margin="0,0,8,0"/>
+                                         Fill="#4caf50"
+                                         Margin="0,0,8,0" />
                                 <TextBlock x:Name="MicrophoneStatusText"
-                                           Text="Микрофон готов" 
+                                           Text="Микрофон готов"
                                            FontSize="12"
-                                           Foreground="#4caf50"/>
+                                           Foreground="#4caf50" />
                             </StackPanel>
                         </Grid>
-                        
+
                         <!-- Модель Whisper -->
                         <Grid Margin="0,0,0,25">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Модель Whisper:" 
-                                       FontSize="14" 
+
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Модель Whisper:"
+                                       FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
-                                       VerticalAlignment="Center"/>
-                            
-                            <!-- УЖЕ ПРАВИЛЬНО: Привязано к ViewModel -->
-                            <ComboBox Grid.Row="0" Grid.Column="1" 
-                                         x:Name="WhisperModelComboBox"
-                                         Margin="0,0,10,0"
-                                         FontSize="14"
-                                         ItemsSource="{Binding AvailableModels}"
-                                         SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
-                                         DisplayMemberPath="DisplayName"/>
-                            
-                            <ui:Button Grid.Row="0" Grid.Column="2" 
+                                       VerticalAlignment="Center" />
+
+                            <!-- ✅ ПРИВЯЗАНО К OBSERVABLE СВОЙСТВАМ -->
+                            <ComboBox Grid.Row="0" Grid.Column="1"
+                                      x:Name="WhisperModelComboBox"
+                                      Margin="0,0,10,0"
+                                      FontSize="14"
+                                      ItemsSource="{Binding AvailableModels}"
+                                      SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName" />
+
+                            <!-- 🔥 ИСПРАВЛЕНО: Обычная кнопка с иконкой -->
+                            <ui:Button Grid.Row="0" Grid.Column="2"
                                        x:Name="DownloadModelButton"
-                                       Icon="{ui:SymbolIcon ArrowDownload24}"
                                        Appearance="Secondary"
                                        Width="44" Height="32"
                                        FontSize="14"
-                                       Visibility="Collapsed"
-                                       Click="DownloadModelButton_Click"/>
-                            
-                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
-                                        Orientation="Horizontal" 
+                                       Click="DownloadModelButton_Click">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon x:Name="DownloadButtonIcon"
+                                                   Symbol="ArrowDownload24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                        Orientation="Horizontal"
                                         Margin="0,8,0,0">
-                                <Ellipse Width="10" Height="10" 
+                                <Ellipse Width="10" Height="10"
                                          x:Name="ModelStatusIcon"
-                                         Fill="#4caf50" 
-                                         Margin="0,0,8,0"/>
+                                         Fill="#4caf50"
+                                         Margin="0,0,8,0" />
                                 <TextBlock x:Name="ModelStatusText"
-                                           Text="Модель готова" 
+                                           Text="Модель готова"
                                            FontSize="12"
-                                           Foreground="#4caf50"/>
+                                           Foreground="#4caf50" />
                             </StackPanel>
                         </Grid>
-                        
+
                         <!-- Длительность записи -->
                         <Grid Margin="0,0,0,25">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="60" />
                             </Grid.ColumnDefinitions>
-    
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       FontSize="14" 
+
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center"
                                        TextWrapping="Wrap"
                                        LineHeight="16">
-                                <Run Text="Длительность"/>
-                                <LineBreak/>
-                                <Run Text="записи:"/>
+                                <Run Text="Длительность" />
+                                <LineBreak />
+                                <Run Text="записи:" />
                             </TextBlock>
-                            
-                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
-                            <Slider Grid.Row="0" Grid.Column="1" 
+
+                            <!-- ✅ ГЛАВНАЯ ФИЧА: ПРИВЯЗАНО К MaxRecordingSeconds -->
+                            <Slider Grid.Row="0" Grid.Column="1"
                                     x:Name="MaxDurationSlider"
-                                    Minimum="1" 
-                                    Maximum="30" 
+                                    Minimum="1"
+                                    Maximum="30"
                                     Value="{Binding MaxRecordingSeconds, Mode=TwoWay}"
                                     TickFrequency="1"
                                     IsSnapToTickEnabled="True"
-                                    Margin="10,0"/>
-    
-                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel с конвертером -->
-                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                    Margin="10,0" />
+
+                            <!-- ✅ ОТОБРАЖЕНИЕ ЗНАЧЕНИЯ ЧЕРЕЗ ПРИВЯЗКУ -->
+                            <TextBlock Grid.Row="0" Grid.Column="2"
                                        x:Name="MaxDurationValueText"
                                        FontSize="14"
                                        FontWeight="Medium"
@@ -200,48 +201,47 @@
                                        VerticalAlignment="Center"
                                        HorizontalAlignment="Center">
                                 <TextBlock.Text>
-                                    <Binding Path="MaxRecordingSeconds" StringFormat="{}{0}с"/>
+                                    <Binding Path="MaxRecordingSeconds" StringFormat="{}{0}с" />
                                 </TextBlock.Text>
                             </TextBlock>
-    
-                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
-                                        Orientation="Horizontal" 
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                        Orientation="Horizontal"
                                         Margin="10,8,0,0">
-                                <Ellipse Width="8" Height="8" 
+                                <Ellipse Width="8" Height="8"
                                          Fill="#ffc107"
-                                         Margin="0,2,6,0"/>
-                                <TextBlock Text="Защита от случайно незавершенной записи" 
+                                         Margin="0,2,6,0" />
+                                <TextBlock Text="Автоматическое сохранение при изменении"
                                            FontSize="11"
-                                           Foreground="#999999"/>
+                                           Foreground="#999999" />
                             </StackPanel>
                         </Grid>
-                        
+
                         <!-- Язык -->
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" 
-                                       Text="Язык:" 
-                                       FontSize="14" 
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Язык:"
+                                       FontSize="14"
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
-                                       VerticalAlignment="Center"/>
-                            
-                            <!-- ИСПРАВЛЕНО: Привязано к ViewModel -->
+                                       VerticalAlignment="Center" />
+
+                            <!-- Языки через привязку -->
                             <ComboBox Grid.Column="1" 
-                                         x:Name="LanguageComboBox"
-                                         FontSize="14"
-                                         SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
-                                         SelectedValuePath="Tag">
-                                <ComboBoxItem Content="🇷🇺 Русский" Tag="ru"/>
-                                <ComboBoxItem Content="🇺🇸 English" Tag="en"/>
-                            </ComboBox>
+                                      x:Name="LanguageComboBox"
+                                      FontSize="14"
+                                      ItemsSource="{Binding AvailableLanguages}"
+                                      SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                                      SelectedValuePath="Code"
+                                      DisplayMemberPath="Name"/>
                         </Grid>
-                        
+
                     </StackPanel>
                 </Grid>
             </Border>

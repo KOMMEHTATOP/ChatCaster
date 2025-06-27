@@ -1,13 +1,11 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Services;
-using ChatCaster.Windows.ViewModels;
 using ChatCaster.Windows.ViewModels.Settings;
 using ChatCaster.Windows.ViewModels.Settings.Speech;
+using Wpf.Ui.Controls;
 using Serilog;
-using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.AudioSettingsViewModel;
 
 namespace ChatCaster.Windows.Views.ViewSettings;
 
@@ -15,8 +13,6 @@ public partial class AudioSettingsView
 {
     private readonly AudioCaptureService? _audioCaptureService;
     private readonly SpeechRecognitionService? _speechRecognitionService;
-    private readonly ConfigurationService? _configService;
-    private readonly ServiceContext? _serviceContext;
 
     private bool _isTestingMicrophone = false;
     private bool _isDownloadingModel = false;
@@ -24,55 +20,180 @@ public partial class AudioSettingsView
     public AudioSettingsView()
     {
         InitializeComponent();
+        Log.Information("AudioSettingsView создан");
     }
 
     // Конструктор с сервисами
     public AudioSettingsView(AudioCaptureService audioCaptureService, 
-                            SpeechRecognitionService speechRecognitionService, 
-                            ConfigurationService configService, 
-                            ServiceContext serviceContext) : this()
+                            SpeechRecognitionService speechRecognitionService) : this()
     {
         _audioCaptureService = audioCaptureService;
         _speechRecognitionService = speechRecognitionService;
-        _configService = configService;
-        _serviceContext = serviceContext;
         
-        Log.Debug("AudioSettingsView инициализирован с сервисами");
+        Log.Information("AudioSettingsView инициализирован с сервисами");
     }
 
-    // ✅ НОВЫЙ МЕТОД: Устанавливает ViewModel и связывает UI элементы
+    /// <summary>
+    /// Устанавливает ViewModel И подписывается на события WhisperModelManager
+    /// </summary>
     public void SetViewModel(AudioSettingsViewModel viewModel)
     {
         try
         {
             Log.Information("=== УСТАНОВКА VIEWMODEL ===");
             
-            // Устанавливаем DataContext
+            // Отписываемся от старых событий если есть старый ViewModel
+            if (DataContext is AudioSettingsViewModel oldViewModel)
+            {
+                UnsubscribeFromModelEvents(oldViewModel);
+            }
+            
+            // Устанавливаем новый DataContext
             DataContext = viewModel;
             
-            // Связываем UI элементы с ViewModel
-            viewModel.SetUIControls(
-                MicrophoneComboBox,
-                WhisperModelComboBox,
-                LanguageComboBox,
-                MaxDurationSlider
-            );
-            
-            Log.Information("ViewModel установлен и UI элементы связаны");
+            // Подписка на события WhisperModelManager
+            SubscribeToModelEvents(viewModel);
             
             // Инициализируем ViewModel
             _ = viewModel.InitializeAsync();
+            
+            Log.Information("✅ ViewModel установлен с подпиской на события");
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка установки ViewModel");
         }
     }
-    
-    private void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
+
+    #region Управление подписками на события
+
+    /// <summary>
+    /// Подписывается на события WhisperModelManager
+    /// </summary>
+    private void SubscribeToModelEvents(AudioSettingsViewModel viewModel)
     {
-        if (_isTestingMicrophone || _audioCaptureService == null) return;
-        _ = HandleTestMicrophoneAsync();
+        try
+        {
+            viewModel.WhisperModelManager.ModelStatusChanged += OnModelStatusChanged;
+            viewModel.WhisperModelManager.DownloadButtonStateChanged += OnDownloadButtonStateChanged;
+            
+            Log.Information("Подписались на события WhisperModelManager");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка подписки на события WhisperModelManager");
+        }
+    }
+
+    /// <summary>
+    /// Отписывается от событий WhisperModelManager
+    /// </summary>
+    private void UnsubscribeFromModelEvents(AudioSettingsViewModel viewModel)
+    {
+        try
+        {
+            viewModel.WhisperModelManager.ModelStatusChanged -= OnModelStatusChanged;
+            viewModel.WhisperModelManager.DownloadButtonStateChanged -= OnDownloadButtonStateChanged;
+            
+            Log.Information("Отписались от событий WhisperModelManager");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка отписки от событий WhisperModelManager");
+        }
+    }
+
+    /// <summary>
+    /// Обработчик изменения статуса модели
+    /// </summary>
+    private void OnModelStatusChanged(object? sender, ModelStatusChangedEventArgs e)
+    {
+        Dispatcher.Invoke(new Action(() =>
+        {
+            try
+            {
+                UpdateModelStatus(e.Status, e.ColorHex);
+                Log.Information("Статус модели обновлен: {Status}", e.Status);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка обновления статуса модели в UI");
+            }
+        }));
+    }
+
+    /// <summary>
+    /// Обработчик изменения состояния кнопки загрузки
+    /// </summary>
+    private void OnDownloadButtonStateChanged(object? sender, ModelDownloadButtonStateChangedEventArgs e)
+    {
+        Dispatcher.Invoke(new Action(() =>
+        {
+            try
+            {
+                // Обновляем иконку кнопки
+                if (Enum.TryParse<SymbolRegular>(e.Symbol, out var symbolEnum))
+                {
+                    DownloadButtonIcon.Symbol = symbolEnum;
+                }
+                
+                if (e.Symbol == "CheckmarkCircle24")
+                {
+                    DownloadButtonIcon.Foreground = new SolidColorBrush(Color.FromRgb(76, 175, 80)); // #4caf50
+                    DownloadButtonIcon.FontSize = 18;
+                    DownloadButtonIcon.FontWeight = FontWeights.ExtraBold; // Делаем крупнее
+                }
+                
+                // Обновляем состояние кнопки
+                DownloadModelButton.IsEnabled = e.IsEnabled;
+                DownloadModelButton.ToolTip = e.Tooltip;
+                
+                // Обновляем внешний вид кнопки
+                DownloadModelButton.Appearance = e.Appearance switch
+                {
+                    "Primary" => ControlAppearance.Primary,
+                    "Success" => ControlAppearance.Primary,  
+                    "Caution" => ControlAppearance.Caution,
+                    "Danger" => ControlAppearance.Danger,
+                    _ => ControlAppearance.Secondary
+                };
+                
+                Log.Information("Состояние кнопки загрузки обновлено: {Symbol}, {Tooltip}, Enabled={IsEnabled}", 
+                    e.Symbol, e.Tooltip, e.IsEnabled);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка обновления состояния кнопки загрузки в UI");
+            }
+        }));
+    }
+
+    #endregion
+    
+    #region Button Click Handlers
+
+    private async void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        try 
+        {
+            Log.Information("🔄 Начинаем тест микрофона");
+
+            if (_isTestingMicrophone || _audioCaptureService == null) 
+            {
+                Log.Warning("⚠️ Тест уже идет или сервис недоступен");
+                return;
+            }
+
+            await HandleTestMicrophoneAsync();
+        
+            Log.Information("✅ Тест микрофона завершен БЕЗ ОШИБОК");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "❌ КРИТИЧЕСКАЯ ОШИБКА в тесте микрофона");
+            System.Windows.MessageBox.Show($"Ошибка теста: {ex.Message}", "Ошибка", 
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
     }
 
     private async Task HandleTestMicrophoneAsync()
@@ -85,8 +206,9 @@ public partial class AudioSettingsView
 
             Log.Information("🔄 Начинаем тест микрофона");
 
-            // Получаем AudioDevice вместо ComboBoxItem
-            var selectedDevice = MicrophoneComboBox.SelectedItem as AudioDevice;
+            var viewModel = DataContext as AudioSettingsViewModel;
+            var selectedDevice = viewModel?.SelectedDevice;
+            
             if (selectedDevice != null)
             {
                 Log.Information("Устанавливаем активное устройство: {DeviceId} ({DeviceName})", 
@@ -101,8 +223,6 @@ public partial class AudioSettingsView
                 return;
             }
 
-            // Тестируем микрофон
-            Log.Information("Запускаем TestMicrophoneAsync()");
             bool testResult = await _audioCaptureService!.TestMicrophoneAsync();
 
             if (testResult)
@@ -131,65 +251,31 @@ public partial class AudioSettingsView
     private void DownloadModelButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isDownloadingModel || _speechRecognitionService == null) return;
-        _ = HandleDownloadModelAsync();
-    }
-
-    private async Task HandleDownloadModelAsync()
-    {
-        try
+        
+        // Используем WhisperModelManager для загрузки
+        var viewModel = DataContext as AudioSettingsViewModel;
+        if (viewModel?.WhisperModelManager != null)
         {
-            _isDownloadingModel = true;
-            DownloadModelButton.IsEnabled = false;
-
-            Log.Information("🔄 Начинаем загрузку модели");
-
-            // ✅ ИСПРАВЛЕНО: Получаем WhisperModelItem вместо ComboBoxItem
-            var selectedModel = WhisperModelComboBox.SelectedItem as WhisperModelItem;
-            if (selectedModel != null)
-            {
-                var model = selectedModel.Model;
-            
-                UpdateModelStatus("Начинаем загрузку...", "#ff9800");
-                Log.Information("Начинаем загрузку модели {Model} ({DisplayName})", model, selectedModel.DisplayName);
-
-                // Подписываемся на события загрузки
-                _speechRecognitionService!.DownloadProgress += OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted += OnModelDownloadCompleted;
-
-                // Инициализируем модель (это запустит загрузку если нужно)
-                var config = new WhisperConfig { Model = model };
-                await _speechRecognitionService.InitializeAsync(config);
-            }
-            else
-            {
-                Log.Warning("Модель не выбрана для загрузки");
-                UpdateModelStatus("Выберите модель", "#ff9800");
-                _isDownloadingModel = false;
-                DownloadModelButton.IsEnabled = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            UpdateModelStatus($"Ошибка загрузки: {ex.Message}", "#f44336");
-            Log.Error(ex, "Ошибка загрузки модели");
-            _isDownloadingModel = false;
-            DownloadModelButton.IsEnabled = true;
+            _ = viewModel.WhisperModelManager.DownloadModelAsync();
         }
     }
     
+    #endregion
+
+    #region Event Handlers для загрузки модели (для совместимости)
+    
     private void OnModelDownloadProgress(object? sender, Core.Events.ModelDownloadProgressEvent e)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke(new Action(() =>
         {
             UpdateModelStatus($"Загрузка {e.ProgressPercentage}%...", "#ff9800");
-        });
+        }));
     }
 
     private void OnModelDownloadCompleted(object? sender, Core.Events.ModelDownloadCompletedEvent e)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke(new Action(() =>
         {
-            // Отписываемся от событий
             if (_speechRecognitionService != null)
             {
                 _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
@@ -199,7 +285,6 @@ public partial class AudioSettingsView
             if (e.Success)
             {
                 UpdateModelStatus("Модель готова", "#4caf50");
-                DownloadModelButton.Visibility = Visibility.Collapsed;
                 Log.Information("Модель успешно загружена");
             }
             else
@@ -209,11 +294,12 @@ public partial class AudioSettingsView
             }
 
             _isDownloadingModel = false;
-            DownloadModelButton.IsEnabled = true;
-        });
+        }));
     }
 
-    // ========== УТИЛИТЫ ОСТАЮТСЯ ==========
+    #endregion
+
+    #region UI Helper Methods
     
     private void UpdateMicrophoneStatus(string text, string color)
     {
@@ -229,35 +315,33 @@ public partial class AudioSettingsView
         ModelStatusIcon.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
 
-    private static string FormatFileSize(long bytes)
-    {
-        if (bytes >= 1_073_741_824) // GB
-            return $"{bytes / 1_073_741_824.0:F1} GB";
-        if (bytes >= 1_048_576) // MB
-            return $"{bytes / 1_048_576.0:F0} MB";
-        if (bytes >= 1024) // KB
-            return $"{bytes / 1024.0:F0} KB";
-        return $"{bytes} bytes";
-    }
+    #endregion
 
-    // Cleanup при выгрузке страницы
+    #region Cleanup
+    
     private void Page_Unloaded(object sender, RoutedEventArgs e)
     {
         try
         {
-            // Отписываемся от событий загрузки модели если подписаны
             if (_speechRecognitionService != null)
             {
                 _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
                 _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
-                Log.Debug("Отписались от событий SpeechRecognitionService");
             }
             
-            Log.Debug("AudioSettingsView выгружен");
+            if (DataContext is AudioSettingsViewModel viewModel)
+            {
+                UnsubscribeFromModelEvents(viewModel);
+                viewModel.Cleanup();
+            }
+            
+            Log.Information("AudioSettingsView выгружен");
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка при выгрузке AudioSettingsView");
         }
     }
+
+    #endregion
 }

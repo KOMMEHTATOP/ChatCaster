@@ -162,9 +162,31 @@ namespace ChatCaster.Windows.ViewModels
                 _trayService.SetConfig(CurrentConfig);
                 Log.Information("Конфигурация загружена");
 
-                Log.Debug("Инициализируем сервис распознавания речи...");
+                // ✅ ИСПРАВЛЕНИЕ: Если конфиг новый (нет устройства), устанавливаем дефолты
+                if (string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
+                {
+                    Log.Information("Новая установка - применяем дефолтные настройки");
+                    CurrentConfig.Whisper.Model = WhisperModel.Tiny;
+    
+                    // Сохраняем обновленный конфиг
+                    await _serviceContext.ConfigurationService!.SaveConfigAsync(CurrentConfig);
+                    Log.Information("Дефолтная модель Whisper установлена: Tiny");
+                }
+
+                Log.Information("Инициализируем с моделью: {Model}", CurrentConfig.Whisper.Model);
                 await _speechService.InitializeAsync(CurrentConfig.Whisper);
                 Log.Information("Сервис распознавания речи инициализирован");
+
+                Log.Debug("Применяем аудио настройки...");
+                if (!string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
+                {
+                    await _audioService.SetActiveDeviceAsync(CurrentConfig.Audio.SelectedDeviceId);
+                    Log.Information("Активное аудио устройство установлено: {DeviceId}", CurrentConfig.Audio.SelectedDeviceId);
+                }
+                else
+                {
+                    Log.Warning("В конфигурации не указано аудио устройство");
+                }
 
                 Log.Debug("Применяем конфигурацию к OverlayService...");
                 await _overlayService.ApplyConfigAsync(CurrentConfig.Overlay);

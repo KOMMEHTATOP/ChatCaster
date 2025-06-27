@@ -382,7 +382,7 @@ public class SpeechRecognitionService : ISpeechRecognitionService, IDisposable
                 WhisperModel.Small => 476_174L * 1024, // ~476.2 MB
                 WhisperModel.Medium => 1_497_816L * 1024, // ~1.5 GB
                 WhisperModel.Large => 3_022_494L * 1024, // ~3.0 GB
-                _ => 144_484L * 1024 // по умолчанию Base
+                _ => 75_871L * 1024 // по умолчанию Tiny
             };
         });
     }

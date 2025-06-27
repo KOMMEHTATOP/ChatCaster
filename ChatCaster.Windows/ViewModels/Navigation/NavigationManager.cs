@@ -3,6 +3,7 @@ using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.Views.ViewSettings;
 using ChatCaster.Windows.ViewModels.Settings.Speech;
+using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.Settings.AudioSettingsViewModel;  
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation
@@ -130,27 +131,26 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             try
             {
                 Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
-                
-                // Создаем View
-                var audioView = new AudioSettingsView(_audioService, _speechService, _configService, _serviceContext);
+
+                // Создаем View только с нужными сервисами для кнопок
+                var audioView = new AudioSettingsView(_audioService, _speechService);
                 Log.Information("AudioSettingsView создан");
-                
+
                 // Создаем WhisperModelManager
                 var whisperModelManager = new WhisperModelManager(_speechService);
                 Log.Information("WhisperModelManager создан");
-                
+
                 // Создаем ViewModel с 3 параметрами
                 var audioViewModel = new AudioSettingsViewModel(
                     _configService, 
                     _serviceContext, 
                     whisperModelManager);
                 Log.Information("AudioSettingsViewModel создан");
-                
-                // Связываем View и ViewModel
+
+                // ✅ ИСПРАВЛЕНО: Используем SetViewModel вместо прямой установки DataContext
                 audioView.SetViewModel(audioViewModel);
-                Log.Information("ViewModel установлен в View");
-                
-                Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА ===");
+
+                Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА (инициализация через SetViewModel) ===");
                 return audioView;
             }
             catch (Exception ex)
@@ -159,8 +159,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 // Возвращаем fallback страницу
                 return _cachedPages[NavigationConstants.MainPage];
             }
-        }
-
+        }        
+        
         /// <summary>
         /// Создает страницу Interface Settings с ViewModel
         /// </summary>

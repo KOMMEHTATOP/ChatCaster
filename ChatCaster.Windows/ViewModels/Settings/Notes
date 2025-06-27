@@ -1,5 +1,0 @@
-AudioSettingsViewModel - координатор, базовая логика, подписки на события
-AudioDeviceManager - управление устройствами, тестирование микрофона
-WhisperModelManager - управление моделями, загрузка, проверка статуса
-AudioDeviceModels - helper классы для устройств
-WhisperModelModels - helper классы для моделей
