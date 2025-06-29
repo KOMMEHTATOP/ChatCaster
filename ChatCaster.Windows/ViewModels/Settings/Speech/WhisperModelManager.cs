@@ -9,41 +9,51 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
     /// <summary>
     /// Менеджер для управления моделями Whisper (упрощенный - только модели)
     /// </summary>
-    public class WhisperModelManager
+    public class WhisperModelManager : IDisposable
     {
+
         #region Events
+
         public event EventHandler<ModelStatusChangedEventArgs>? ModelStatusChanged;
         public event EventHandler<ModelDownloadButtonStateChangedEventArgs>? DownloadButtonStateChanged;
+
         #endregion
 
         #region Private Fields
+
         private readonly SpeechRecognitionService? _speechRecognitionService;
         private bool _isDownloadingModel = false;
+        private bool _isDisposed = false;
+
         #endregion
 
         #region Public Properties
+
         public ObservableCollection<WhisperModelItem> AvailableModels { get; } = new();
         public WhisperModelItem? SelectedModel { get; set; }
         public bool IsDownloadingModel => _isDownloadingModel;
+
         #endregion
 
         #region Constructor
+
         public WhisperModelManager(SpeechRecognitionService? speechRecognitionService)
         {
             Log.Information("[WMM] Конструктор вызван");
             _speechRecognitionService = speechRecognitionService;
-            
-            // 🔥 ДОБАВЛЕНО: Подписываемся на события загрузки сразу при создании
+
+            // ✅ ИСПРАВЛЕНИЕ: Подписываемся ТОЛЬКО на фоновые события (убрана двойная подписка)
             if (_speechRecognitionService != null)
             {
-                _speechRecognitionService.DownloadProgress += OnBackgroundDownloadProgress;
-                _speechRecognitionService.DownloadCompleted += OnBackgroundDownloadCompleted;
-                Log.Information("[WMM] Подписались на фоновые события загрузки");
+                _speechRecognitionService.DownloadProgress += OnDownloadProgress;
+                _speechRecognitionService.DownloadCompleted += OnDownloadCompleted;
+                Log.Information("[WMM] Подписались на события загрузки");
             }
-            
+
             InitializeStaticData();
             Log.Information("[WMM] WhisperModelManager создан");
         }
+
         #endregion
 
         #region Public Methods
@@ -62,7 +72,8 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                 }
 
                 Log.Information("[WMM] === ПРОВЕРКА СТАТУСА МОДЕЛИ ===");
-                Log.Information("[WMM] Выбранная модель: {UIModel} ({DisplayName})", SelectedModel.Model, SelectedModel.DisplayName);
+                Log.Information("[WMM] Выбранная модель: {UIModel} ({DisplayName})", SelectedModel.Model,
+                    SelectedModel.DisplayName);
                 Log.Information("[WMM] Модель в сервисе: {ServiceModel}", _speechRecognitionService.CurrentModel);
                 Log.Information("[WMM] Сервис инициализирован: {IsInitialized}", _speechRecognitionService.IsInitialized);
 
@@ -72,10 +83,10 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                 if (isAvailable)
                 {
                     // ✅ ИСПРАВЛЕНО: Проверяем не блокирует ли другой процесс модель
-                    if (!_speechRecognitionService.IsInitialized || 
+                    if (!_speechRecognitionService.IsInitialized ||
                         _speechRecognitionService.CurrentModel != SelectedModel.Model)
                     {
-                        // 🔥 ДОБАВЛЕНО: Не пытаемся загружать если скачивается
+                        // ✅ ИСПРАВЛЕНИЕ: Проверяем состояние загрузки
                         if (_isDownloadingModel)
                         {
                             Log.Information("[WMM] Модель еще скачивается, ждем завершения");
@@ -90,10 +101,13 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                         }
 
                         Log.Information("[WMM] ПЕРЕИНИЦИАЛИЗАЦИЯ! Загружаем модель {Model}", SelectedModel.Model);
-                        
-                        var config = new WhisperConfig { Model = SelectedModel.Model };
+
+                        var config = new WhisperConfig
+                        {
+                            Model = SelectedModel.Model
+                        };
                         bool initResult = await _speechRecognitionService.InitializeAsync(config);
-                        
+
                         if (initResult)
                         {
                             Log.Information("[WMM] ✅ Модель {Model} успешно загружена", SelectedModel.Model);
@@ -131,7 +145,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                     long sizeBytes = await _speechRecognitionService.GetModelSizeAsync(SelectedModel.Model);
                     string sizeText = FormatFileSize(sizeBytes);
                     RaiseModelStatusChanged($"Модель не скачана ({sizeText})", "#ff9800");
-                    
+
                     // Кнопка показывает стрелку загрузки - нужно скачать
                     RaiseDownloadButtonStateChanged(
                         symbol: "ArrowDownload24",
@@ -139,16 +153,17 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                         isEnabled: true,
                         appearance: "Primary"
                     );
-                    
-                    Log.Information("[WMM] Модель {ModelName} недоступна, размер: {Size}", SelectedModel.DisplayName, sizeText);
+
+                    Log.Information("[WMM] Модель {ModelName} недоступна, размер: {Size}", SelectedModel.DisplayName,
+                        sizeText);
                 }
-                
+
                 Log.Information("[WMM] === ПРОВЕРКА ЗАВЕРШЕНА ===");
             }
             catch (Exception ex)
             {
                 RaiseModelStatusChanged($"Ошибка проверки: {ex.Message}", "#f44336");
-                
+
                 // При ошибке показываем кнопку с предупреждением
                 RaiseDownloadButtonStateChanged(
                     symbol: "Warning24",
@@ -156,19 +171,20 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                     isEnabled: false,
                     appearance: "Caution"
                 );
-                
-                Log.Error(ex, "[WMM] Ошибка при проверке статуса модели {ModelName}", SelectedModel?.DisplayName ?? "Unknown");
+
+                Log.Error(ex, "[WMM] Ошибка при проверке статуса модели {ModelName}",
+                    SelectedModel?.DisplayName ?? "Unknown");
             }
         }
 
         /// <summary>
-        /// Загружает выбранную модель
+        /// ✅ ИСПРАВЛЕНИЕ: Упрощенная загрузка модели без дублирования подписок
         /// </summary>
         public async Task DownloadModelAsync()
         {
-            if (_isDownloadingModel || _speechRecognitionService == null || SelectedModel == null) 
+            if (_isDownloadingModel || _speechRecognitionService == null || SelectedModel == null)
             {
-                Log.Warning("[WMM] Загрузка невозможна: downloading={Downloading}, service={ServiceOK}, model={ModelOK}", 
+                Log.Warning("[WMM] Загрузка невозможна: downloading={Downloading}, service={ServiceOK}, model={ModelOK}",
                     _isDownloadingModel, _speechRecognitionService != null, SelectedModel != null);
                 return;
             }
@@ -177,7 +193,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
             {
                 _isDownloadingModel = true;
                 RaiseModelStatusChanged("Начинаем загрузку...", "#ff9800");
-                
+
                 // Кнопка показывает спиннер во время загрузки
                 RaiseDownloadButtonStateChanged(
                     symbol: "ArrowClockwise24",
@@ -185,21 +201,26 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                     isEnabled: false,
                     appearance: "Secondary"
                 );
-                
+
                 Log.Information("[WMM] Начинаем загрузку модели: {ModelName}", SelectedModel.DisplayName);
 
-                // Подписываемся на события загрузки
-                _speechRecognitionService.DownloadProgress += OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted += OnModelDownloadCompleted;
+                // ✅ ИСПРАВЛЕНИЕ: Убрана двойная подписка - используем только фоновые обработчики
+                // События уже обрабатываются в OnDownloadProgress и OnDownloadCompleted
 
                 // Инициализируем модель (это запустит загрузку если нужно)
-                var config = new WhisperConfig { Model = SelectedModel.Model };
+                var config = new WhisperConfig
+                {
+                    Model = SelectedModel.Model
+                };
                 await _speechRecognitionService.InitializeAsync(config);
+
+                // ✅ ИСПРАВЛЕНИЕ: Сбрасываем флаг после успешной инициализации
+                _isDownloadingModel = false;
             }
             catch (Exception ex)
             {
                 RaiseModelStatusChanged($"Ошибка загрузки: {ex.Message}", "#f44336");
-                
+
                 // При ошибке загрузки показываем кнопку повтора
                 RaiseDownloadButtonStateChanged(
                     symbol: "ArrowDownload24",
@@ -207,7 +228,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                     isEnabled: true,
                     appearance: "Caution"
                 );
-                
+
                 Log.Error(ex, "[WMM] Ошибка при загрузке модели {ModelName}", SelectedModel?.DisplayName ?? "Unknown");
                 _isDownloadingModel = false;
             }
@@ -224,28 +245,14 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
         }
 
         /// <summary>
-        /// Очистка ресурсов
+        /// ✅ ИСПРАВЛЕНИЕ: Реализован IDisposable
         /// </summary>
-        public void Cleanup()
+        public void Dispose()
         {
-            try
+            if (!_isDisposed)
             {
-                // Отписываемся от событий загрузки модели если подписаны
-                if (_speechRecognitionService != null)
-                {
-                    _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
-                    _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
-                    // 🔥 ДОБАВЛЕНО: Отписываемся от фоновых событий
-                    _speechRecognitionService.DownloadProgress -= OnBackgroundDownloadProgress;
-                    _speechRecognitionService.DownloadCompleted -= OnBackgroundDownloadCompleted;
-                }
-                
-                SelectedModel = null;
-                Log.Information("[WMM] Cleanup завершен");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "[WMM] Ошибка при cleanup");
+                Cleanup();
+                _isDisposed = true;
             }
         }
 
@@ -263,6 +270,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
             // Инициализируем доступные модели Whisper
             AvailableModels.Clear();
             var models = WhisperModelFactory.CreateAvailableModels();
+
             foreach (var model in models)
             {
                 AvailableModels.Add(model);
@@ -270,83 +278,35 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
 
             // Устанавливаем модель по умолчанию
             SelectedModel = WhisperModelFactory.GetDefaultModel();
-            
-            Log.Information("[WMM] AvailableModels: {Models}", 
+
+            Log.Information("[WMM] AvailableModels: {Models}",
                 string.Join(", ", AvailableModels.Select(m => m.Model)));
             Log.Information("[WMM] SelectedModel по умолчанию: {Model}", SelectedModel.DisplayName);
         }
 
-        private void OnModelDownloadProgress(object? sender, ModelDownloadProgressEvent e)
-        {
-            RaiseModelStatusChanged($"Загрузка {e.ProgressPercentage}%...", "#ff9800");
-            
-            // Обновляем tooltip кнопки с прогрессом
-            RaiseDownloadButtonStateChanged(
-                symbol: "ArrowClockwise24",
-                tooltip: $"Загрузка {e.ProgressPercentage}%...",
-                isEnabled: false,
-                appearance: "Secondary"
-            );
-        }
-
-        private void OnModelDownloadCompleted(object? sender, ModelDownloadCompletedEvent e)
-        {
-            // Отписываемся от событий
-            if (_speechRecognitionService != null)
-            {
-                _speechRecognitionService.DownloadProgress -= OnModelDownloadProgress;
-                _speechRecognitionService.DownloadCompleted -= OnModelDownloadCompleted;
-            }
-
-            if (e.Success)
-            {
-                RaiseModelStatusChanged("Модель готова", "#4caf50");
-                
-                // Показываем галочку при успешной загрузке
-                RaiseDownloadButtonStateChanged(
-                    symbol: "Checkmark24",
-                    tooltip: "Модель скачана",
-                    isEnabled: false,
-                    appearance: "Success"
-                );
-                
-                Log.Information("[WMM] ✅ Загрузка модели успешно завершена");
-            }
-            else
-            {
-                RaiseModelStatusChanged($"Ошибка загрузки: {e.ErrorMessage}", "#f44336");
-                
-                // Показываем кнопку повтора при ошибке
-                RaiseDownloadButtonStateChanged(
-                    symbol: "ArrowDownload24",
-                    tooltip: "Повторить загрузку",
-                    isEnabled: true,
-                    appearance: "Caution"
-                );
-                
-                Log.Error("[WMM] ❌ Ошибка загрузки модели: {ErrorMessage}", e.ErrorMessage);
-            }
-
-            _isDownloadingModel = false;
-        }
-
-        private void OnBackgroundDownloadProgress(object? sender, ModelDownloadProgressEvent e)
+        /// <summary>
+        /// ✅ ИСПРАВЛЕНИЕ: Единый обработчик событий загрузки (убрана дублирующая логика)
+        /// </summary>
+        private void OnDownloadProgress(object? sender, ModelDownloadProgressEvent e)
         {
             // Обновляем статус только если это текущая выбранная модель
             if (SelectedModel != null && SelectedModel.Model == e.Model)
             {
-                RaiseModelStatusChanged($"Фоновая загрузка {e.ProgressPercentage}%...", "#ff9800");
+                RaiseModelStatusChanged($"Загрузка {e.ProgressPercentage}%...", "#ff9800");
                 RaiseDownloadButtonStateChanged(
                     symbol: "ArrowClockwise24",
                     tooltip: $"Загрузка {e.ProgressPercentage}%...",
                     isEnabled: false,
                     appearance: "Secondary"
                 );
-                Log.Information("[WMM] Фоновая загрузка модели {Model}: {Progress}%", e.Model, e.ProgressPercentage);
+                Log.Information("[WMM] Загрузка модели {Model}: {Progress}%", e.Model, e.ProgressPercentage);
             }
         }
 
-        private void OnBackgroundDownloadCompleted(object? sender, ModelDownloadCompletedEvent e)
+        /// <summary>
+        /// ✅ ИСПРАВЛЕНИЕ: Единый обработчик завершения загрузки
+        /// </summary>
+        private void OnDownloadCompleted(object? sender, ModelDownloadCompletedEvent e)
         {
             // Обновляем статус только если это текущая выбранная модель
             if (SelectedModel != null && SelectedModel.Model == e.Model)
@@ -355,12 +315,12 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                 {
                     RaiseModelStatusChanged("Модель готова", "#4caf50");
                     RaiseDownloadButtonStateChanged(
-                        symbol: "Checkmark24",
+                        symbol: "CheckmarkCircle24",
                         tooltip: "Модель скачана",
                         isEnabled: false,
                         appearance: "Success"
                     );
-                    Log.Information("[WMM] ✅ Фоновая загрузка модели {Model} завершена успешно", e.Model);
+                    Log.Information("[WMM] ✅ Загрузка модели {Model} завершена успешно", e.Model);
                 }
                 else
                 {
@@ -371,10 +331,14 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                         isEnabled: true,
                         appearance: "Caution"
                     );
-                    Log.Error("[WMM] ❌ Фоновая загрузка модели {Model} не удалась: {Error}", e.Model, e.ErrorMessage);
+                    Log.Error("[WMM] ❌ Загрузка модели {Model} не удалась: {Error}", e.Model, e.ErrorMessage);
                 }
+
+                // ✅ ИСПРАВЛЕНИЕ: Сбрасываем флаг загрузки в любом случае
+                _isDownloadingModel = false;
             }
         }
+
         private static string FormatFileSize(long bytes)
         {
             if (bytes >= 1_073_741_824) // GB
@@ -383,6 +347,7 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
                 return $"{bytes / 1_048_576.0:F0} MB";
             if (bytes >= 1024) // KB
                 return $"{bytes / 1024.0:F0} KB";
+
             return $"{bytes} bytes";
         }
 
@@ -393,14 +358,41 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
 
         private void RaiseDownloadButtonStateChanged(string symbol, string tooltip, bool isEnabled, string appearance)
         {
-            DownloadButtonStateChanged?.Invoke(this, new ModelDownloadButtonStateChangedEventArgs(symbol, tooltip, isEnabled, appearance));
+            DownloadButtonStateChanged?.Invoke(this,
+                new ModelDownloadButtonStateChangedEventArgs(symbol, tooltip, isEnabled, appearance));
+        }
+
+        /// <summary>
+        /// ✅ ИСПРАВЛЕНИЕ: Полная очистка ресурсов
+        /// </summary>
+        public void Cleanup()
+        {
+            try
+            {
+                // Отписываемся от всех событий
+                if (_speechRecognitionService != null)
+                {
+                    _speechRecognitionService.DownloadProgress -= OnDownloadProgress;
+                    _speechRecognitionService.DownloadCompleted -= OnDownloadCompleted;
+                    Log.Information("[WMM] Отписались от событий загрузки");
+                }
+
+                SelectedModel = null;
+                _isDownloadingModel = false;
+                Log.Information("[WMM] Cleanup завершен");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[WMM] Ошибка при cleanup");
+            }
         }
 
         #endregion
+
     }
 
     #region Event Args
-    
+
     /// <summary>
     /// Аргументы события изменения статуса модели
     /// </summary>
@@ -434,6 +426,6 @@ namespace ChatCaster.Windows.ViewModels.Settings.Speech
             Appearance = appearance ?? throw new ArgumentNullException(nameof(appearance));
         }
     }
-    
-    #endregion
 }
+
+#endregion
