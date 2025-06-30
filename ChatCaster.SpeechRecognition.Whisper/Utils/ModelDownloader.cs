@@ -297,12 +297,33 @@ public class ModelDownloader
                 }
             }
 
+            // ВАЖНО: Закрываем файловый поток перед переименованием
+            fileStream.Close();
+
             // Переименовываем временный файл
             if (File.Exists(destinationPath))
             {
                 File.Delete(destinationPath);
             }
-            File.Move(tempPath, destinationPath);
+            
+            // Добавляем retry логику для переименования
+            var retryCount = 0;
+            var maxRetries = 3;
+            
+            while (retryCount < maxRetries)
+            {
+                try
+                {
+                    File.Move(tempPath, destinationPath);
+                    break;
+                }
+                catch (IOException) when (retryCount < maxRetries - 1)
+                {
+                    retryCount++;
+                    await Task.Delay(1000, cancellationToken); // Ждем 1 секунду
+                    _logger.LogWarning("Retry {Retry}/{MaxRetries} for file move operation", retryCount, maxRetries);
+                }
+            }
 
             _logger.LogInformation("Successfully downloaded model {ModelSize}: {Path} ({Size:F1}MB)", 
                 modelInfo.Size, destinationPath, totalBytesRead / 1024.0 / 1024.0);

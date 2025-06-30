@@ -20,13 +20,13 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     private readonly WhisperModelManager _modelManager;
     private readonly WhisperAudioProcessor _audioProcessor;
     private readonly AudioConverter _audioConverter;
-    
+
     private WhisperConfig _config;
     private WhisperProcessor? _processor;
     private WhisperFactory? _factory;
     private bool _isInitialized;
     private bool _disposed;
-    
+
     // События из интерфейса
     public event EventHandler<SpeechRecognitionProgressEvent>? RecognitionProgress;
     public event EventHandler<SpeechRecognitionErrorEvent>? RecognitionError;
@@ -59,9 +59,10 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
             // Конвертируем конфигурацию
             _config = WhisperConfig.FromSpeechConfig(config);
-            
+
             // Валидируем конфигурацию
             var validation = _config.Validate();
+
             if (!validation.IsValid)
             {
                 var errors = string.Join(", ", validation.Errors);
@@ -76,21 +77,21 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
             // Подготавливаем модель
             var modelPath = await _modelManager.PrepareModelAsync(_config.ModelSize, _config.ModelPath);
-            
+
             // Создаем Whisper factory
             _factory = WhisperFactory.FromPath(modelPath);
-            
+
             // Создаем процессор с настройками
             var processorBuilder = _factory.CreateBuilder()
                 .WithLanguage(_config.Language == WhisperConstants.Languages.Auto ? null : _config.Language)
                 .WithThreads(_config.ThreadCount);
-            
+
             // Применяем дополнительные настройки
             if (_config.EnableTranslation)
             {
                 processorBuilder = processorBuilder.WithTranslate();
             }
-            
+
             if (!string.IsNullOrEmpty(_config.InitialPrompt))
             {
                 processorBuilder = processorBuilder.WithPrompt(_config.InitialPrompt);
@@ -98,25 +99,23 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
             // Создаем процессор
             _processor = processorBuilder.Build();
-            
+
             _isInitialized = true;
             _logger.LogInformation("Whisper engine initialized successfully with model: {ModelSize}", _config.ModelSize);
-            
+
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize Whisper engine");
             _isInitialized = false;
-            
+
             // Уведомляем об ошибке
             OnRecognitionError(new SpeechRecognitionErrorEvent
             {
-                Engine = EngineName,
-                ErrorMessage = ex.Message,
-                Exception = ex
+                Engine = EngineName, ErrorMessage = ex.Message, Exception = ex
             });
-            
+
             return false;
         }
     }
@@ -134,37 +133,31 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+
         try
         {
             _logger.LogDebug("Starting speech recognition, audio size: {Size} bytes", audioData.Length);
-            
+
             // Уведомляем о начале обработки
             OnRecognitionProgress(new SpeechRecognitionProgressEvent
             {
-                Engine = EngineName,
-                ProgressPercentage = 10,
-                Status = "Converting audio format"
+                Engine = EngineName, ProgressPercentage = 10, Status = "Converting audio format"
             });
 
             // Конвертируем аудио в формат Whisper
             var samples = await _audioConverter.ConvertToSamplesAsync(audioData, cancellationToken);
-            
+
             OnRecognitionProgress(new SpeechRecognitionProgressEvent
             {
-                Engine = EngineName,
-                ProgressPercentage = 30,
-                Status = "Processing with Whisper"
+                Engine = EngineName, ProgressPercentage = 30, Status = "Processing with Whisper"
             });
 
             // Выполняем распознавание
             var whisperResult = await ProcessWithWhisperAsync(samples, cancellationToken);
-            
+
             OnRecognitionProgress(new SpeechRecognitionProgressEvent
             {
-                Engine = EngineName,
-                ProgressPercentage = 90,
-                Status = "Finalizing results"
+                Engine = EngineName, ProgressPercentage = 90, Status = "Finalizing results"
             });
 
             // Добавляем метаданные
@@ -174,15 +167,13 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             whisperResult.ProcessingTime = stopwatch.Elapsed;
 
             var result = whisperResult.ToVoiceProcessingResult();
-            
+
             OnRecognitionProgress(new SpeechRecognitionProgressEvent
             {
-                Engine = EngineName,
-                ProgressPercentage = 100,
-                Status = "Completed"
+                Engine = EngineName, ProgressPercentage = 100, Status = "Completed"
             });
 
-            _logger.LogInformation("Speech recognition completed: {Text} (confidence: {Confidence:F2}, time: {Time}ms)", 
+            _logger.LogInformation("Speech recognition completed: {Text} (confidence: {Confidence:F2}, time: {Time}ms)",
                 result.RecognizedText, result.Confidence, stopwatch.ElapsedMilliseconds);
 
             return result;
@@ -192,27 +183,21 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             _logger.LogInformation("Speech recognition was cancelled");
             return new VoiceProcessingResult
             {
-                Success = false,
-                ErrorMessage = "Recognition was cancelled",
-                ProcessingTime = stopwatch.Elapsed
+                Success = false, ErrorMessage = "Recognition was cancelled", ProcessingTime = stopwatch.Elapsed
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Speech recognition failed");
-            
+
             OnRecognitionError(new SpeechRecognitionErrorEvent
             {
-                Engine = EngineName,
-                ErrorMessage = ex.Message,
-                Exception = ex
+                Engine = EngineName, ErrorMessage = ex.Message, Exception = ex
             });
 
             return new VoiceProcessingResult
             {
-                Success = false,
-                ErrorMessage = ex.Message,
-                ProcessingTime = stopwatch.Elapsed
+                Success = false, ErrorMessage = ex.Message, ProcessingTime = stopwatch.Elapsed
             };
         }
         finally
@@ -225,52 +210,73 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     {
         try
         {
-            _logger.LogInformation("Reloading Whisper configuration");
-            
+            // Используем LogError чтобы точно попало в отчет
+            _logger.LogError("🔍 [RELOAD] ReloadConfigAsync started");
+        
             // Сохраняем старую конфигурацию
             var oldConfig = _config.Clone();
-            
+        
             // Применяем новую
             var newConfig = WhisperConfig.FromSpeechConfig(config);
-            
+        
+            // ДИАГНОСТИКА:
+            _logger.LogError("🔍 [RELOAD] Config comparison: OldModel={OldModel}, NewModel={NewModel}", 
+                oldConfig.ModelSize, newConfig.ModelSize);
+        
             // Проверяем нужна ли полная реинициализация
             bool needsReinitialization = 
                 oldConfig.ModelSize != newConfig.ModelSize ||
                 oldConfig.ModelPath != newConfig.ModelPath ||
                 oldConfig.EnableGpu != newConfig.EnableGpu;
 
+            _logger.LogError("🔍 [RELOAD] Needs reinitialization: {NeedsReinit}", needsReinitialization);
+
             if (needsReinitialization)
             {
-                _logger.LogInformation("Configuration change requires reinitialization");
+                _logger.LogError("🔍 [RELOAD] PERFORMING FULL REINITIALIZATION: {OldModel} → {NewModel}", 
+                    oldConfig.ModelSize, newConfig.ModelSize);
+            
+                // Принудительно освобождаем ресурсы
                 await DisposeProcessorAsync();
+            
+                // Принудительная сборка мусора
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            
+                _logger.LogError("🔍 [RELOAD] Previous model disposed, starting new initialization");
+            
                 return await InitializeAsync(config);
             }
             else
             {
-                // Применяем изменения без полной реинициализации
+                _logger.LogError("🔍 [RELOAD] NO REINITIALIZATION - just updating config");
                 _config = newConfig;
-                _logger.LogInformation("Configuration reloaded without reinitialization");
                 return true;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to reload configuration");
+            _logger.LogError("🔍 [RELOAD] FAILED: {Message}", ex.Message);
             return false;
         }
     }
 
+    
     public async Task<SpeechEngineCapabilities> GetCapabilitiesAsync()
     {
         await Task.CompletedTask; // Метод синхронный, но интерфейс асинхронный
-        
+
         return new SpeechEngineCapabilities
         {
             SupportsLanguageAutoDetection = true,
             SupportsGpuAcceleration = true, // Whisper.net поддерживает GPU
             SupportsRealTimeProcessing = false, // Whisper работает с полными аудио фрагментами
             RequiresInternetConnection = false, // Локальная обработка
-            SupportedSampleRates = new[] { WhisperConstants.Audio.RequiredSampleRate },
+            SupportedSampleRates = new[]
+            {
+                WhisperConstants.Audio.RequiredSampleRate
+            },
             MinAudioDurationMs = WhisperConstants.Audio.MinAudioLengthMs,
             MaxAudioDurationMs = WhisperConstants.Audio.MaxAudioLengthMs
         };
@@ -365,20 +371,46 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
     private async Task DisposeProcessorAsync()
     {
+        _logger.LogError("🔍 [DISPOSE] Starting disposal of Whisper processor and factory");
+    
         if (_processor != null)
         {
+            _logger.LogError("🔍 [DISPOSE] Disposing processor...");
             _processor.Dispose();
             _processor = null;
+            _logger.LogError("🔍 [DISPOSE] Processor disposed");
         }
 
         if (_factory != null)
         {
-            _factory.Dispose();
+            _logger.LogError("🔍 [DISPOSE] Disposing factory...");
+            _factory.Dispose(); 
             _factory = null;
+            _logger.LogError("🔍 [DISPOSE] Factory disposed");
         }
 
-        _isInitialized = false;
-        await Task.CompletedTask;
+        _logger.LogError("🔍 [DISPOSE] Completed, waiting 100ms for native cleanup");
+        await Task.Delay(100);
+    }
+    
+    
+    // ДОПОЛНИТЕЛЬНО: Метод для принудительной очистки памяти
+    public async Task ForceMemoryCleanupAsync()
+    {
+        _logger.LogInformation("Forcing memory cleanup");
+
+        // Освобождаем текущие ресурсы
+        await DisposeProcessorAsync();
+
+        // Агрессивная сборка мусора
+        for (int i = 0; i < 3; i++)
+        {
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(50);
+        }
+
+        _logger.LogInformation("Memory cleanup completed");
     }
 
     #endregion
@@ -409,4 +441,5 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     }
 
     #endregion
+
 }
