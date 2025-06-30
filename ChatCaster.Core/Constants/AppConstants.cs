@@ -24,10 +24,6 @@ public static class AppConstants
     public const float MaxVolumeThreshold = 1.0f;
     public const float DefaultVolumeThreshold = 0.01f;
     
-    // Пути
-    public const string DefaultConfigPath = "%APPDATA%\\ChatCaster";
-    public const string DefaultLogPath = "%APPDATA%\\ChatCaster\\Logs";
-    
     // Overlay
     public const int MinOverlayOpacity = 10; // 10%
     public const int MaxOverlayOpacity = 100; // 100%
@@ -42,18 +38,27 @@ public static class AppConstants
     public const int MaxPollingRateMs = 100;
     public const int DefaultPollingRateMs = 16; // ~60 FPS
     
-    // НОВЫЕ КОНСТАНТЫ ДЛЯ ЗАХВАТА КОМБИНАЦИЙ
+    // Константы для захвата комбинаций
     public const int MinHoldTimeMs = 50; // Минимальное время удержания кнопок
     public const int CapturePollingRateMs = 16; // Частота опроса при захвате (~60 FPS)
     public const int ComboDetectionTimeoutMs = 200; // Время ожидания дополнительных кнопок в комбинации
     public const int CaptureTimeoutSeconds = 5; // Таймаут захвата комбинации
     
-    // Whisper
+    // Распознавание речи (общие константы для любых движков)
     public const int DefaultMaxTokens = 224;
     public const int MinMaxTokens = 50;
     public const int MaxMaxTokens = 500;
     
-    // Логирование - ДОБАВЛЕНО
+    // Движки распознавания речи
+    public static class SpeechEngines
+    {
+        public const string Whisper = "Whisper";
+        public const string Azure = "Azure";
+        public const string Google = "Google";
+        // Можно добавлять новые движки
+    }
+    
+    // Логирование
     public static class Logging
     {
         public const string LogOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
@@ -64,19 +69,82 @@ public static class AppConstants
         public const long DefaultMaxFileSizeBytes = 10_000_000; // 10MB
     }
     
-    // Методы для путей - ДОБАВЛЕНО
+    // Кроссплатформенные пути
     public static class Paths
     {
+        /// <summary>
+        /// Получает директорию данных приложения для текущей платформы
+        /// </summary>
         public static string GetAppDataDirectory()
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                AppName);
+            if (OperatingSystem.IsWindows())
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    AppName);
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    AppName);
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                // Используем XDG Base Directory Specification
+                var xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+                var configDir = !string.IsNullOrEmpty(xdgConfigHome) 
+                    ? xdgConfigHome 
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+                
+                return Path.Combine(configDir, AppName.ToLowerInvariant());
+            }
+            else
+            {
+                // Fallback для других платформ
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    AppName);
+            }
         }
         
+        /// <summary>
+        /// Получает директорию логов для текущей платформы
+        /// </summary>
         public static string GetDefaultLogDirectory()
         {
-            return Path.Combine(GetAppDataDirectory(), "logs");
+            if (OperatingSystem.IsLinux())
+            {
+                // На Linux логи обычно в отдельной директории
+                var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+                var dataDir = !string.IsNullOrEmpty(xdgDataHome) 
+                    ? xdgDataHome 
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
+                
+                return Path.Combine(dataDir, AppName.ToLowerInvariant(), "logs");
+            }
+            else
+            {
+                // На Windows и macOS логи в поддиректории конфигурации
+                return Path.Combine(GetAppDataDirectory(), "logs");
+            }
+        }
+        
+        /// <summary>
+        /// Получает путь к файлу конфигурации
+        /// </summary>
+        public static string GetConfigFilePath()
+        {
+            return Path.Combine(GetAppDataDirectory(), ConfigFileName);
+        }
+        
+        /// <summary>
+        /// Создает все необходимые директории если они не существуют
+        /// </summary>
+        public static void EnsureDirectoriesExist()
+        {
+            Directory.CreateDirectory(GetAppDataDirectory());
+            Directory.CreateDirectory(GetDefaultLogDirectory());
         }
     }
 }

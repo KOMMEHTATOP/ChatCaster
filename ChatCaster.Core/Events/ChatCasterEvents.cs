@@ -110,18 +110,23 @@ public class GlobalHotkeyPressedEvent : ChatCasterEvent
     public KeyboardShortcut Shortcut { get; set; } = new();
 }
 
-public class ModelDownloadProgressEvent : ChatCasterEvent
+/// <summary>
+/// Событие прогресса распознавания речи (абстрактное)
+/// </summary>
+public class SpeechRecognitionProgressEvent : ChatCasterEvent
 {
-    public WhisperModel Model { get; init; }
-    public long BytesReceived { get; init; }
-    public long TotalBytes { get; init; }
-    public int ProgressPercentage { get; init; }
-    public string Status { get; init; } = "";
+    public string Engine { get; set; } = string.Empty;
+    public int ProgressPercentage { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public Dictionary<string, object> EngineSpecificData { get; set; } = new();
 }
 
-public class ModelDownloadCompletedEvent : ChatCasterEvent
+/// <summary>
+/// Событие ошибки распознавания речи
+/// </summary>
+public class SpeechRecognitionErrorEvent : ChatCasterEvent
 {
-    public WhisperModel Model { get; init; }
-    public bool Success { get; init; }
-    public string? ErrorMessage { get; init; }
+    public string Engine { get; set; } = string.Empty;
+    public string ErrorMessage { get; set; } = string.Empty;
+    public Exception? Exception { get; set; }
 }

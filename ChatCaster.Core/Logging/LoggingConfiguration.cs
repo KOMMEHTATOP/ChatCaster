@@ -1,5 +1,4 @@
 using Serilog;
-using Serilog.Events;
 using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
 
@@ -10,7 +9,7 @@ public static class LoggingConfiguration
     public static ILogger CreateLogger(LoggingConfig config)
     {
         var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(ConvertLogLevel(config.MinimumLevel));
+            .MinimumLevel.Is(config.MinimumLevel); // Теперь напрямую LogEventLevel
 
         // Определяем путь к логам
         string logDirectory = !string.IsNullOrEmpty(config.CustomLogDirectory) 
@@ -44,19 +43,5 @@ public static class LoggingConfiguration
         }
 
         return loggerConfig.CreateLogger();
-    }
-
-    private static LogEventLevel ConvertLogLevel(LogLevel level)
-    {
-        return level switch
-        {
-            LogLevel.Verbose => LogEventLevel.Verbose,
-            LogLevel.Debug => LogEventLevel.Debug,
-            LogLevel.Information => LogEventLevel.Information,
-            LogLevel.Warning => LogEventLevel.Warning,
-            LogLevel.Error => LogEventLevel.Error,
-            LogLevel.Fatal => LogEventLevel.Fatal,
-            _ => LogEventLevel.Information
-        };
     }
 }

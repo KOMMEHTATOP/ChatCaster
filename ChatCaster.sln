@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatCaster.Core", "ChatCast
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatCaster.Windows", "ChatCaster.Windows\ChatCaster.Windows.csproj", "{93A191CC-B2A5-45D2-971F-F4E3CBC6675E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatCaster.SpeechRecognition.Whisper", "ChatCaster.SpeechRecognition.Whisper\ChatCaster.SpeechRecognition.Whisper.csproj", "{E91811FD-5E6B-487A-972D-4E8A28A88DDA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{93A191CC-B2A5-45D2-971F-F4E3CBC6675E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93A191CC-B2A5-45D2-971F-F4E3CBC6675E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93A191CC-B2A5-45D2-971F-F4E3CBC6675E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E91811FD-5E6B-487A-972D-4E8A28A88DDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E91811FD-5E6B-487A-972D-4E8A28A88DDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E91811FD-5E6B-487A-972D-4E8A28A88DDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E91811FD-5E6B-487A-972D-4E8A28A88DDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,4 +1,4 @@
-namespace ChatCaster.Core.Exceptions;
+namespace ChatCaster.Core.Exeptions;
 
 /// <summary>
 /// Базовое исключение ChatCaster

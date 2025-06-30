@@ -1,8 +1,7 @@
+using Serilog.Events;
+
 namespace ChatCaster.Core.Models;
 
-/// <summary>
-/// Кнопки геймпада (расширенная версия)
-/// </summary>
 /// <summary>
 /// Кнопки геймпада (упрощенная версия для XInput)
 /// </summary>
@@ -102,18 +101,6 @@ public enum OverlayMode
 }
 
 /// <summary>
-/// Модели Whisper для распознавания речи
-/// </summary>
-public enum WhisperModel
-{
-    Tiny,   // ~39 MB, быстро
-    Base,   // ~74 MB, лучше качество
-    Small,  // ~244 MB, еще лучше
-    Medium, // ~769 MB, отличное качество
-    Large   // ~1550 MB, максимальное качество
-}
-
-/// <summary>
 /// Типы аудио устройств
 /// </summary>
 public enum AudioDeviceType
@@ -141,14 +128,14 @@ public enum RecordingStatus
 }
 
 /// <summary>
-/// Уровни логирования
+/// Алиас для Serilog LogEventLevel - используем стандартные уровни
 /// </summary>
-public enum LogLevel
+public static class LogLevel
 {
-    Verbose = 0,
-    Debug = 1,
-    Information = 2,
-    Warning = 3,
-    Error = 4,
-    Fatal = 5
+    public static LogEventLevel Verbose => LogEventLevel.Verbose;
+    public static LogEventLevel Debug => LogEventLevel.Debug;
+    public static LogEventLevel Information => LogEventLevel.Information;
+    public static LogEventLevel Warning => LogEventLevel.Warning;
+    public static LogEventLevel Error => LogEventLevel.Error;
+    public static LogEventLevel Fatal => LogEventLevel.Fatal;
 }

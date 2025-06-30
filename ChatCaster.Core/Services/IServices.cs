@@ -44,20 +44,38 @@ public interface IAudioCaptureService
 }
 
 /// <summary>
-/// Сервис распознавания речи через Whisper
+/// Абстрактный сервис распознавания речи (не привязан к конкретному движку)
 /// </summary>
 public interface ISpeechRecognitionService
 {
-    Task<bool> InitializeAsync(WhisperConfig config);
+    Task<bool> InitializeAsync(SpeechRecognitionConfig config);
     Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default);
-    Task<bool> ChangeModelAsync(WhisperModel model);
-    event EventHandler<ModelDownloadProgressEvent>? DownloadProgress;
-    event EventHandler<ModelDownloadCompletedEvent>? DownloadCompleted;
-    Task<bool> IsModelAvailableAsync(WhisperModel model);
-
+    Task<bool> ReloadConfigAsync(SpeechRecognitionConfig config);
+    
+    event EventHandler<SpeechRecognitionProgressEvent>? RecognitionProgress;
+    event EventHandler<SpeechRecognitionErrorEvent>? RecognitionError;
+    
     bool IsInitialized { get; }
-    WhisperModel CurrentModel { get; }
-    Task<long> GetModelSizeAsync(WhisperModel model);
+    string EngineName { get; }
+    string EngineVersion { get; }
+    
+    // Получение информации о возможностях движка
+    Task<SpeechEngineCapabilities> GetCapabilitiesAsync();
+    Task<IEnumerable<string>> GetSupportedLanguagesAsync();
+}
+
+/// <summary>
+/// Информация о возможностях речевого движка
+/// </summary>
+public class SpeechEngineCapabilities
+{
+    public bool SupportsLanguageAutoDetection { get; set; }
+    public bool SupportsGpuAcceleration { get; set; }
+    public bool SupportsRealTimeProcessing { get; set; }
+    public bool RequiresInternetConnection { get; set; }
+    public int[] SupportedSampleRates { get; set; } = Array.Empty<int>();
+    public int MinAudioDurationMs { get; set; }
+    public int MaxAudioDurationMs { get; set; }
 }
 
 /// <summary>
