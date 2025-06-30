@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="../ChatCaster.Core/ChatCaster.Core.csproj" />
+    <ProjectReference Include="../ChatCaster.SpeechRecognition.Whisper/ChatCaster.SpeechRecognition.Whisper.csproj" />
+  </ItemGroup>
+
+  <!-- NuGet Packages -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.0" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.8.1" />
+  </ItemGroup>
+
+  <!-- Copy test audio files to output -->
+  <ItemGroup>
+    <Content Include="TestAudioFiles/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Configuration files -->
+  <ItemGroup>
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
