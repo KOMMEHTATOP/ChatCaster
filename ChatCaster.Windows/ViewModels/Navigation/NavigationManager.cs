@@ -1,8 +1,9 @@
 using System.Windows.Controls;
 using ChatCaster.Windows.Services;
-using ChatCaster.Windows.Services.GamepadService;
+using ChatCaster.Core.Services;
+using ChatCaster.Core.Models;
 using ChatCaster.Windows.Views.ViewSettings;
-using ChatCaster.Windows.ViewModels.Settings.Speech;
+using ChatCaster.Windows.Services.GamepadService;
 using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.Settings.AudioSettingsViewModel;  
 using Serilog;
 
@@ -15,14 +16,16 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         // Singleton ViewModel для MainPage
         private MainPageViewModel? _mainPageViewModel;
         
-        // Сервисы для создания страниц
-        private readonly AudioCaptureService _audioService;
-        private readonly SpeechRecognitionService _speechService;
-        private readonly MainGamepadService _gamepadService;
-        private readonly SystemIntegrationService _systemService;
-        private readonly OverlayService _overlayService;
-        private readonly ConfigurationService _configService;
-        private readonly ServiceContext _serviceContext;
+        // ✅ УБРАЛИ ServiceContext, добавили нужные сервисы напрямую
+        private readonly IAudioCaptureService _audioService;
+        private readonly ISpeechRecognitionService _speechService;
+        private readonly IGamepadService _gamepadService;
+        private readonly ISystemIntegrationService _systemService;
+        private readonly IOverlayService _overlayService;
+        private readonly IConfigurationService _configService;
+        private readonly AppConfig _currentConfig;
+        private readonly IVoiceRecordingService _voiceRecordingService;
+        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
 
         public string CurrentPageTag { get; private set; } = NavigationConstants.MainPage;
         public Page? CurrentPage { get; private set; }
@@ -30,14 +33,17 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         // События для уведомления ViewModel
         public event EventHandler<NavigationChangedEventArgs>? NavigationChanged;
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public NavigationManager(
-            AudioCaptureService audioService,
-            SpeechRecognitionService speechService,
-            MainGamepadService gamepadService,
-            SystemIntegrationService systemService,
-            OverlayService overlayService,
-            ConfigurationService configService,
-            ServiceContext serviceContext)
+            IAudioCaptureService audioService,
+            ISpeechRecognitionService speechService,
+            IGamepadService gamepadService,
+            ISystemIntegrationService systemService,
+            IOverlayService overlayService,
+            IConfigurationService configService,
+            AppConfig currentConfig,
+            IVoiceRecordingService voiceRecordingService,
+            GamepadVoiceCoordinator gamepadVoiceCoordinator)
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -45,7 +51,9 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _systemService = systemService;
             _overlayService = overlayService;
             _configService = configService;
-            _serviceContext = serviceContext;
+            _currentConfig = currentConfig;
+            _voiceRecordingService = voiceRecordingService;
+            _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
@@ -73,8 +81,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
         private void LoadMainPage()
         {
-            // Создаем ViewModel только один раз
-            _mainPageViewModel = new MainPageViewModel(_audioService, _serviceContext);
+            // ✅ ИСПРАВЛЕНО: MainPageViewModel без ServiceContext
+            _mainPageViewModel = new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig);
             
             var mainPage = new MainPageView
             {
@@ -113,8 +121,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         
         private Page CreateMainPage()
         {
-            // Переиспользуем существующий ViewModel
-            _mainPageViewModel ??= new ViewModels.MainPageViewModel(_audioService, _serviceContext);
+            // ✅ ИСПРАВЛЕНО: Переиспользуем существующий ViewModel без ServiceContext
+            _mainPageViewModel ??= new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig);
             
             var mainPage = new MainPageView();
             mainPage.DataContext = _mainPageViewModel;
@@ -124,7 +132,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         }
 
         /// <summary>
-        /// ✅ НОВЫЙ МЕТОД: Создает страницу Audio с правильной ViewModel
+        /// ✅ ИСПРАВЛЕНО: Создает страницу Audio без ServiceContext
         /// </summary>
         private Page CreateAudioSettingsPage()
         {
@@ -132,25 +140,22 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             {
                 Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
 
-                // Создаем View только с нужными сервисами для кнопок
+                // Создаем View с интерфейсами вместо конкретных классов
                 var audioView = new AudioSettingsView(_audioService, _speechService);
                 Log.Information("AudioSettingsView создан");
 
-                // Создаем WhisperModelManager
-                var whisperModelManager = new WhisperModelManager(_speechService);
-                Log.Information("WhisperModelManager создан");
-
-                // Создаем ViewModel с 3 параметрами
+                // ✅ ИСПРАВЛЕНО: AudioSettingsViewModel без ServiceContext
                 var audioViewModel = new AudioSettingsViewModel(
                     _configService, 
-                    _serviceContext, 
-                    whisperModelManager);
+                    _currentConfig,
+                    _speechService,
+                    _audioService); // ✅ ДОБАВЛЕНО: AudioService для загрузки устройств
                 Log.Information("AudioSettingsViewModel создан");
 
                 // ✅ ИСПРАВЛЕНО: Используем SetViewModel вместо прямой установки DataContext
                 audioView.SetViewModel(audioViewModel);
 
-                Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА (инициализация через SetViewModel) ===");
+                Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА (новый Whisper модуль) ===");
                 return audioView;
             }
             catch (Exception ex)
@@ -162,16 +167,17 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         }        
         
         /// <summary>
-        /// Создает страницу Interface Settings с ViewModel
+        /// ✅ ИСПРАВЛЕНО: Создает страницу Interface Settings без ServiceContext
         /// </summary>
         private Page CreateInterfaceSettingsPage()
         {
             try
             {
-                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _serviceContext);
+                // ✅ ИСПРАВЛЕНО: InterfaceSettingsView без ServiceContext
+                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _currentConfig);
                 
-                // 3 параметра согласно реальному конструктору
-                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _serviceContext, _overlayService);
+                // ✅ ИСПРАВЛЕНО: InterfaceSettingsViewModel без ServiceContext
+                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _currentConfig, _overlayService);
                 
                 interfaceView.DataContext = interfaceViewModel;
                 
@@ -188,16 +194,17 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         }
 
         /// <summary>
-        /// Создает страницу Control Settings с ViewModel
+        /// ✅ ИСПРАВЛЕНО: Создает страницу Control Settings без ServiceContext
         /// </summary>
         private Page CreateControlSettingsPage()
         {
             try
             {
-                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _serviceContext);
+                // ✅ ИСПРАВЛЕНО: ControlSettingsView без ServiceContext  
+                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _currentConfig, _gamepadVoiceCoordinator);
                 
-                // 4 параметра согласно реальному конструктору
-                var controlViewModel = new ControlSettingsViewModel(_configService, _serviceContext, _gamepadService, _systemService);
+                // ✅ ИСПРАВЛЕНО: ControlSettingsViewModel без ServiceContext
+                var controlViewModel = new ControlSettingsViewModel(_configService, _currentConfig, _gamepadService, _systemService, _gamepadVoiceCoordinator);
                 
                 controlView.DataContext = controlViewModel;
                 

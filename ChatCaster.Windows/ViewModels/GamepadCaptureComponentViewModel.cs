@@ -1,7 +1,7 @@
 using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.Managers;
-using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,8 +14,9 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class GamepadCaptureComponentViewModel : BaseCaptureComponentViewModel
     {
-        private readonly MainGamepadService _gamepadService;
-        private readonly ServiceContext _serviceContext;
+        private readonly IGamepadService _gamepadService;
+        private readonly AppConfig _currentConfig;
+        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
         
         private GamepadStatusManager? _statusManager;
         private GamepadCaptureManager? _captureManager;
@@ -27,12 +28,15 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _statusColor = "#f44336";
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public GamepadCaptureComponentViewModel(
-            MainGamepadService gamepadService, 
-            ServiceContext serviceContext)
+            IGamepadService gamepadService, 
+            AppConfig currentConfig,
+            GamepadVoiceCoordinator gamepadVoiceCoordinator)
         {
             _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
-            _serviceContext = serviceContext ?? throw new ArgumentNullException(nameof(serviceContext));
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
+            _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
             
             InitializeManagers();
         }
@@ -41,8 +45,17 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                _statusManager = new GamepadStatusManager(_gamepadService);
-                _captureManager = new GamepadCaptureManager(_gamepadService);
+                // ✅ ИСПРАВЛЕНО: Если менеджеры ожидают конкретный класс, нужно cast
+                if (_gamepadService is MainGamepadService mainGamepadService)
+                {
+                    _statusManager = new GamepadStatusManager(mainGamepadService);
+                    _captureManager = new GamepadCaptureManager(mainGamepadService);
+                }
+                else
+                {
+                    Log.Warning("GamepadService не является MainGamepadService - некоторые функции могут быть недоступны");
+                }
+
                 _uiManager = new CaptureUIStateManager();
 
                 SubscribeToEvents();
@@ -60,7 +73,7 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                var shortcut = _serviceContext.Config.Input.GamepadShortcut;
+                var shortcut = _currentConfig.Input.GamepadShortcut;
                 ComboText = shortcut?.DisplayText ?? "LB + RB";
                 
                 _uiManager?.SetIdleState(ComboText);
@@ -102,15 +115,12 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                var shortcut = _serviceContext.Config.Input.GamepadShortcut;
+                var shortcut = _currentConfig.Input.GamepadShortcut;
 
                 await _gamepadService.StopMonitoringAsync();
                 await _gamepadService.StartMonitoringAsync(shortcut);
 
-                if (_serviceContext.GamepadVoiceCoordinator != null)
-                {
-                    await _serviceContext.GamepadVoiceCoordinator.UpdateGamepadSettingsAsync(shortcut);
-                }
+                await _gamepadVoiceCoordinator.UpdateGamepadSettingsAsync(shortcut);
                 
                 Log.Debug("Настройки геймпада применены");
             }
@@ -180,7 +190,8 @@ namespace ChatCaster.Windows.ViewModels
             {
                 IsWaitingForInput = false;
                 
-                _serviceContext.Config.Input.GamepadShortcut = capturedShortcut;
+                // ✅ ИСПРАВЛЕНО: Обновляем конфиг напрямую
+                _currentConfig.Input.GamepadShortcut = capturedShortcut;
                 await OnSettingChangedAsync();
 
                 ComboText = capturedShortcut.DisplayText;

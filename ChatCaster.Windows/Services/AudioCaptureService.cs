@@ -2,7 +2,7 @@ using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Exceptions;
+using ChatCaster.Core.Exeptions;
 
 namespace ChatCaster.Windows.Services;
 

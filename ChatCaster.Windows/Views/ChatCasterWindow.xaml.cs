@@ -4,12 +4,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using ChatCaster.Windows.Services;
-using ChatCaster.Core.Models;
 using ChatCaster.Windows.ViewModels;
 using System.Windows.Threading;
 using WpfKey = System.Windows.Input.Key;
 using WpfModifierKeys = System.Windows.Input.ModifierKeys;
-using ChatCaster.Core.Logging;
 using Serilog;
 
 namespace ChatCaster.Windows.Views
@@ -17,117 +15,38 @@ namespace ChatCaster.Windows.Views
     public partial class ChatCasterWindow
     {
         private readonly ChatCasterWindowViewModel _viewModel;
+        
+        // ✅ TrayService будет установлен отдельно
+        private TrayService? _trayService;
 
-        public ChatCasterWindow()
+        // ✅ ИСПРАВЛЕНО: Конструктор без TrayService
+        public ChatCasterWindow(ChatCasterWindowViewModel viewModel)
         {
             InitializeComponent();
 
-            // Настройка кодировки консоли
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.InputEncoding = System.Text.Encoding.UTF8;
-
-            // Инициализация логирования
-            InitializeLogging();
-
-            Log.Information("ChatCaster запускается...");
-            Log.Debug("Инициализация сервисов");
-
-            // Создание сервисов
-            var audioService = new AudioCaptureService();
-            var speechService = new SpeechRecognitionService();
-            var gamepadService = new Services.GamepadService.MainGamepadService();
-            var systemService = new SystemIntegrationService();
-            var overlayService = new OverlayService();
-            var configService = new ConfigurationService();
-
-            Log.Debug("Основные сервисы созданы");
-
-            // Создание VoiceRecordingService
-            var voiceRecordingService = new VoiceRecordingService(
-                audioService,
-                speechService,
-                configService
-            );
-
-            overlayService.SubscribeToVoiceService(voiceRecordingService, configService);
-
-            // Создание ServiceContext
-            var serviceContext = new ServiceContext(new AppConfig())
-            {
-                GamepadService = gamepadService,
-                AudioService = audioService,
-                SpeechService = speechService,
-                SystemService = systemService,
-                OverlayService = overlayService,
-                ConfigurationService = configService,
-                VoiceRecordingService = voiceRecordingService
-            };
-
-            // Создание TrayService
-            var trayService = new TrayService(this);
-            trayService.Initialize();
-
-            Log.Debug("TrayService инициализирован");
-
-            var gamepadVoiceCoordinator = new Services.GamepadService.GamepadVoiceCoordinator(
-                gamepadService,
-                voiceRecordingService,
-                systemService,
-                configService,
-                trayService);
-
-
-            // Добавляем координатор в ServiceContext
-            serviceContext.GamepadVoiceCoordinator = gamepadVoiceCoordinator;
-
-            // Создание ViewModel
-            _viewModel = new ChatCasterWindowViewModel(
-                audioService,
-                speechService,
-                gamepadService,
-                systemService,
-                overlayService,
-                configService,
-                serviceContext,
-                trayService
-            );
+            _viewModel = viewModel;
 
             // Установка DataContext
             DataContext = _viewModel;
 
-            // Подписка на события (убираем PropertyChanged для навигации)
+            // Подписка на события
             Closing += ChatCasterWindow_Closing;
             Loaded += ChatCasterWindow_Loaded;
 
-            Log.Information("ChatCaster успешно инициализирован");
+            Log.Information("ChatCaster окно создано через DI");
         }
 
-        private void InitializeLogging()
+        /// <summary>
+        /// ✅ НОВЫЙ МЕТОД: Устанавливает TrayService после создания
+        /// </summary>
+        public void SetTrayService(TrayService trayService)
         {
-            try
-            {
-                // Создаем дефолтную конфигурацию логирования
-                var loggingConfig = new LoggingConfig();
-
-                // В Debug режиме включаем консольный вывод
-#if DEBUG
-                loggingConfig.EnableConsoleLogging = true;
-                loggingConfig.MinimumLevel = LogLevel.Debug;
-#else
-               loggingConfig.EnableConsoleLogging = false;
-               loggingConfig.MinimumLevel = LogLevel.Information;
-#endif
-
-                // Инициализируем глобальный логгер Serilog
-                Log.Logger = LoggingConfiguration.CreateLogger(loggingConfig);
-
-                Log.Information("Система логирования инициализирована");
-            }
-            catch (Exception ex)
-            {
-                // Если логирование не удалось инициализировать, выводим в консоль
-                Console.WriteLine($"Ошибка инициализации логирования: {ex.Message}");
-            }
+            _trayService = trayService;
+            
+            // Инициализируем TrayService
+            _trayService.Initialize();
+            
+            Log.Debug("TrayService установлен и инициализирован в окне");
         }
 
         private async void ChatCasterWindow_Loaded(object sender, RoutedEventArgs e)
@@ -318,8 +237,8 @@ namespace ChatCaster.Windows.Views
             // Гарантированная очистка при любом закрытии окна
             _viewModel.Cleanup();
 
-            // Закрываем логгер
-            Log.CloseAndFlush();
+            // ✅ ДОБАВЛЕНО: Очищаем TrayService
+            _trayService?.Dispose();
 
             base.OnClosed(e);
         }

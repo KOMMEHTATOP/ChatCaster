@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using Serilog;
 
@@ -9,8 +9,9 @@ namespace ChatCaster.Windows.ViewModels.Base
     {
         #region Protected Services
 
-        protected readonly ConfigurationService? _configurationService;
-        protected readonly ServiceContext? _serviceContext;
+        protected readonly IConfigurationService _configurationService;
+        protected readonly AppConfig _currentConfig;
+
         #endregion
 
         #region Observable Properties
@@ -31,12 +32,13 @@ namespace ChatCaster.Windows.ViewModels.Base
 
         #region Constructor
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         protected BaseSettingsViewModel(
-            ConfigurationService? configurationService, 
-            ServiceContext? serviceContext)
+            IConfigurationService configurationService, 
+            AppConfig currentConfig)
         {
-            _configurationService = configurationService;
-            _serviceContext = serviceContext;
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
         }
 
         #endregion
@@ -75,7 +77,7 @@ namespace ChatCaster.Windows.ViewModels.Base
 
         public async Task ApplySettingsAsync()
         {
-            if (IsLoadingUI || _serviceContext?.Config == null || _configurationService == null)
+            if (IsLoadingUI)
                 return;
 
             try
@@ -86,10 +88,10 @@ namespace ChatCaster.Windows.ViewModels.Base
                 Log.Information("[{ViewModelName}] === ПРИМЕНЕНИЕ НАСТРОЕК ===", GetType().Name);
 
                 // Применяем настройки к конфигурации
-                await ApplySettingsToConfigAsync(_serviceContext.Config);
+                await ApplySettingsToConfigAsync(_currentConfig);
 
                 // Сохраняем конфигурацию
-                await _configurationService.SaveConfigAsync(_serviceContext.Config);
+                await _configurationService.SaveConfigAsync(_currentConfig);
                 Log.Information("[{ViewModelName}] Конфигурация сохранена в файл", GetType().Name);
 
                 // Применяем настройки к сервисам
@@ -255,18 +257,6 @@ namespace ChatCaster.Windows.ViewModels.Base
             if (IsLoadingUI)
             {
                 Log.Debug("[{ViewModelName}] Операция пропущена - идет загрузка UI", GetType().Name);
-                return false;
-            }
-
-            if (_serviceContext?.Config == null)
-            {
-                Log.Warning("[{ViewModelName}] ServiceContext.Config недоступен", GetType().Name);
-                return false;
-            }
-
-            if (_configurationService == null)
-            {
-                Log.Warning("[{ViewModelName}] ConfigurationService недоступен", GetType().Name);
                 return false;
             }
 

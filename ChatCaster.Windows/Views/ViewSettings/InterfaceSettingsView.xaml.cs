@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 using ChatCaster.Core.Models;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels;
 using Serilog;
 
@@ -13,13 +13,16 @@ public partial class InterfaceSettingsView
         InitializeComponent();
     }
 
-    // Конструктор с сервисами
-    public InterfaceSettingsView(OverlayService overlayService, ConfigurationService configurationService, ServiceContext serviceContext) : this()
+    // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
+    public InterfaceSettingsView(
+        IOverlayService overlayService, 
+        IConfigurationService configurationService, 
+        AppConfig currentConfig) : this()
     {
         try
         {
-            // Создаем ViewModel и устанавливаем как DataContext
-            var viewModel = new InterfaceSettingsViewModel(configurationService, serviceContext, overlayService);
+            // ✅ ИСПРАВЛЕНО: Создаем ViewModel без ServiceContext
+            var viewModel = new InterfaceSettingsViewModel(configurationService, currentConfig, overlayService);
             DataContext = viewModel;
             
             // Инициализируем ViewModel

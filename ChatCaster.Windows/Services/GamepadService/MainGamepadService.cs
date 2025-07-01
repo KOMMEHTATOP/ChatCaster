@@ -34,6 +34,7 @@ public class MainGamepadService : IGamepadService, IDisposable
     public MainGamepadService() : this(new XInputProvider())
     {
         Console.WriteLine("🎮 [MainGamepadService] Конструктор по умолчанию вызван");
+        Console.WriteLine(Environment.StackTrace);
     }
 
     public MainGamepadService(IXInputProvider inputProvider)

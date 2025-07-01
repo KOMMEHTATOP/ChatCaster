@@ -53,6 +53,27 @@ public class GamepadShortcut
     public int HoldTimeMs { get; set; } = 100; // Минимальное время удержания
 
     /// <summary>
+    /// Проверяет нажата ли комбинация в указанном состоянии геймпада
+    /// </summary>
+    public bool IsPressed(GamepadState state)
+    {
+        if (state == null)
+            return false;
+
+        bool primaryPressed = state.IsButtonPressed(PrimaryButton);
+        
+        if (RequireBothButtons && PrimaryButton != SecondaryButton)
+        {
+            bool secondaryPressed = state.IsButtonPressed(SecondaryButton);
+            return primaryPressed && secondaryPressed;
+        }
+        else
+        {
+            return primaryPressed;
+        }
+    }
+
+    /// <summary>
     /// Текстовое представление комбинации для UI
     /// </summary>
     public string DisplayText

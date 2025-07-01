@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>  
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>  
     <AssemblyTitle>ChatCaster for Windows</AssemblyTitle>
     <AssemblyDescription>Voice input application for Steam Input with gamepad control</AssemblyDescription>
     <AssemblyVersion>1.0.0</AssemblyVersion>
@@ -17,18 +18,24 @@
   
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.6" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NHotkey.Wpf" Version="3.0.0" />
     <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.6" />
-    <PackageReference Include="Whisper.net" Version="1.8.1" />
-    <PackageReference Include="Whisper.net.Runtime" Version="1.8.1" />
+    <PackageReference Include="ChatCaster.SpeechRecognition.Whisper" Version="1.0.0" />
     <PackageReference Include="WPF-UI" Version="4.0.3" />
   </ItemGroup>
   
+  <!-- Остальное без изменений -->
   <ItemGroup>
     <ProjectReference Include="..\ChatCaster.Core\ChatCaster.Core.csproj" />
+    <ProjectReference Include="..\ChatCaster.SpeechRecognition.Whisper\ChatCaster.SpeechRecognition.Whisper.csproj" />
   </ItemGroup>
   
   <ItemGroup>
@@ -46,8 +53,6 @@
       DestinationFolder="$(PublishDir)Resources\%(RecursiveDir)"
       SkipUnchangedFiles="true" />
   </Target>
-
-
   <ItemGroup>
     <Page Remove="Styles\DarkTheme.xaml" />
     <Resource Include="Styles\DarkTheme.xaml" />

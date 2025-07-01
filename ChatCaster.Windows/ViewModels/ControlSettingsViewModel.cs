@@ -1,4 +1,5 @@
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.ViewModels.Base;
@@ -13,6 +14,14 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class ControlSettingsViewModel : BaseSettingsViewModel
     {
+        #region Additional Services
+
+        private readonly IGamepadService _gamepadService;
+        private readonly ISystemIntegrationService _systemService;
+        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
+
+        #endregion
+
         #region Components
 
         // Компоненты
@@ -58,19 +67,25 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public ControlSettingsViewModel(
-            ConfigurationService configurationService,
-            ServiceContext serviceContext,
-            MainGamepadService gamepadService,
-            SystemIntegrationService systemService) : base(configurationService, serviceContext)
+            IConfigurationService configurationService,
+            AppConfig currentConfig,
+            IGamepadService gamepadService,
+            ISystemIntegrationService systemService,
+            GamepadVoiceCoordinator gamepadVoiceCoordinator) : base(configurationService, currentConfig)
         {
+            _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
+            _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
+            _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
+
             Log.Debug("Инициализация ControlSettingsViewModel начата");
             
             try
             {
-                // Создаем компоненты
-                GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, serviceContext);
-                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, serviceContext);
+                // ✅ ИСПРАВЛЕНО: Создаем компоненты без ServiceContext
+                GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator);
+                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig);
 
                 // Подписываемся на события компонентов
                 SubscribeToComponentEvents();

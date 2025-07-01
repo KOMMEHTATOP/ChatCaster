@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Models;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using Serilog;
 
@@ -10,10 +10,9 @@ namespace ChatCaster.Windows.ViewModels
 {
     public partial class InterfaceSettingsViewModel : BaseSettingsViewModel
     {
-
         #region Private Services
 
-        private readonly OverlayService? _overlayService;
+        private readonly IOverlayService _overlayService;
 
         #endregion
 
@@ -53,12 +52,6 @@ namespace ChatCaster.Windows.ViewModels
         [RelayCommand]
         private async Task TestOverlay()
         {
-            if (_overlayService == null)
-            {
-                Log.Warning("OverlayService недоступен для тестирования");
-                return;
-            }
-
             try
             {
                 StatusMessage = "Показываем overlay для тестирования...";
@@ -81,9 +74,9 @@ namespace ChatCaster.Windows.ViewModels
         [RelayCommand]
         private async Task ShowOverlayPreview()
         {
-            if (_overlayService == null || !ShowOverlay)
+            if (!ShowOverlay)
             {
-                Log.Debug("OverlayService недоступен или ShowOverlay выключен");
+                Log.Debug("ShowOverlay выключен");
                 return;
             }
 
@@ -108,12 +101,13 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public InterfaceSettingsViewModel(
-            ConfigurationService? configurationService,
-            ServiceContext? serviceContext,
-            OverlayService? overlayService) : base(configurationService, serviceContext)
+            IConfigurationService configurationService,
+            AppConfig currentConfig,
+            IOverlayService overlayService) : base(configurationService, currentConfig)
         {
-            _overlayService = overlayService;
+            _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
 
             // ВАЖНО: сначала инициализируем статические данные
             InitializeStaticData();
@@ -127,39 +121,29 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override Task LoadPageSpecificSettingsAsync()
         {
-            if (_serviceContext?.Config == null)
-            {
-                Log.Warning("ServiceContext.Config недоступен при загрузке настроек интерфейса");
-                // Устанавливаем fallback значение только если конфигурация недоступна
-                SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == OverlayPosition.TopRight);
-                return Task.CompletedTask;
-            }
-
-            var config = _serviceContext.Config;
-
             // Загружаем настройки overlay
-            ShowOverlay = config.Overlay.IsEnabled;
+            ShowOverlay = _currentConfig.Overlay.IsEnabled;
             
             // ВАЖНО: загружаем позицию из конфигурации, а НЕ устанавливаем по умолчанию
-            SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == config.Overlay.Position);
+            SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == _currentConfig.Overlay.Position);
             if (SelectedPosition == null)
             {
                 // Fallback только если позиция из конфигурации не найдена
                 SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == OverlayPosition.TopRight);
-                Log.Warning("Позиция из конфигурации {ConfigPosition} не найдена, используем TopRight", config.Overlay.Position);
+                Log.Warning("Позиция из конфигурации {ConfigPosition} не найдена, используем TopRight", _currentConfig.Overlay.Position);
             }
             
-            OverlayOpacity = config.Overlay.Opacity * 100; // Конвертируем 0.0-1.0 в 0-100
-            OverlayOpacityText = $"{(int)(config.Overlay.Opacity * 100)}%";
+            OverlayOpacity = _currentConfig.Overlay.Opacity * 100; // Конвертируем 0.0-1.0 в 0-100
+            OverlayOpacityText = $"{(int)(_currentConfig.Overlay.Opacity * 100)}%";
 
             // Загружаем системные настройки
-            ShowNotifications = config.System.ShowNotifications;
-            MinimizeToTray = !config.System.AllowCompleteExit; // Инвертируем логику
-            StartWithWindows = config.System.StartWithWindows;
-            StartMinimized = config.System.StartMinimized;
+            ShowNotifications = _currentConfig.System.ShowNotifications;
+            MinimizeToTray = !_currentConfig.System.AllowCompleteExit; // Инвертируем логику
+            StartWithWindows = _currentConfig.System.StartWithSystem; // Исправлено имя свойства
+            StartMinimized = _currentConfig.System.StartMinimized;
             
             Log.Information("Настройки интерфейса загружены: Overlay={IsEnabled}, Position={Position}, Notifications={ShowNotifications}", 
-                config.Overlay.IsEnabled, SelectedPosition?.DisplayName, config.System.ShowNotifications);
+                _currentConfig.Overlay.IsEnabled, SelectedPosition?.DisplayName, _currentConfig.System.ShowNotifications);
                 
             return Task.CompletedTask;
         }
@@ -174,7 +158,7 @@ namespace ChatCaster.Windows.ViewModels
             // Обновляем системные настройки
             config.System.ShowNotifications = ShowNotifications;
             config.System.AllowCompleteExit = !MinimizeToTray;
-            config.System.StartWithWindows = StartWithWindows;
+            config.System.StartWithSystem = StartWithWindows; // Исправлено имя свойства
             config.System.StartMinimized = StartMinimized;
 
             Log.Debug("Настройки интерфейса применены к конфигурации");
@@ -184,15 +168,8 @@ namespace ChatCaster.Windows.ViewModels
         protected override async Task ApplySettingsToServicesAsync()
         {
             // Применяем к overlay сервису
-            if (_overlayService != null && _serviceContext?.Config != null)
-            {
-                await _overlayService.ApplyConfigAsync(_serviceContext.Config.Overlay);
-                Log.Debug("Настройки применены к OverlayService");
-            }
-            else
-            {
-                Log.Warning("OverlayService или ServiceContext.Config недоступны");
-            }
+            await _overlayService.ApplyConfigAsync(_currentConfig.Overlay);
+            Log.Debug("Настройки применены к OverlayService");
         }
 
         protected override Task InitializePageSpecificDataAsync()
@@ -222,21 +199,18 @@ namespace ChatCaster.Windows.ViewModels
         protected override void CleanupPageSpecific()
         {
             // Скрываем overlay если он показан
-            if (_overlayService != null)
+            _ = Task.Run(async () =>
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await _overlayService.HideAsync();
-                        Log.Debug("Overlay скрыт при cleanup InterfaceSettingsViewModel");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Ошибка скрытия overlay при cleanup");
-                    }
-                });
-            }
+                    await _overlayService.HideAsync();
+                    Log.Debug("Overlay скрыт при cleanup InterfaceSettingsViewModel");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Ошибка скрытия overlay при cleanup");
+                }
+            });
             
             Log.Debug("Cleanup InterfaceSettingsViewModel завершен");
         }
@@ -310,7 +284,6 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         #endregion
-
     }
 
     #region Helper Classes
@@ -330,5 +303,4 @@ namespace ChatCaster.Windows.ViewModels
     }
 
     #endregion
-
 }

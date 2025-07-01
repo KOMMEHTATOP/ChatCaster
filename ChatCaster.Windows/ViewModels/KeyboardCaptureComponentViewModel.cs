@@ -1,7 +1,7 @@
 using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.Managers;
-using ChatCaster.Windows.Services;
 using ChatCaster.Windows.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
@@ -13,8 +13,8 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class KeyboardCaptureComponentViewModel : BaseCaptureComponentViewModel
     {
-        private readonly SystemIntegrationService _systemService;
-        private readonly ServiceContext _serviceContext;
+        private readonly ISystemIntegrationService _systemService;
+        private readonly AppConfig _currentConfig;
         
         private KeyboardCaptureManager? _captureManager;
 
@@ -25,12 +25,13 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _statusColor = "#4caf50";
 
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public KeyboardCaptureComponentViewModel(
-            SystemIntegrationService systemService,
-            ServiceContext serviceContext)
+            ISystemIntegrationService systemService,
+            AppConfig currentConfig)
         {
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
-            _serviceContext = serviceContext ?? throw new ArgumentNullException(nameof(serviceContext));
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
             
             InitializeManagers();
         }
@@ -57,7 +58,7 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                var shortcut = _serviceContext.Config.Input.KeyboardShortcut;
+                var shortcut = _currentConfig.Input.KeyboardShortcut;
                 ComboText = shortcut?.DisplayText ?? "Ctrl + Shift + R";
                 
                 _uiManager?.SetIdleState(ComboText);
@@ -136,7 +137,8 @@ namespace ChatCaster.Windows.ViewModels
             {
                 IsWaitingForInput = false;
                 
-                _serviceContext.Config.Input.KeyboardShortcut = capturedShortcut;
+                // ✅ ИСПРАВЛЕНО: Обновляем конфиг напрямую
+                _currentConfig.Input.KeyboardShortcut = capturedShortcut;
                 await OnSettingChangedAsync();
 
                 // Регистрируем глобальный хоткей

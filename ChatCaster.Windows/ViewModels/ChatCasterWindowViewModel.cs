@@ -5,25 +5,43 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Navigation;
+using ChatCaster.Windows.Services.GamepadService;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
-
         #region Services
 
-        private readonly AudioCaptureService _audioService;
-        private readonly SpeechRecognitionService _speechService;
-        private readonly Services.GamepadService.MainGamepadService _gamepadService;
-        private readonly OverlayService _overlayService;
-        private readonly SystemIntegrationService _systemService;
-        private readonly ServiceContext _serviceContext;
-        private readonly TrayService _trayService;
+        private readonly IAudioCaptureService _audioService;
+        private readonly ISpeechRecognitionService _speechService;
+        private readonly IGamepadService _gamepadService;
+        private readonly IOverlayService _overlayService;
+        private readonly ISystemIntegrationService _systemService;
+        private readonly IConfigurationService _configurationService;
+        private readonly IVoiceRecordingService _voiceRecordingService;
+        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
         private readonly NavigationManager _navigationManager;
+
+        // ✅ TrayService будет установлен отдельно после создания
+        private TrayService? _trayService;
+
+        #endregion
+
+        #region TrayService Management
+
+        /// <summary>
+        /// Устанавливает TrayService после создания окна
+        /// </summary>
+        public void SetTrayService(TrayService trayService)
+        {
+            _trayService = trayService;
+            Log.Debug("TrayService установлен в ViewModel");
+        }
 
         #endregion
 
@@ -111,29 +129,33 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
+        // ✅ ИСПРАВЛЕНО: Используем прямые инъекции вместо ServiceContext, TrayService отдельно
         public ChatCasterWindowViewModel(
-            AudioCaptureService audioService,
-            SpeechRecognitionService speechService,
-            Services.GamepadService.MainGamepadService gamepadService,
-            SystemIntegrationService systemService,
-            OverlayService overlayService,
-            ConfigurationService configService,
-            ServiceContext serviceContext,
-            TrayService trayService)
+            IAudioCaptureService audioService,
+            ISpeechRecognitionService speechService,
+            IGamepadService gamepadService,
+            ISystemIntegrationService systemService,
+            IOverlayService overlayService,
+            IConfigurationService configurationService,
+            IVoiceRecordingService voiceRecordingService,
+            GamepadVoiceCoordinator gamepadVoiceCoordinator,
+            AppConfig currentConfig)
         {
             _audioService = audioService;
             _speechService = speechService;
             _gamepadService = gamepadService;
             _overlayService = overlayService;
             _systemService = systemService;
-            _serviceContext = serviceContext;
-            _trayService = trayService;
-            _currentConfig = new AppConfig();
+            _configurationService = configurationService;
+            _voiceRecordingService = voiceRecordingService;
+            _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
+            _currentConfig = currentConfig;
 
-            // Создаем NavigationManager
+            // Создаем NavigationManager БЕЗ ServiceContext
             _navigationManager = new NavigationManager(
                 audioService, speechService, gamepadService, systemService,
-                overlayService, configService, serviceContext);
+                overlayService, configurationService, currentConfig, 
+                voiceRecordingService, gamepadVoiceCoordinator);
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
@@ -157,25 +179,27 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Information("Инициализация ChatCasterWindowViewModel начата");
 
                 Log.Debug("Загружаем конфигурацию...");
-                CurrentConfig = await _serviceContext.ConfigurationService!.LoadConfigAsync();
-                _serviceContext.Config = CurrentConfig;
+                CurrentConfig = await _configurationService.LoadConfigAsync();
                 _trayService.SetConfig(CurrentConfig);
                 Log.Information("Конфигурация загружена");
 
-                // ✅ ИСПРАВЛЕНИЕ: Если конфиг новый (нет устройства), устанавливаем дефолты
+                // ✅ ИСПРАВЛЕНИЕ: Если конфиг новый, устанавливаем дефолты для нового Whisper модуля
                 if (string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
                 {
                     Log.Information("Новая установка - применяем дефолтные настройки");
-                    CurrentConfig.Whisper.Model = WhisperModel.Tiny;
-    
+                    
+                    // Устанавливаем дефолтную модель в EngineSettings
+                    CurrentConfig.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
+                    
                     // Сохраняем обновленный конфиг
-                    await _serviceContext.ConfigurationService!.SaveConfigAsync(CurrentConfig);
-                    Log.Information("Дефолтная модель Whisper установлена: Tiny");
+                    await _configurationService.SaveConfigAsync(CurrentConfig);
+                    Log.Information("Дефолтная модель Whisper установлена: tiny");
                 }
 
-                Log.Information("Инициализируем с моделью: {Model}", CurrentConfig.Whisper.Model);
-                await _speechService.InitializeAsync(CurrentConfig.Whisper);
-                Log.Information("Сервис распознавания речи инициализирован");
+                // Инициализируем новый Whisper модуль
+                Log.Information("Инициализируем Whisper модуль...");
+                var speechInitialized = await _speechService.InitializeAsync(CurrentConfig.SpeechRecognition);
+                Log.Information("Сервис распознавания речи инициализирован: {Success}", speechInitialized);
 
                 Log.Debug("Применяем аудио настройки...");
                 if (!string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
@@ -204,17 +228,9 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Инициализируем геймпад координатор
                 Log.Debug("Проверяем GamepadVoiceCoordinator...");
-
-                if (_serviceContext?.GamepadVoiceCoordinator != null)
-                {
-                    Log.Debug("GamepadVoiceCoordinator найден, начинаем инициализацию...");
-                    var gamepadInitialized = await _serviceContext.GamepadVoiceCoordinator.InitializeAsync();
-                    Log.Information("Геймпад инициализирован: {Initialized}", gamepadInitialized);
-                }
-                else
-                {
-                    Log.Warning("GamepadVoiceCoordinator НЕ НАЙДЕН в ServiceContext");
-                }
+                Log.Debug("GamepadVoiceCoordinator найден, начинаем инициализацию...");
+                var gamepadInitialized = await _gamepadVoiceCoordinator.InitializeAsync();
+                Log.Information("Геймпад инициализирован: {Initialized}", gamepadInitialized);
 
                 if (CurrentConfig.System.StartMinimized)
                 {
@@ -243,21 +259,28 @@ namespace ChatCaster.Windows.ViewModels
             _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
             _navigationManager.NavigationChanged -= OnNavigationChanged;
 
-            if (_serviceContext.GamepadVoiceCoordinator != null)
-            {
-                Task.Run(async () => await _serviceContext.GamepadVoiceCoordinator.ShutdownAsync());
-            }
+            Task.Run(async () => await _gamepadVoiceCoordinator.ShutdownAsync());
 
             // Очищаем все страницы через NavigationManager
             Log.Debug("Очищаем все кешированные страницы...");
             _navigationManager.CleanupAllPages();
 
-            // Теперь можем вызывать Dispose напрямую
-            _gamepadService?.Dispose();
-            _systemService?.Dispose();
-            _overlayService?.Dispose();
-            _audioService?.Dispose();
-            _speechService?.Dispose();
+            // Освобождаем сервисы
+            if (_gamepadService is IDisposable disposableGamepad)
+                disposableGamepad.Dispose();
+            
+            if (_systemService is IDisposable disposableSystem)
+                disposableSystem.Dispose();
+                
+            if (_overlayService is IDisposable disposableOverlay)
+                disposableOverlay.Dispose();
+                
+            if (_audioService is IDisposable disposableAudio)
+                disposableAudio.Dispose();
+                
+            if (_speechService is IDisposable disposableSpeech)
+                disposableSpeech.Dispose();
+                
             _trayService?.Dispose();
 
             Log.Information("Cleanup ChatCasterWindowViewModel завершен");
@@ -300,29 +323,20 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                var voiceService = _serviceContext.VoiceRecordingService;
-
-                if (voiceService == null)
-                {
-                    Log.Error("VoiceRecordingService не инициализирован");
-                    _trayService.ShowNotification("Ошибка", "Сервис записи не готов");
-                    return;
-                }
-
-                if (voiceService.IsRecording)
+                if (_voiceRecordingService.IsRecording)
                 {
                     Log.Debug("Останавливаем запись через VoiceRecordingService...");
                     StatusText = NavigationConstants.StatusProcessing;
 
                     // Просто останавливаем запись - VoiceRecordingService уведомит всех подписчиков
-                    await voiceService.StopRecordingAsync();
+                    await _voiceRecordingService.StopRecordingAsync();
                 }
                 else
                 {
                     Log.Debug("Начинаем запись через VoiceRecordingService...");
                     
                     // Просто начинаем запись - VoiceRecordingService уведомит всех подписчиков
-                    await voiceService.StartRecordingAsync();
+                    await _voiceRecordingService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
@@ -356,6 +370,5 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         #endregion
-
     }
 }

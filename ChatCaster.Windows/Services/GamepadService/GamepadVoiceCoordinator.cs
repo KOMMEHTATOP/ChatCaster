@@ -11,11 +11,14 @@ namespace ChatCaster.Windows.Services.GamepadService;
 /// </summary>
 public class GamepadVoiceCoordinator : IDisposable
 {
-    private readonly MainGamepadService _gamepadService;
+    // ✅ ИЗМЕНЕНО: используем интерфейс вместо конкретного класса
+    private readonly IGamepadService _gamepadService;
     private readonly IVoiceRecordingService _voiceService;
     private readonly ISystemIntegrationService _systemService;
     private readonly IConfigurationService _configService;
-    private readonly TrayService _trayService;
+
+    // ✅ TrayService будет установлен отдельно
+    private TrayService? _trayService;
 
     private readonly object _lockObject = new();
     private bool _isDisposed = false;
@@ -30,18 +33,27 @@ public class GamepadVoiceCoordinator : IDisposable
 
     private VoiceActivationMode _activationMode = VoiceActivationMode.Toggle;
 
+    // ✅ ИЗМЕНЕНО: конструктор принимает интерфейс
+    // ✅ ИСПРАВЛЕНО: Конструктор без TrayService
     public GamepadVoiceCoordinator(
-        MainGamepadService gamepadService,
+        IGamepadService gamepadService,
         IVoiceRecordingService voiceService,
         ISystemIntegrationService systemService,
-        IConfigurationService configService,
-        TrayService trayService)
+        IConfigurationService configService)
     {
         _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
         _voiceService = voiceService ?? throw new ArgumentNullException(nameof(voiceService));
         _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-        _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
+    }
+
+    /// <summary>
+    /// Устанавливает TrayService после создания
+    /// </summary>
+    public void SetTrayService(TrayService trayService)
+    {
+        _trayService = trayService;
+        Console.WriteLine("🎮 [GamepadVoiceCoordinator] TrayService установлен");
     }
 
     /// <summary>

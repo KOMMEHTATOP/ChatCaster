@@ -1,56 +1,43 @@
-using System.Windows;
-using System.Windows.Media;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels.Base;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
     public partial class MainPageViewModel : ViewModelBase
     {
-        #region Private Services
-        private readonly AudioCaptureService? _audioCaptureService;
-        private readonly ServiceContext? _serviceContext;
+        #region Services
+
+        private readonly IAudioCaptureService _audioService;
+        private readonly IVoiceRecordingService _voiceRecordingService;
+        private readonly AppConfig _config;
+
         #endregion
 
         #region Observable Properties
 
         [ObservableProperty]
-        private string _recordingStatusText = "Готов к записи";
+        private string _currentMicrophone = "Не выбран";
 
         [ObservableProperty]
-        private Brush _recordingStatusBrush = new SolidColorBrush(Color.FromRgb(76, 175, 80)); // #4caf50
-
-        [ObservableProperty]
-        private string _currentDeviceText = "Устройство: Загрузка...";
-
-        [ObservableProperty]
-        private string _recordButtonText = "🎙️ Записать";
-
-        [ObservableProperty]
-        private string _recordButtonIcon = "Mic24";
-
-        [ObservableProperty]
-        private string _resultText = "Здесь появится распознанный текст...";
-
-        [ObservableProperty]
-        private Brush _resultTextBrush = new SolidColorBrush(Color.FromRgb(102, 102, 102)); // #666666
-
-        [ObservableProperty]
-        private FontStyle _resultFontStyle = FontStyles.Italic;
-
-        [ObservableProperty]
-        private string _confidenceText = "Уверенность: -";
-
-        [ObservableProperty]
-        private string _processingTimeText = "Время: -";
+        private float _microphoneLevel = 0.0f;
 
         [ObservableProperty]
         private bool _isRecording = false;
+
+        [ObservableProperty]
+        private string _recordingStatusText = "Готов к записи";
+
+        [ObservableProperty]
+        private string _lastRecognizedText = string.Empty;
+
+        [ObservableProperty]
+        private ObservableCollection<string> _recentRecognitions = new();
 
         #endregion
 
@@ -61,256 +48,243 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                var voiceService = _serviceContext?.VoiceRecordingService;
-                if (voiceService == null)
+                if (_voiceRecordingService.IsRecording)
                 {
-                    ShowError("Сервис записи недоступен");
-                    return;
-                }
-
-                if (voiceService.IsRecording)
-                {
-                    Log.Debug("Останавливаем запись через VoiceRecordingService");
-                    await voiceService.StopRecordingAsync();
+                    Log.Debug("Останавливаем запись через главную страницу");
+                    var result = await _voiceRecordingService.StopRecordingAsync();
+                    
+                    if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
+                    {
+                        LastRecognizedText = result.RecognizedText;
+                        AddToRecentRecognitions(result.RecognizedText);
+                    }
                 }
                 else
                 {
-                    Log.Debug("Начинаем запись через VoiceRecordingService");
-                    await voiceService.StartRecordingAsync();
+                    Log.Debug("Начинаем запись через главную страницу");
+                    await _voiceRecordingService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
-                ShowError($"Ошибка: {ex.Message}");
-                Log.Error(ex, "Ошибка в ToggleRecording");
+                Log.Error(ex, "Ошибка переключения записи на главной странице");
+                RecordingStatusText = $"Ошибка: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task TestMicrophone()
+        {
+            try
+            {
+                Log.Debug("Тестирование микрофона");
+                var result = await _audioService.TestMicrophoneAsync();
+                RecordingStatusText = result ? "Микрофон работает" : "Проблема с микрофоном";
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка тестирования микрофона");
+                RecordingStatusText = $"Ошибка тестирования: {ex.Message}";
             }
         }
 
         #endregion
 
         #region Constructor
+
+        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public MainPageViewModel(
-            AudioCaptureService? audioCaptureService,
-            ServiceContext? serviceContext)
+            IAudioCaptureService audioService,
+            IVoiceRecordingService voiceRecordingService,
+            AppConfig config)
         {
-            _audioCaptureService = audioCaptureService;
-            _serviceContext = serviceContext;
+            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
+            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
 
-            // Подписываемся на события VoiceRecordingService
-            if (serviceContext?.VoiceRecordingService != null)
-            {
-                serviceContext.VoiceRecordingService.StatusChanged += OnRecordingStatusChanged;
-                serviceContext.VoiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
-                Log.Debug("MainPageViewModel подписался на события VoiceRecordingService");
-            }
-            else
-            {
-                Log.Warning("VoiceRecordingService недоступен в MainPageViewModel");
-            }
+            // Подписываемся на события
+            SubscribeToEvents();
 
-            // Загружаем информацию о текущем устройстве
-            _ = LoadCurrentDeviceAsync();
-        }
-        #endregion
+            // Инициализируем начальные значения
+            InitializeInitialValues();
 
-        #region Public Methods
-
-        /// <summary>
-        /// Обновление статуса подключения устройств
-        /// </summary>
-        public void UpdateConnectionStatus(bool isConnected)
-        {
-            Application.Current?.Dispatcher.InvokeAsync(() =>
-            {
-                if (isConnected)
-                {
-                    UpdateRecordingStatus("Готов к записи", "#4caf50");
-                }
-                else
-                {
-                    UpdateRecordingStatus("Не подключен", "#f44336");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Cleanup при выгрузке
-        /// </summary>
-        public void Cleanup()
-        {
-            try
-            {
-                // Отписываемся от событий VoiceRecordingService
-                if (_serviceContext?.VoiceRecordingService != null)
-                {
-                    _serviceContext.VoiceRecordingService.StatusChanged -= OnRecordingStatusChanged;
-                    _serviceContext.VoiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
-                }
-
-                Log.Debug("MainPageViewModel cleanup завершен");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка при cleanup MainPageViewModel");
-            }
+            Log.Debug("MainPageViewModel инициализирован без ServiceContext");
         }
 
         #endregion
 
-        #region Private Methods
+        #region Initialization
 
-        private async Task LoadCurrentDeviceAsync()
+        private void InitializeInitialValues()
         {
             try
             {
-                if (_audioCaptureService != null)
-                {
-                    var devices = (await _audioCaptureService.GetAvailableDevicesAsync()).ToList();
-                    var defaultDevice = devices.FirstOrDefault(d => d.IsDefault) ?? devices.FirstOrDefault();
-                    
-                    // Обновляем UI в UI потоке
-                    Application.Current?.Dispatcher.InvokeAsync(() =>
-                    {
-                        CurrentDeviceText = $"Устройство: {defaultDevice?.Name ?? "Не найдено"}";
-                    });
-                    
-                    Log.Debug("Загружено аудио устройство: {DeviceName}", defaultDevice?.Name ?? "Не найдено");
-                }
-                else
-                {
-                    Application.Current?.Dispatcher.InvokeAsync(() =>
-                    {
-                        CurrentDeviceText = "Устройство: Сервис недоступен";
-                    });
-                    
-                    Log.Warning("AudioCaptureService недоступен при загрузке устройства");
-                }
-            }
-            catch (Exception ex)
-            {
-                Application.Current?.Dispatcher.InvokeAsync(() =>
-                {
-                    CurrentDeviceText = $"Ошибка: {ex.Message}";
-                });
+                // Устанавливаем текущий микрофон
+                var activeDevice = _audioService.ActiveDevice;
+                CurrentMicrophone = activeDevice?.Name ?? "Не выбран";
                 
-                Log.Error(ex, "Ошибка при загрузке аудио устройства");
+                // Устанавливаем начальный статус
+                RecordingStatusText = "Готов к записи";
+                
+                Log.Debug("Начальные значения MainPage установлены");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка установки начальных значений MainPage");
+            }
+        }
+
+        #endregion
+
+        #region Event Subscription
+
+        private void SubscribeToEvents()
+        {
+            try
+            {
+                // Подписываемся на изменения уровня микрофона
+                _audioService.VolumeChanged += OnVolumeChanged;
+
+                // Подписываемся на события записи
+                _voiceRecordingService.StatusChanged += OnRecordingStatusChanged;
+                _voiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
+
+                Log.Debug("События MainPage подписаны");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка подписки на события MainPage");
+            }
+        }
+
+        private void UnsubscribeFromEvents()
+        {
+            try
+            {
+                // Отписываемся от событий аудио
+                _audioService.VolumeChanged -= OnVolumeChanged;
+
+                // Отписываемся от событий записи
+                _voiceRecordingService.StatusChanged -= OnRecordingStatusChanged;
+                _voiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
+
+                Log.Debug("События MainPage отписаны");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка отписки от событий MainPage");
+            }
+        }
+
+        #endregion
+
+        #region Event Handlers
+
+        private void OnVolumeChanged(object? sender, float volume)
+        {
+            try
+            {
+                MicrophoneLevel = volume;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка обработки изменения уровня микрофона");
             }
         }
 
         private void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
         {
-            // КРИТИЧНО: обновляем UI только в UI потоке
-            Application.Current?.Dispatcher.InvokeAsync(() =>
+            try
             {
-                Log.Debug("MainPageViewModel получил событие StatusChanged: {Status}", e.NewStatus);
-                
-                switch (e.NewStatus)
+                IsRecording = e.NewStatus == RecordingStatus.Recording;
+
+                RecordingStatusText = e.NewStatus switch
                 {
-                    case RecordingStatus.Recording:
-                        UpdateRecordingButton("⏹️ Остановить", "RecordCircle24");
-                        UpdateRecordingStatus("Запись...", "#ff9800");
-                        ClearResults();
-                        IsRecording = true;
-                        break;
-                    
-                    case RecordingStatus.Processing:
-                        UpdateRecordingStatus("Обработка...", "#2196f3");
-                        break;
-                    
-                    case RecordingStatus.Completed:
-                    case RecordingStatus.Idle:
-                        UpdateRecordingButton("🎙️ Записать", "Mic24");
-                        UpdateRecordingStatus("Готов к записи", "#4caf50");
-                        IsRecording = false;
-                        break;
-                    
-                    case RecordingStatus.Error:
-                    case RecordingStatus.Cancelled:
-                        UpdateRecordingButton("🎙️ Записать", "Mic24");
-                        UpdateRecordingStatus("Ошибка", "#f44336");
-                        IsRecording = false;
-                        break;
-                }
-            });
+                    RecordingStatus.Idle => "Готов к записи",
+                    RecordingStatus.Recording => "Идет запись...",
+                    RecordingStatus.Processing => "Обработка...",
+                    RecordingStatus.Error => $"Ошибка: {e.Reason}",
+                    _ => "Неизвестный статус"
+                };
+
+                Log.Debug("Статус записи изменен на MainPage: {NewStatus}", e.NewStatus);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка обработки изменения статуса записи");
+            }
         }
 
         private void OnRecognitionCompleted(object? sender, VoiceRecognitionCompletedEvent e)
         {
-            // КРИТИЧНО: обновляем UI только в UI потоке
-            Application.Current?.Dispatcher.InvokeAsync(() =>
+            try
             {
-                Log.Debug("MainPageViewModel получил событие RecognitionCompleted");
-                
-                var result = e.Result;
-                
-                if (result.Success && !string.IsNullOrWhiteSpace(result.RecognizedText))
+                if (e.Result.Success && !string.IsNullOrEmpty(e.Result.RecognizedText))
                 {
-                    ResultText = result.RecognizedText;
-                    ResultTextBrush = Brushes.White;
-                    ResultFontStyle = FontStyles.Normal;
-
-                    ConfidenceText = $"Уверенность: {result.Confidence:P0}";
-                    ProcessingTimeText = $"Время: {result.ProcessingTime.TotalMilliseconds:F0}мс";
-
-                    Log.Information("Распознавание завершено: '{Text}' (уверенность: {Confidence:P0}, время: {ProcessingTime}мс)", 
-                        result.RecognizedText, result.Confidence, result.ProcessingTime.TotalMilliseconds);
+                    LastRecognizedText = e.Result.RecognizedText;
+                    AddToRecentRecognitions(e.Result.RecognizedText);
+                    RecordingStatusText = "Распознавание завершено";
+                    
+                    Log.Information("Распознавание завершено на MainPage: {Text}", e.Result.RecognizedText);
                 }
                 else
                 {
-                    string errorMessage = result.ErrorMessage ?? "Не удалось распознать речь";
-                    ShowError(errorMessage);
-                    Log.Warning("Распознавание не удалось: {Error}", errorMessage);
+                    RecordingStatusText = $"Ошибка распознавания: {e.Result.ErrorMessage}";
+                    Log.Warning("Ошибка распознавания на MainPage: {Error}", e.Result.ErrorMessage);
                 }
-            });
-        }
-
-        private void ShowError(string message)
-        {
-            // Эта функция уже вызывается из UI потока, но для безопасности добавим проверку
-            if (Application.Current?.Dispatcher.CheckAccess() == true)
-            {
-                ShowErrorInternal(message);
             }
-            else
+            catch (Exception ex)
             {
-                Application.Current?.Dispatcher.InvokeAsync(() => ShowErrorInternal(message));
+                Log.Error(ex, "Ошибка обработки завершения распознавания");
             }
         }
 
-        private void ShowErrorInternal(string message)
+        #endregion
+
+        #region Helper Methods
+
+        private void AddToRecentRecognitions(string text)
         {
-            ResultText = message;
-            ResultTextBrush = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // #f44336
-            ResultFontStyle = FontStyles.Italic;
+            try
+            {
+                // Добавляем в начало списка
+                RecentRecognitions.Insert(0, text);
 
-            ConfidenceText = "Уверенность: -";
-            ProcessingTimeText = "Время: -";
+                // Ограничиваем количество записей
+                while (RecentRecognitions.Count > 10)
+                {
+                    RecentRecognitions.RemoveAt(RecentRecognitions.Count - 1);
+                }
 
-            UpdateRecordingStatus("Ошибка", "#f44336");
-            
-            Log.Warning("Отображена ошибка: {Message}", message);
+                Log.Debug("Добавлен текст в недавние распознавания: {Text}", text);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка добавления текста в недавние распознавания");
+            }
         }
 
-        private void ClearResults()
-        {
-            ResultText = "Обработка...";
-            ResultTextBrush = new SolidColorBrush(Color.FromRgb(153, 153, 153)); // #999999
-            ResultFontStyle = FontStyles.Italic;
+        #endregion
 
-            ConfidenceText = "Уверенность: -";
-            ProcessingTimeText = "Время: -";
-        }
+        #region Cleanup
 
-        private void UpdateRecordingStatus(string status, string colorHex)
+        public void Cleanup()
         {
-            RecordingStatusText = status;
-            RecordingStatusBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
-        }
+            try
+            {
+                Log.Debug("Cleanup MainPageViewModel начат");
 
-        private void UpdateRecordingButton(string content, string iconSymbol)
-        {
-            RecordButtonText = content;
-            RecordButtonIcon = iconSymbol;
+                UnsubscribeFromEvents();
+
+                // Очищаем коллекции
+                RecentRecognitions.Clear();
+
+                Log.Information("Cleanup MainPageViewModel завершен");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка при cleanup MainPageViewModel");
+            }
         }
 
         #endregion

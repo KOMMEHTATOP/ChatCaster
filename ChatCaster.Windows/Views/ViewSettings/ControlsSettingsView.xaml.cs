@@ -1,4 +1,6 @@
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
+using ChatCaster.Core.Models;
+using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.ViewModels;
 using Serilog;
 
@@ -11,20 +13,23 @@ public partial class ControlSettingsView
         InitializeComponent();
     }
 
-    // Конструктор с сервисами
-    public ControlSettingsView(Services.GamepadService.MainGamepadService gamepadService, 
-        SystemIntegrationService systemService, 
-        ConfigurationService configurationService,
-        ServiceContext serviceContext) : this()
+    // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
+    public ControlSettingsView(
+        IGamepadService gamepadService, 
+        ISystemIntegrationService systemService, 
+        IConfigurationService configurationService,
+        AppConfig currentConfig,
+        GamepadVoiceCoordinator gamepadVoiceCoordinator) : this()
     {
         try
         {
-            // Гарантированно инициализируем _viewModel
+            // ✅ ИСПРАВЛЕНО: Создаем ViewModel без ServiceContext
             var viewModel = new ControlSettingsViewModel(
                 configurationService, 
-                serviceContext, 
+                currentConfig, 
                 gamepadService, 
-                systemService);
+                systemService,
+                gamepadVoiceCoordinator);
             
             DataContext = viewModel;
             
