@@ -83,7 +83,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private void LoadMainPage()
         {
             _mainPageViewModel =
-                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService); // ✅ ЗАМЕНИЛИ
+                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService); // ✅ ДОБАВЛЕН _configService
 
             var mainPage = new MainPageView
             {
@@ -94,7 +94,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             CurrentPage = mainPage;
             CurrentPageTag = NavigationConstants.MainPage;
 
-            Log.Debug("Главная страница загружена с Singleton ViewModel");
+            Log.Debug("Главная страница загружена с Singleton ViewModel и IConfigurationService");
         }
 
         private Page GetOrCreatePage(string pageTag)
@@ -123,15 +123,15 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private Page CreateMainPage()
         {
             _mainPageViewModel ??=
-                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService); // ✅ ЗАМЕНИЛИ
+                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService); // ✅ ДОБАВЛЕН _configService
 
             var mainPage = new MainPageView();
             mainPage.DataContext = _mainPageViewModel;
 
-            Log.Debug("MainPage создана с переиспользованием ViewModel");
+            Log.Debug("MainPage создана с переиспользованием ViewModel и IConfigurationService");
             return mainPage;
         }
-
+        
         /// <summary>
         /// Создает страницу Audio без ServiceContext
         /// </summary>

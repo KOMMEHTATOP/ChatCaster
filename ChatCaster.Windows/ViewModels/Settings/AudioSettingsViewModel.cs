@@ -110,10 +110,6 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
         _speechRecognitionService = speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
         
-        // ✅ ДОБАВЛЕНО: Получаем IAudioCaptureService через DI
-        // Поскольку нет прямого доступа к AudioService, используем другой подход
-        // Этот сервис должен передаваться через конструктор
-
         // Инициализируем доступные модели
         InitializeAvailableModels();
 

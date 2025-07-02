@@ -16,7 +16,8 @@ namespace ChatCaster.Windows.ViewModels
         private readonly IAudioCaptureService _audioService;
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly AppConfig _config;
-        private readonly INotificationService _notificationService; 
+        private readonly INotificationService _notificationService;
+        private readonly IConfigurationService _configurationService;
 
         #endregion
 
@@ -149,12 +150,14 @@ namespace ChatCaster.Windows.ViewModels
             IAudioCaptureService audioService,
             IVoiceRecordingService voiceRecordingService,
             AppConfig config,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IConfigurationService configurationService)
         {
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService)); // ✅ ЗАМЕНИЛИ инициализацию
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService)); // ✅ ДОБАВЛЕНО
 
             // Подписываемся на события
             SubscribeToEvents();
@@ -196,16 +199,25 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
+                Log.Information("=== SetDeviceNameFromConfig НАЧАЛО ===");
+                Log.Information("_config.Audio.SelectedDeviceId = '{DeviceId}'", _config.Audio.SelectedDeviceId ?? "NULL");
+
                 var selectedDeviceId = _config.Audio.SelectedDeviceId;
                 if (string.IsNullOrEmpty(selectedDeviceId))
                 {
+                    Log.Warning("DeviceId пустой, устанавливаем 'Не выбрано'");
+
                     CurrentMicrophone = "Не выбран";
                     CurrentDeviceText = "Устройство: Не выбрано";
                     return;
                 }
 
+                Log.Information("Получаем список устройств...");
+
                 // Получаем список доступных устройств
                 var devices = await _audioService.GetAvailableDevicesAsync();
+                Log.Information("Найдено {Count} устройств", devices?.Count() ?? 0);
+
                 var selectedDevice = devices.FirstOrDefault(d => d.Id == selectedDeviceId);
 
                 if (selectedDevice != null)
@@ -234,11 +246,57 @@ namespace ChatCaster.Windows.ViewModels
         /// <summary>
         /// Метод для обновления информации об устройстве из конфига
         /// </summary>
+        /// <summary>
+        /// Метод для обновления информации об устройстве из актуальной конфигурации
+        /// </summary>
         public async void UpdateDeviceFromConfig()
         {
-            await Task.Run(SetDeviceNameFromConfig);
-        }
+            try
+            {
+                Log.Information("=== UpdateDeviceFromConfig НАЧАЛО ===");
+        
+                // ✅ ИСПОЛЬЗУЕМ АКТУАЛЬНУЮ КОНФИГУРАЦИЮ из ConfigurationService
+                var currentConfig = _configurationService.CurrentConfig;
+                var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
+        
+                Log.Information("Актуальный SelectedDeviceId из ConfigurationService = '{DeviceId}'", selectedDeviceId ?? "NULL");
+        
+                if (string.IsNullOrEmpty(selectedDeviceId))
+                {
+                    Log.Warning("DeviceId пустой, устанавливаем 'Не выбрано'");
+                    CurrentMicrophone = "Не выбран";
+                    CurrentDeviceText = "Устройство: Не выбрано";
+                    return;
+                }
 
+                Log.Information("Получаем список устройств...");
+                var devices = await _audioService.GetAvailableDevicesAsync();
+                Log.Information("Найдено {Count} устройств", devices?.Count() ?? 0);
+        
+                var selectedDevice = devices.FirstOrDefault(d => d.Id == selectedDeviceId);
+
+                if (selectedDevice != null)
+                {
+                    Log.Information("Устройство найдено: {DeviceName}", selectedDevice.Name);
+                    CurrentMicrophone = selectedDevice.Name;
+                    CurrentDeviceText = $"Устройство: {selectedDevice.Name}";
+                }
+                else
+                {
+                    Log.Warning("Устройство из конфига не найдено: {DeviceId}", selectedDeviceId);
+                    CurrentMicrophone = "Недоступно";
+                    CurrentDeviceText = $"Устройство: Недоступно ({selectedDeviceId})";
+                }
+        
+                Log.Information("=== UpdateDeviceFromConfig РЕЗУЛЬТАТ: {DeviceText} ===", CurrentDeviceText);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка в UpdateDeviceFromConfig");
+                CurrentMicrophone = "Ошибка";
+                CurrentDeviceText = "Устройство: Ошибка получения";
+            }
+        }
         #endregion
 
         #region Event Subscription
@@ -253,6 +311,9 @@ namespace ChatCaster.Windows.ViewModels
                 // Подписываемся на события записи
                 _voiceRecordingService.StatusChanged += OnRecordingStatusChanged;
                 _voiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
+                
+                // ✅ ДОБАВЛЕНО: Подписываемся на изменения конфигурации
+                _configurationService.ConfigurationChanged += OnConfigurationChanged;
 
                 Log.Debug("События MainPage подписаны");
             }
@@ -272,6 +333,7 @@ namespace ChatCaster.Windows.ViewModels
                 // Отписываемся от событий записи
                 _voiceRecordingService.StatusChanged -= OnRecordingStatusChanged;
                 _voiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
+                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
 
                 Log.Debug("События MainPage отписаны");
             }
@@ -297,6 +359,26 @@ namespace ChatCaster.Windows.ViewModels
             }
         }
 
+        // ✅ ДОБАВЛЕНО: Обработчик изменений конфигурации
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
+        {
+            try
+            {
+                Log.Information("MainPageViewModel получил уведомление об изменении конфигурации: {SettingName}", e.SettingName);
+        
+                // Обновляем отображение устройства при загрузке И при сохранении конфигурации
+                if (e.SettingName == "ConfigurationLoaded" || e.SettingName == "ConfigurationSaved")
+                {
+                    Log.Information("Обновляем отображение микрофона после {EventType}", e.SettingName);
+                    UpdateDeviceFromConfig();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка обработки изменения конфигурации в MainPageViewModel");
+            }
+        }
+        
         private void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
         {
             try

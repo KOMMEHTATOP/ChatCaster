@@ -48,10 +48,10 @@ public class ConfigurationService : IConfigurationService
             }
 
             System.Diagnostics.Debug.WriteLine($"[CONFIG] Загружаем конфигурацию из: {ConfigPath}");
-            
+        
             var jsonText = await File.ReadAllTextAsync(ConfigPath);
             var config = JsonSerializer.Deserialize<AppConfig>(jsonText, GetJsonOptions());
-            
+        
             if (config == null)
             {
                 System.Diagnostics.Debug.WriteLine("[CONFIG] Ошибка десериализации, используем дефолтную конфигурацию");
@@ -59,8 +59,22 @@ public class ConfigurationService : IConfigurationService
                 return CurrentConfig;
             }
 
-            // Обновляем кеш (событие для загрузки файла не стреляем)
+            // Обновляем кеш
             CurrentConfig = config;
+
+            // ✅ ДОБАВЛЕНО: Поднимаем событие после загрузки (только если есть подписчики)
+            if (ConfigurationChanged != null)
+            {
+                ConfigurationChanged.Invoke(this, new ConfigurationChangedEvent
+                {
+                    SettingName = "ConfigurationLoaded",
+                    OldValue = null,
+                    NewValue = config
+                });
+            
+                Log.Debug("[CONFIG] Событие ConfigurationLoaded поднято для {Count} подписчиков", 
+                    ConfigurationChanged.GetInvocationList().Length);
+            }
 
             System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно загружена");
             return CurrentConfig;
@@ -72,7 +86,7 @@ public class ConfigurationService : IConfigurationService
             return CurrentConfig;
         }
     }
-
+    
     /// <summary>
     /// Сохраняет конфигурацию в файл
     /// </summary>
