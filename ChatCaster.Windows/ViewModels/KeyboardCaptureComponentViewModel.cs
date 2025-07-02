@@ -25,7 +25,6 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _statusColor = "#4caf50";
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public KeyboardCaptureComponentViewModel(
             ISystemIntegrationService systemService,
             AppConfig currentConfig)
@@ -137,7 +136,7 @@ namespace ChatCaster.Windows.ViewModels
             {
                 IsWaitingForInput = false;
                 
-                // ✅ ИСПРАВЛЕНО: Обновляем конфиг напрямую
+                // Обновляем конфиг напрямую
                 _currentConfig.Input.KeyboardShortcut = capturedShortcut;
                 await OnSettingChangedAsync();
 

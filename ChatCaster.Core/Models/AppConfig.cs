@@ -197,10 +197,14 @@ public class SystemConfig
 {
     public bool StartWithSystem { get; set; } = true; // Переименовано из StartWithWindows
     public bool StartMinimized { get; set; } = false;
+    
+    // ✅ ОСТАВЛЯЕМ: AllowCompleteExit используется с инверсией (!AllowCompleteExit = MinimizeToTray)
     public bool AllowCompleteExit { get; set; } = false;
+    
     public bool ShowNotifications { get; set; } = true;
     public int ConfigSaveIntervalMs { get; set; } = 5000;
 }
+
 
 /// <summary>
 /// Настройки логирования

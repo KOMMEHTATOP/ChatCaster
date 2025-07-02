@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels;
 using System.Windows.Threading;
 using WpfKey = System.Windows.Input.Key;
@@ -15,16 +15,14 @@ namespace ChatCaster.Windows.Views
     public partial class ChatCasterWindow
     {
         private readonly ChatCasterWindowViewModel _viewModel;
-        
-        // ✅ TrayService будет установлен отдельно
-        private TrayService? _trayService;
+        private readonly ITrayService _trayService;
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без TrayService
-        public ChatCasterWindow(ChatCasterWindowViewModel viewModel)
+        public ChatCasterWindow(ChatCasterWindowViewModel viewModel, ITrayService trayService)
         {
             InitializeComponent();
 
-            _viewModel = viewModel;
+            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
 
             // Установка DataContext
             DataContext = _viewModel;
@@ -33,20 +31,7 @@ namespace ChatCaster.Windows.Views
             Closing += ChatCasterWindow_Closing;
             Loaded += ChatCasterWindow_Loaded;
 
-            Log.Information("ChatCaster окно создано через DI");
-        }
-
-        /// <summary>
-        /// ✅ НОВЫЙ МЕТОД: Устанавливает TrayService после создания
-        /// </summary>
-        public void SetTrayService(TrayService trayService)
-        {
-            _trayService = trayService;
-            
-            // Инициализируем TrayService
-            _trayService.Initialize();
-            
-            Log.Debug("TrayService установлен и инициализирован в окне");
+            Log.Information("ChatCaster окно создано через DI с ITrayService");
         }
 
         private async void ChatCasterWindow_Loaded(object sender, RoutedEventArgs e)
@@ -55,16 +40,13 @@ namespace ChatCaster.Windows.Views
             {
                 Log.Debug("Загрузка главного окна");
 
-                // Сначала устанавливаем начальную страницу БЕЗ анимации
                 if (_viewModel.CurrentPage != null)
                 {
                     ContentFrame.Navigate(_viewModel.CurrentPage);
                 }
 
-                // Затем инициализируем ViewModel
                 await _viewModel.InitializeAsync();
 
-                // Устанавливаем фокус через Dispatcher чтобы дождаться полной загрузки
                 await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
                     Activate();
@@ -84,22 +66,55 @@ namespace ChatCaster.Windows.Views
         {
             Log.Debug("Попытка закрытия окна");
 
-            // Проверяем конфигурацию через ViewModel
             if (_viewModel.CurrentConfig?.System?.AllowCompleteExit != true)
             {
+                // AllowCompleteExit = false --> MinimizeToTray = true --> сворачиваем в трей
                 e.Cancel = true;
                 Hide();
                 ShowInTaskbar = false;
-                Log.Information("Окно скрыто в трей");
+        
+                _trayService.ShowFirstTimeNotification();
+                Log.Information("Окно скрыто в трей (настройка сворачивания включена)");
             }
             else
             {
-                // Всегда вызываем Cleanup при реальном закрытии
-                Log.Information("Завершение работы ChatCaster");
-                _viewModel.Cleanup();
+                // AllowCompleteExit = true --> MinimizeToTray = false --> полное закрытие
+                Log.Information("Полное завершение работы ChatCaster (настройка полного закрытия включена)");
+        
+                try
+                {
+                    // ✅ Запускаем cleanup асинхронно БЕЗ ожидания
+                    _ = Task.Run(() => _viewModel.Cleanup());
+            
+                    // ✅ Освобождаем TrayService синхронно (быстрая операция)
+                    _trayService.Dispose();
+                    Log.Debug("TrayService освобожден при закрытии");
+            
+                    // ✅ НОВОЕ: Принудительное завершение через 200ms для гарантии
+                    _ = Task.Delay(200).ContinueWith(_ =>
+                    {
+                        try
+                        {
+                            Log.Information("Принудительное завершение процесса (Whisper cleanup timeout)");
+                            Environment.Exit(0);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "Ошибка принудительного завершения");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Ошибка при очистке ресурсов");
+            
+                    // ✅ Fallback: немедленное завершение при критической ошибке
+                    _ = Task.Run(() => Environment.Exit(1));
+                }
             }
         }
-
+        
+        
         public void NavigateToSettings()
         {
             _viewModel.NavigateToSettings();
@@ -112,7 +127,6 @@ namespace ChatCaster.Windows.Views
             {
                 if (sender is not Wpf.Ui.Controls.Button { Tag: string pageTag }) return;
 
-                // Выполняем навигацию С анимацией
                 await NavigateToPageWithAnimation(pageTag);
             }
             catch (Exception ex)
@@ -136,19 +150,17 @@ namespace ChatCaster.Windows.Views
                 }
             };
 
-            ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            ContentFrame.BeginAnimation(OpacityProperty, fadeOut);
             await Task.Delay(150);
 
             // обновляет CurrentPage и кнопки
             _viewModel.NavigateToPageCommand.Execute(pageTag);
 
-            // И навигацию в Frame
             if (_viewModel.CurrentPage != null)
             {
                 ContentFrame.Navigate(_viewModel.CurrentPage);
             }
 
-            // Fade in новой страницы
             var fadeIn = new DoubleAnimation
             {
                 From = 0,
@@ -167,7 +179,6 @@ namespace ChatCaster.Windows.Views
         {
             _viewModel.ToggleMenuCommand.Execute(null);
 
-            // Анимация (UI-специфичная логика остается в code-behind)
             var animation = new DoubleAnimation
             {
                 To = _viewModel.IsSidebarVisible ? 280 : 0,
@@ -237,8 +248,8 @@ namespace ChatCaster.Windows.Views
             // Гарантированная очистка при любом закрытии окна
             _viewModel.Cleanup();
 
-            // ✅ ДОБАВЛЕНО: Очищаем TrayService
-            _trayService?.Dispose();
+            // TrayService освобождается в Program.cs, не здесь
+            // Это важно, так как он теперь управляется DI контейнером
 
             base.OnClosed(e);
         }

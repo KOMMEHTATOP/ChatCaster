@@ -10,14 +10,14 @@ public interface IVoiceRecordingService
 {
     event EventHandler<RecordingStatusChangedEvent>? StatusChanged;
     event EventHandler<VoiceRecognitionCompletedEvent>? RecognitionCompleted;
-    
+
     RecordingState CurrentState { get; }
     bool IsRecording { get; }
-    
+
     Task<bool> StartRecordingAsync(CancellationToken cancellationToken = default);
     Task<VoiceProcessingResult> StopRecordingAsync(CancellationToken cancellationToken = default);
     Task CancelRecordingAsync();
-    
+
     Task<bool> TestMicrophoneAsync();
     Task<VoiceProcessingResult> ProcessAudioDataAsync(byte[] audioData, CancellationToken cancellationToken = default);
 }
@@ -34,10 +34,10 @@ public interface IAudioCaptureService
     Task<IEnumerable<AudioDevice>> GetAvailableDevicesAsync();
     Task<AudioDevice?> GetDefaultDeviceAsync();
     Task<bool> SetActiveDeviceAsync(string deviceId);
-    
+
     Task<bool> StartCaptureAsync(AudioConfig config);
     Task StopCaptureAsync();
-    
+
     bool IsCapturing { get; }
     float CurrentVolume { get; }
     AudioDevice? ActiveDevice { get; }
@@ -51,14 +51,14 @@ public interface ISpeechRecognitionService
     Task<bool> InitializeAsync(SpeechRecognitionConfig config);
     Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default);
     Task<bool> ReloadConfigAsync(SpeechRecognitionConfig config);
-    
+
     event EventHandler<SpeechRecognitionProgressEvent>? RecognitionProgress;
     event EventHandler<SpeechRecognitionErrorEvent>? RecognitionError;
-    
+
     bool IsInitialized { get; }
     string EngineName { get; }
     string EngineVersion { get; }
-    
+
     // Получение информации о возможностях движка
     Task<SpeechEngineCapabilities> GetCapabilitiesAsync();
     Task<IEnumerable<string>> GetSupportedLanguagesAsync();
@@ -87,19 +87,19 @@ public interface IGamepadService
     event EventHandler<GamepadConnectedEvent>? GamepadConnected;
     event EventHandler<GamepadDisconnectedEvent>? GamepadDisconnected;
     event EventHandler<GamepadShortcutPressedEvent>? ShortcutPressed;
-    
+
     // Управление мониторингом
     Task StartMonitoringAsync(GamepadShortcut shortcut);
     Task StopMonitoringAsync();
-    
+
     // Получение информации
     Task<GamepadInfo?> GetConnectedGamepadAsync();
     GamepadState? GetCurrentState();
-    
+
     // Статус
     bool IsMonitoring { get; }
     bool IsGamepadConnected { get; }
-    
+
     // Тестирование (для UI настроек)
     Task<bool> TestConnectionAsync();
 }
@@ -110,14 +110,14 @@ public interface IGamepadService
 public interface IOverlayService
 {
     event EventHandler<OverlayPositionChangedEvent>? PositionChanged;
-    
+
     Task ShowAsync(RecordingStatus status);
     Task HideAsync();
     Task UpdateStatusAsync(RecordingStatus status, string? message = null);
     Task UpdatePositionAsync(int x, int y);
-    
+
     Task<bool> ApplyConfigAsync(OverlayConfig config);
-    
+
     bool IsVisible { get; }
     (int X, int Y) CurrentPosition { get; }
 }
@@ -130,13 +130,100 @@ public interface ISystemIntegrationService
     Task<bool> SendTextAsync(string text);
     Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut);
     Task<bool> UnregisterGlobalHotkeyAsync();
-    
+
     Task<bool> SetAutoStartAsync(bool enabled);
     Task<bool> IsAutoStartEnabledAsync();
-    
+
     Task ShowNotificationAsync(string title, string message);
-    
+
     event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
+}
+
+/// <summary>
+/// Интерфейс для работы с системным треем
+/// </summary>
+public interface ITrayService
+{
+    /// <summary>
+    /// Инициализирует трей-сервис
+    /// </summary>
+    void Initialize();
+
+    /// <summary>
+    /// Показывает уведомление в трее
+    /// </summary>
+    /// <param name="title">Заголовок уведомления</param>
+    /// <param name="message">Текст уведомления</param>
+    /// <param name="type">Тип уведомления</param>
+    /// <param name="timeout">Время показа в миллисекундах</param>
+    void ShowNotification(string title, string message, NotificationType type = NotificationType.Info, int timeout = 3000);
+
+    /// <summary>
+    /// Обновляет статус в tooltip трея
+    /// </summary>
+    /// <param name="status">Новый статус</param>
+    void UpdateStatus(string status);
+
+    /// <summary>
+    /// Показывает уведомление при первом сворачивании в трей
+    /// </summary>
+    void ShowFirstTimeNotification();
+
+    /// <summary>
+    /// Видимость иконки в трее
+    /// </summary>
+    bool IsVisible { get; }
+
+    /// <summary>
+    /// Освобождает ресурсы
+    /// </summary>
+    void Dispose();
+
+    #region События для слабой связанности
+
+    /// <summary>
+    /// Событие запроса показа главного окна (двойной клик или пункт меню)
+    /// </summary>
+    event EventHandler? ShowMainWindowRequested;
+
+    /// <summary>
+    /// Событие запроса открытия настроек (пункт меню)
+    /// </summary>
+    event EventHandler? ShowSettingsRequested;
+
+    /// <summary>
+    /// Событие запроса выхода из приложения (пункт меню)
+    /// </summary>
+    event EventHandler? ExitApplicationRequested;
+
+    #endregion
+
+}
+
+/// <summary>
+/// Типы уведомлений в трее
+/// </summary>
+public enum NotificationType
+{
+    /// <summary>
+    /// Информационное сообщение
+    /// </summary>
+    Info,
+
+    /// <summary>
+    /// Успешное выполнение операции
+    /// </summary>
+    Success,
+
+    /// <summary>
+    /// Предупреждение
+    /// </summary>
+    Warning,
+
+    /// <summary>
+    /// Ошибка
+    /// </summary>
+    Error
 }
 
 /// <summary>
@@ -145,10 +232,10 @@ public interface ISystemIntegrationService
 public interface IConfigurationService
 {
     event EventHandler<ConfigurationChangedEvent>? ConfigurationChanged;
-    
+
     Task<AppConfig> LoadConfigAsync();
     Task SaveConfigAsync(AppConfig config);
-    
+
     AppConfig CurrentConfig { get; }
     string ConfigPath { get; }
 }
@@ -166,7 +253,7 @@ public interface ILoggingService
     void LogError(Exception exception, string message, params object[] args);
     void LogFatal(string message, params object[] args);
     void LogFatal(Exception exception, string message, params object[] args);
-    
+
     Task<string[]> GetRecentLogsAsync(int maxLines = 1000);
     Task ClearLogsAsync();
 }
@@ -179,7 +266,7 @@ public interface IEventBusService
     void Subscribe<T>(Action<T> handler) where T : ChatCasterEvent;
     void Unsubscribe<T>(Action<T> handler) where T : ChatCasterEvent;
     Task PublishAsync<T>(T eventData) where T : ChatCasterEvent;
-    
+
     void SubscribeWeak<T>(WeakEventHandler<T> handler) where T : ChatCasterEvent;
 }
 
@@ -190,19 +277,19 @@ public interface IChatCasterService
 {
     event EventHandler<RecordingStatusChangedEvent>? StatusChanged;
     event EventHandler<ErrorOccurredEvent>? ErrorOccurred;
-    
+
     Task<bool> InitializeAsync();
     Task ShutdownAsync();
-    
+
     Task<bool> StartVoiceInputAsync();
     Task StopVoiceInputAsync();
-    
+
     Task<AppConfig> GetConfigurationAsync();
     Task UpdateConfigurationAsync(AppConfig config);
-    
+
     Task<IEnumerable<AudioDevice>> GetAudioDevicesAsync();
     Task<IEnumerable<GamepadInfo>> GetGamepadsAsync();
-    
+
     RecordingState CurrentState { get; }
     bool IsInitialized { get; }
     string Version { get; }

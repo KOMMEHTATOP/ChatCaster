@@ -28,7 +28,6 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _statusColor = "#f44336";
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public GamepadCaptureComponentViewModel(
             IGamepadService gamepadService, 
             AppConfig currentConfig,
@@ -190,7 +189,7 @@ namespace ChatCaster.Windows.ViewModels
             {
                 IsWaitingForInput = false;
                 
-                // ✅ ИСПРАВЛЕНО: Обновляем конфиг напрямую
+                // Обновляем конфиг напрямую
                 _currentConfig.Input.GamepadShortcut = capturedShortcut;
                 await OnSettingChangedAsync();
 

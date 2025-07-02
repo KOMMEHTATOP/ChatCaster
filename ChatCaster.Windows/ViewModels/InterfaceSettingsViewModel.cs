@@ -5,6 +5,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using Serilog;
+using System.ComponentModel;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -101,7 +102,6 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public InterfaceSettingsViewModel(
             IConfigurationService configurationService,
             AppConfig currentConfig,
@@ -124,7 +124,7 @@ namespace ChatCaster.Windows.ViewModels
             // Загружаем настройки overlay
             ShowOverlay = _currentConfig.Overlay.IsEnabled;
             
-            // ВАЖНО: загружаем позицию из конфигурации, а НЕ устанавливаем по умолчанию
+            // ВАЖНО: загружаем позицию из конфигурации
             SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == _currentConfig.Overlay.Position);
             if (SelectedPosition == null)
             {
@@ -158,7 +158,7 @@ namespace ChatCaster.Windows.ViewModels
             // Обновляем системные настройки
             config.System.ShowNotifications = ShowNotifications;
             config.System.AllowCompleteExit = !MinimizeToTray;
-            config.System.StartWithSystem = StartWithWindows; // Исправлено имя свойства
+            config.System.StartWithSystem = StartWithWindows; 
             config.System.StartMinimized = StartMinimized;
 
             Log.Debug("Настройки интерфейса применены к конфигурации");
@@ -174,10 +174,7 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override Task InitializePageSpecificDataAsync()
         {
-            // Для этой страницы специальной инициализации не требуется
-            Log.Debug("Специальная инициализация для InterfaceSettings не требуется");
-            
-            // ВАЖНО: Принудительно применяем конфигурацию к OverlayService при первой загрузке
+            // Принудительно применяем конфигурацию к OverlayService при первой загрузке
             _ = ApplySettingsToServicesAsync();
             
             return Task.CompletedTask;
@@ -233,14 +230,12 @@ namespace ChatCaster.Windows.ViewModels
             AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomCenter, "Нижний центр"));
             AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomRight, "Нижний правый"));
 
-            // НЕ устанавливаем значение по умолчанию здесь - это будет перебивать загруженную конфигурацию!
             // SelectedPosition будет установлен в LoadPageSpecificSettingsAsync()
-            
             Log.Debug("Статические данные для InterfaceSettings инициализированы: {Count} позиций", 
                 AvailablePositions.Count);
         }
 
-        private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (IsLoadingUI) return;
 
@@ -248,7 +243,7 @@ namespace ChatCaster.Windows.ViewModels
             _ = HandlePropertyChangedAsync(e);
         }
 
-        private async Task HandlePropertyChangedAsync(System.ComponentModel.PropertyChangedEventArgs e)
+        private async Task HandlePropertyChangedAsync(PropertyChangedEventArgs e)
         {
             try
             {

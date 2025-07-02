@@ -23,59 +23,102 @@ namespace ChatCaster.Windows
         {
             try
             {
-                // Инициализация логирования ПЕРЕД созданием DI
                 InitializeLogging();
-                
                 Log.Information("ChatCaster запускается...");
 
                 // Создание и настройка DI контейнера
                 var host = CreateHostBuilder(args).Build();
                 _serviceProvider = host.Services;
 
-                // ✅ ДОБАВЛЕНА ДИАГНОСТИКА DI
-                Console.WriteLine("=== ПРОВЕРКА DI ===");
-                var gamepadFromDI = _serviceProvider.GetRequiredService<IGamepadService>();
-                Console.WriteLine($"GamepadService из DI: {gamepadFromDI.GetType().Name} - HashCode: {gamepadFromDI.GetHashCode()}");
-
                 // Создание и запуск WPF приложения
                 var app = new App();
                 app.InitializeComponent();
                 
-                // ✅ ДОБАВЛЕНА ДИАГНОСТИКА СОЗДАНИЯ ОКНА
-                Console.WriteLine("=== СОЗДАНИЕ ОКНА ===");
-                // Получаем главное окно из DI
+                // Получаем главное окно и сервисы из DI
                 var mainWindow = _serviceProvider.GetRequiredService<ChatCasterWindow>();
-                Console.WriteLine($"MainWindow создан: {mainWindow.GetType().Name}");
+                var trayService = _serviceProvider.GetRequiredService<ITrayService>();
+                var trayCoordinator = _serviceProvider.GetRequiredService<TrayNotificationCoordinator>();
                 
-                // ✅ СОЗДАЕМ TrayService ПОСЛЕ создания окна
-                Console.WriteLine("=== СОЗДАНИЕ TrayService ===");
-                var trayService = new TrayService(mainWindow);
+                // ПОДПИСЫВАЕМСЯ НА СОБЫТИЯ TRAYSERVICE
+                trayService.ShowMainWindowRequested += (s, e) => {
+                    try
+                    {
+                        mainWindow.Show();
+                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.ShowInTaskbar = true;
+                        mainWindow.Activate();
+                        mainWindow.Focus();
+                        Log.Debug("Главное окно показано по запросу из трея");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Ошибка показа главного окна из трея");
+                    }
+                };
+
+                trayService.ShowSettingsRequested += (s, e) => {
+                    try
+                    {
+                        mainWindow.Show();
+                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.ShowInTaskbar = true;
+                        mainWindow.Activate();
+                        
+                        // Навигация на правильную страницу Control Settings
+                        var viewModel = _serviceProvider.GetRequiredService<ChatCasterWindowViewModel>();
+                        viewModel.NavigateToPageCommand.Execute("Control"); 
+                        
+                        Log.Debug("Настройки Control открыты по запросу из трея");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Ошибка открытия настроек из трея");
+                    }
+                };
+
+                trayService.ExitApplicationRequested += (s, e) => {
+                    try
+                    {
+                        Log.Information("Выход из приложения по запросу из трея");
+                        
+                        Application.Current.Dispatcher.Invoke(() => {
+                            try
+                            {
+                                Application.Current.Shutdown();
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, "Ошибка при закрытии");
+                                Environment.Exit(0);
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Ошибка выхода из трея");
+                        Environment.Exit(0);
+                    }
+                };
+
+                // Инициализируем TrayService
+                trayService.Initialize();
                 
-                // ✅ УСТАНАВЛИВАЕМ TrayService везде где нужно
-                var viewModel = _serviceProvider.GetRequiredService<ChatCasterWindowViewModel>();
-                var gamepadCoordinator = _serviceProvider.GetRequiredService<Services.GamepadService.GamepadVoiceCoordinator>();
-                
-                // Устанавливаем TrayService в окно, ViewModel и GamepadCoordinator
-                mainWindow.SetTrayService(trayService);
-                viewModel.SetTrayService(trayService);
-                gamepadCoordinator.SetTrayService(trayService);
-                Console.WriteLine("TrayService создан и установлен во все компоненты");
-                
-                // ✅ ПРОВЕРЯЕМ HASHCODE ПОСЛЕ СОЗДАНИЯ ОКНА
-                var gamepadAfterWindow = _serviceProvider.GetRequiredService<IGamepadService>();
-                Console.WriteLine($"GamepadService после создания окна: HashCode {gamepadAfterWindow.GetHashCode()}");
-                
-                // ✅ ДОПОЛНИТЕЛЬНАЯ ДИАГНОСТИКА
-                Console.WriteLine("=== VIEWMODEL УЖЕ СОЗДАН ===");
-                Console.WriteLine($"ViewModel создан: {viewModel.GetType().Name}");
-                
+                // Передаем конфигурацию в TrayService
+                if (trayService is TrayService trayServiceImpl)
+                {
+                    var appConfig = _serviceProvider.GetRequiredService<AppConfig>();
+                    trayServiceImpl.SetConfig(appConfig);
+                    Log.Debug("Конфигурация передана в TrayService");
+                }
+        
+                // Инициализируем координатор уведомлений (синхронно в Main)
+                trayCoordinator.InitializeAsync().GetAwaiter().GetResult();
+        
+                Log.Information("TrayService и TrayNotificationCoordinator инициализированы");
+
                 app.MainWindow = mainWindow;
                 
                 Log.Information("ChatCaster успешно инициализирован");
-                
-                // ✅ ДОБАВЛЕНА ПРОВЕРКА ПЕРЕД ЗАПУСКОМ
-                Console.WriteLine("=== ЗАПУСК WPF ===");
-                Console.WriteLine($"MainWindow установлено: {app.MainWindow != null}");
                 
                 // Запуск приложения
                 app.Run(mainWindow);
@@ -83,8 +126,6 @@ namespace ChatCaster.Windows
             catch (Exception ex)
             {
                 Log.Fatal(ex, "Критическая ошибка при запуске ChatCaster");
-                Console.WriteLine($"КРИТИЧЕСКАЯ ОШИБКА: {ex.Message}");
-                Console.WriteLine($"StackTrace: {ex.StackTrace}");
                 MessageBox.Show(
                     $"Критическая ошибка при запуске приложения:\n{ex.Message}", 
                     "ChatCaster - Ошибка", 
@@ -102,7 +143,6 @@ namespace ChatCaster.Windows
             Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
-                    // Настройка конфигурации
                     config.AddJsonFile("appsettings.json", optional: true)
                           .AddUserSecrets<Program>(optional: true);
                 })
@@ -116,39 +156,44 @@ namespace ChatCaster.Windows
             Log.Debug("Настройка DI контейнера...");
 
             // === КОНФИГУРАЦИЯ ===
-            services.AddSingleton<IConfiguration>(configuration);
+            services.AddSingleton(configuration);
             
             // Загружаем AppConfig из файла
             var appConfig = LoadAppConfig();
             services.AddSingleton(appConfig);
 
             // === НОВЫЙ WHISPER МОДУЛЬ ===
-            // Получаем настройки Whisper из конфига
-            var speechConfig = appConfig.SpeechRecognition ?? new SpeechRecognitionConfig();
+            var speechConfig = appConfig.SpeechRecognition;
             
-            // Используем ВАШИ extension methods из ServiceCollectionExtensions.cs
             services.AddWhisperAsSpeechRecognition(config => {
                 config.ModelSize = GetWhisperModelSize(speechConfig);
                 config.ThreadCount = Environment.ProcessorCount / 2;
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
-                config.Language = speechConfig.Language ?? WhisperConstants.Languages.Russian;
-                config.ModelPath = "Models"; // Путь к моделям
+                config.Language = speechConfig.Language;
+                config.ModelPath = "Models"; 
                 config.UseVAD = true;
                 config.InitializationTimeoutSeconds = 30;
                 config.RecognitionTimeoutSeconds = 60;
                 config.MaxTokens = speechConfig.MaxTokens;
             });
 
-            // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
+            // === ОСНОВНЫЕ СЕРВИСЫ ===
             services.AddSingleton<IAudioCaptureService, AudioCaptureService>();
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
             services.AddSingleton<IOverlayService, OverlayService>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
-            // ✅ ИСПРАВЛЕНИЕ: Регистрируем конкретный класс сначала, потом интерфейс
+
+            // === ГЕЙМПАД СЕРВИСЫ ===
             services.AddSingleton<Services.GamepadService.MainGamepadService>();
             services.AddSingleton<IGamepadService>(provider => 
                 provider.GetRequiredService<Services.GamepadService.MainGamepadService>());
 
+            // === TRAY СЕРВИСЫ ===
+            services.AddSingleton<ITrayService, TrayService>();
+            // Регистрируем координатор уведомлений
+            services.AddSingleton<TrayNotificationCoordinator>();
+
+            // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
             // VoiceRecordingService зависит от других сервисов
             services.AddSingleton<IVoiceRecordingService>(provider =>
                 new VoiceRecordingService(
@@ -157,13 +202,15 @@ namespace ChatCaster.Windows
                     provider.GetRequiredService<IConfigurationService>()
                 ));
 
-            // GamepadVoiceCoordinator
-            services.AddSingleton<Services.GamepadService.GamepadVoiceCoordinator>();
-
-            // ✅ УБИРАЕМ TrayService из DI - создадим вручную после создания окна
-            // TrayService будет создан в Main после создания ChatCasterWindow
-
-            // ✅ УДАЛЕН ServiceContext - больше не нужен!
+            // GamepadVoiceCoordinator с ITrayService
+            services.AddSingleton<Services.GamepadService.GamepadVoiceCoordinator>(provider =>
+                new Services.GamepadService.GamepadVoiceCoordinator(
+                    provider.GetRequiredService<IGamepadService>(),
+                    provider.GetRequiredService<IVoiceRecordingService>(),
+                    provider.GetRequiredService<ISystemIntegrationService>(),
+                    provider.GetRequiredService<IConfigurationService>(),
+                    provider.GetRequiredService<ITrayService>()
+                ));
 
             // === VIEWMODELS ===
             services.AddSingleton<ChatCasterWindowViewModel>();
@@ -193,7 +240,6 @@ namespace ChatCaster.Windows
         /// </summary>
         private static string GetWhisperModelSize(SpeechRecognitionConfig speechConfig)
         {
-            // Пытаемся получить размер модели из EngineSettings
             if (speechConfig.EngineSettings.TryGetValue("ModelSize", out var modelSizeObj))
             {
                 var modelSizeStr = modelSizeObj?.ToString();
@@ -206,7 +252,6 @@ namespace ChatCaster.Windows
                 }
             }
             
-            // Если не найден или невалидный - возвращаем дефолтный
             return WhisperConstants.ModelSizes.Base;
         }
 

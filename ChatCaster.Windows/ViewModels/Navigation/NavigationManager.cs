@@ -4,7 +4,7 @@ using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Views.ViewSettings;
 using ChatCaster.Windows.Services.GamepadService;
-using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.Settings.AudioSettingsViewModel;  
+using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.Settings.AudioSettingsViewModel;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation
@@ -12,11 +12,10 @@ namespace ChatCaster.Windows.ViewModels.Navigation
     public class NavigationManager
     {
         private readonly Dictionary<string, Page> _cachedPages = new();
-        
+
         // Singleton ViewModel для MainPage
         private MainPageViewModel? _mainPageViewModel;
-        
-        // ✅ УБРАЛИ ServiceContext, добавили нужные сервисы напрямую
+
         private readonly IAudioCaptureService _audioService;
         private readonly ISpeechRecognitionService _speechService;
         private readonly IGamepadService _gamepadService;
@@ -26,6 +25,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private readonly AppConfig _currentConfig;
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
+        private readonly TrayNotificationCoordinator _trayCoordinator;
 
         public string CurrentPageTag { get; private set; } = NavigationConstants.MainPage;
         public Page? CurrentPage { get; private set; }
@@ -33,7 +33,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         // События для уведомления ViewModel
         public event EventHandler<NavigationChangedEventArgs>? NavigationChanged;
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public NavigationManager(
             IAudioCaptureService audioService,
             ISpeechRecognitionService speechService,
@@ -43,7 +42,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             IConfigurationService configService,
             AppConfig currentConfig,
             IVoiceRecordingService voiceRecordingService,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator)
+            GamepadVoiceCoordinator gamepadVoiceCoordinator,
+            TrayNotificationCoordinator trayCoordinator)
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -54,6 +54,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _currentConfig = currentConfig;
             _voiceRecordingService = voiceRecordingService;
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
+            _trayCoordinator = trayCoordinator;
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
@@ -61,7 +62,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
         public void NavigateToPage(string pageTag)
         {
-            if (string.IsNullOrEmpty(pageTag) || pageTag == CurrentPageTag) 
+            if (string.IsNullOrEmpty(pageTag) || pageTag == CurrentPageTag)
                 return;
 
             var page = GetOrCreatePage(pageTag);
@@ -81,9 +82,9 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
         private void LoadMainPage()
         {
-            // ✅ ИСПРАВЛЕНО: MainPageViewModel без ServiceContext
-            _mainPageViewModel = new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig);
-            
+            _mainPageViewModel =
+                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _trayCoordinator);
+
             var mainPage = new MainPageView
             {
                 DataContext = _mainPageViewModel
@@ -92,7 +93,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _cachedPages[NavigationConstants.MainPage] = mainPage;
             CurrentPage = mainPage;
             CurrentPageTag = NavigationConstants.MainPage;
-            
+
             Log.Debug("Главная страница загружена с Singleton ViewModel");
         }
 
@@ -112,27 +113,27 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 NavigationConstants.AudioPage => CreateAudioSettingsPage(),
                 NavigationConstants.InterfacePage => CreateInterfaceSettingsPage(),
                 NavigationConstants.ControlPage => CreateControlSettingsPage(),
-                _ => _cachedPages[NavigationConstants.MainPage] // Fallback к главной странице
+                _ => _cachedPages[NavigationConstants.MainPage]
             };
 
             _cachedPages[pageTag] = newPage;
             return newPage;
         }
-        
+
         private Page CreateMainPage()
         {
-            // ✅ ИСПРАВЛЕНО: Переиспользуем существующий ViewModel без ServiceContext
-            _mainPageViewModel ??= new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig);
-            
+            _mainPageViewModel ??=
+                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _trayCoordinator);
+
             var mainPage = new MainPageView();
             mainPage.DataContext = _mainPageViewModel;
-            
+
             Log.Debug("MainPage создана с переиспользованием ViewModel");
             return mainPage;
         }
 
         /// <summary>
-        /// ✅ ИСПРАВЛЕНО: Создает страницу Audio без ServiceContext
+        /// Создает страницу Audio без ServiceContext
         /// </summary>
         private Page CreateAudioSettingsPage()
         {
@@ -144,15 +145,13 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 var audioView = new AudioSettingsView(_audioService, _speechService);
                 Log.Information("AudioSettingsView создан");
 
-                // ✅ ИСПРАВЛЕНО: AudioSettingsViewModel без ServiceContext
                 var audioViewModel = new AudioSettingsViewModel(
-                    _configService, 
+                    _configService,
                     _currentConfig,
                     _speechService,
-                    _audioService); // ✅ ДОБАВЛЕНО: AudioService для загрузки устройств
+                    _audioService);
                 Log.Information("AudioSettingsViewModel создан");
 
-                // ✅ ИСПРАВЛЕНО: Используем SetViewModel вместо прямой установки DataContext
                 audioView.SetViewModel(audioViewModel);
 
                 Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА (новый Whisper модуль) ===");
@@ -164,26 +163,24 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 // Возвращаем fallback страницу
                 return _cachedPages[NavigationConstants.MainPage];
             }
-        }        
-        
+        }
+
         /// <summary>
-        /// ✅ ИСПРАВЛЕНО: Создает страницу Interface Settings без ServiceContext
+        /// Создает страницу Interface Settings
         /// </summary>
         private Page CreateInterfaceSettingsPage()
         {
             try
             {
-                // ✅ ИСПРАВЛЕНО: InterfaceSettingsView без ServiceContext
                 var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _currentConfig);
-                
-                // ✅ ИСПРАВЛЕНО: InterfaceSettingsViewModel без ServiceContext
+
                 var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _currentConfig, _overlayService);
-                
+
                 interfaceView.DataContext = interfaceViewModel;
-                
+
                 // Инициализируем ViewModel
                 _ = interfaceViewModel.InitializeAsync();
-                
+
                 return interfaceView;
             }
             catch (Exception ex)
@@ -194,23 +191,23 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         }
 
         /// <summary>
-        /// ✅ ИСПРАВЛЕНО: Создает страницу Control Settings без ServiceContext
+        /// Создает страницу Control Settings
         /// </summary>
         private Page CreateControlSettingsPage()
         {
             try
             {
-                // ✅ ИСПРАВЛЕНО: ControlSettingsView без ServiceContext  
-                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _currentConfig, _gamepadVoiceCoordinator);
-                
-                // ✅ ИСПРАВЛЕНО: ControlSettingsViewModel без ServiceContext
-                var controlViewModel = new ControlSettingsViewModel(_configService, _currentConfig, _gamepadService, _systemService, _gamepadVoiceCoordinator);
-                
+                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _currentConfig,
+                    _gamepadVoiceCoordinator);
+
+                var controlViewModel = new ControlSettingsViewModel(_configService, _currentConfig, _gamepadService,
+                    _systemService, _gamepadVoiceCoordinator);
+
                 controlView.DataContext = controlViewModel;
-                
+
                 // Инициализируем ViewModel
                 _ = controlViewModel.InitializeAsync();
-                
+
                 return controlView;
             }
             catch (Exception ex)
@@ -223,64 +220,90 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         public void CleanupAllPages()
         {
             Log.Information("Очистка всех страниц NavigationManager...");
-            
-            // Сначала очищаем Singleton MainPageViewModel
-            if (_mainPageViewModel != null)
+
+            try
             {
-                Log.Debug("Вызываем Cleanup для Singleton MainPageViewModel");
-                _mainPageViewModel.Cleanup();
-                _mainPageViewModel = null;
+                // ✅ ИСПРАВЛЕНИЕ: Выполняем cleanup в UI потоке
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    // Сначала очищаем Singleton MainPageViewModel
+                    if (_mainPageViewModel != null)
+                    {
+                        Log.Debug("Вызываем Cleanup для Singleton MainPageViewModel");
+                        _mainPageViewModel.Cleanup();
+                        _mainPageViewModel = null;
+                    }
+
+                    foreach (var kvp in _cachedPages)
+                    {
+                        var pageTag = kvp.Key;
+                        var page = kvp.Value;
+
+                        try
+                        {
+                            Log.Debug("Очищаем страницу: {PageTag}", pageTag);
+
+                            // Очищаем ViewModels страниц (кроме MainPage - уже очищен выше)
+                            switch (page)
+                            {
+                                case MainPageView:
+                                    // MainPageViewModel уже очищен выше как Singleton
+                                    Log.Debug("MainPageView - ViewModel уже очищен");
+                                    break;
+
+                                case ControlSettingsView controlPage:
+                                    if (controlPage.DataContext is ControlSettingsViewModel controlVM)
+                                    {
+                                        Log.Debug("Вызываем Cleanup для ControlSettingsViewModel");
+                                        controlVM.Cleanup();
+                                    }
+
+                                    break;
+
+                                case AudioSettingsView audioPage:
+                                    if (audioPage.DataContext is AudioSettingsViewModel audioVM)
+                                    {
+                                        Log.Debug("Вызываем Cleanup для AudioSettingsViewModel");
+                                        audioVM.Cleanup();
+                                    }
+
+                                    break;
+
+                                case InterfaceSettingsView interfacePage:
+                                    if (interfacePage.DataContext is InterfaceSettingsViewModel interfaceVM)
+                                    {
+                                        Log.Debug("Вызываем Cleanup для InterfaceSettingsViewModel");
+                                        interfaceVM.Cleanup();
+                                    }
+
+                                    break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "Ошибка очистки страницы {PageTag}", pageTag);
+                        }
+                    }
+
+                    _cachedPages.Clear();
+                });
             }
-            
-            foreach (var kvp in _cachedPages)
+            catch (Exception ex)
             {
-                var pageTag = kvp.Key;
-                var page = kvp.Value;
-                
+                Log.Error(ex, "Критическая ошибка при очистке NavigationManager");
+
+                // ✅ Fallback: Принудительно очищаем коллекцию
                 try
                 {
-                    Log.Debug("Очищаем страницу: {PageTag}", pageTag);
-                    
-                    // Очищаем ViewModels страниц (кроме MainPage - уже очищен выше)
-                    switch (page)
-                    {
-                        case MainPageView:
-                            // MainPageViewModel уже очищен выше как Singleton
-                            Log.Debug("MainPageView - ViewModel уже очищен");
-                            break;
-
-                        case ControlSettingsView controlPage:
-                            if (controlPage.DataContext is ControlSettingsViewModel controlVM)
-                            {
-                                Log.Debug("Вызываем Cleanup для ControlSettingsViewModel");
-                                controlVM.Cleanup();
-                            }
-                            break;
-                            
-                        case AudioSettingsView audioPage:
-                            if (audioPage.DataContext is AudioSettingsViewModel audioVM)
-                            {
-                                Log.Debug("Вызываем Cleanup для AudioSettingsViewModel");
-                                audioVM.Cleanup();
-                            }
-                            break;
-                            
-                        case InterfaceSettingsView interfacePage:
-                            if (interfacePage.DataContext is InterfaceSettingsViewModel interfaceVM)
-                            {
-                                Log.Debug("Вызываем Cleanup для InterfaceSettingsViewModel");
-                                interfaceVM.Cleanup();
-                            }
-                            break;
-                    }
+                    _cachedPages.Clear();
+                    _mainPageViewModel = null;
                 }
-                catch (Exception ex)
+                catch (Exception fallbackEx)
                 {
-                    Log.Error(ex, "Ошибка очистки страницы {PageTag}", pageTag);
+                    Log.Fatal(fallbackEx, "Не удалось выполнить fallback очистку NavigationManager");
                 }
             }
-            
-            _cachedPages.Clear();
+
             Log.Information("Очистка всех страниц NavigationManager завершена");
         }
     }

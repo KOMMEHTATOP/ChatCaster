@@ -13,7 +13,6 @@ public partial class ControlSettingsView
         InitializeComponent();
     }
 
-    // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
     public ControlSettingsView(
         IGamepadService gamepadService, 
         ISystemIntegrationService systemService, 
@@ -23,7 +22,6 @@ public partial class ControlSettingsView
     {
         try
         {
-            // ✅ ИСПРАВЛЕНО: Создаем ViewModel без ServiceContext
             var viewModel = new ControlSettingsViewModel(
                 configurationService, 
                 currentConfig, 
@@ -33,7 +31,6 @@ public partial class ControlSettingsView
             
             DataContext = viewModel;
             
-            // Инициализируем ViewModel
             _ = viewModel.InitializeAsync();
             
             Log.Debug("ControlSettingsView инициализирован с ViewModel");

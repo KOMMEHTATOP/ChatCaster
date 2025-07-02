@@ -13,7 +13,6 @@ public partial class InterfaceSettingsView
         InitializeComponent();
     }
 
-    // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
     public InterfaceSettingsView(
         IOverlayService overlayService, 
         IConfigurationService configurationService, 
@@ -21,11 +20,9 @@ public partial class InterfaceSettingsView
     {
         try
         {
-            // ✅ ИСПРАВЛЕНО: Создаем ViewModel без ServiceContext
             var viewModel = new InterfaceSettingsViewModel(configurationService, currentConfig, overlayService);
             DataContext = viewModel;
             
-            // Инициализируем ViewModel
             _ = viewModel.InitializeAsync();
             
             Log.Debug("InterfaceSettingsView инициализирован с ViewModel");

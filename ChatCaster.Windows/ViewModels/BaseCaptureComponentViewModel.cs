@@ -18,13 +18,13 @@ namespace ChatCaster.Windows.ViewModels
         private string _comboTextColor = "White";
 
         [ObservableProperty]
-        private bool _isWaitingForInput = false;
+        private bool _isWaitingForInput;
 
         [ObservableProperty]
-        private int _captureTimeLeft = 0;
+        private int _captureTimeLeft;
 
         [ObservableProperty]
-        private bool _showTimer = false;
+        private bool _showTimer;
 
         // События
         public event Action<string>? StatusMessageChanged;

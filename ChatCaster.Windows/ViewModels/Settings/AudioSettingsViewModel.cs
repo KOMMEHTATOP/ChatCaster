@@ -38,7 +38,6 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
     [ObservableProperty]
     private int _selectedSampleRate = 16000;
 
-    // 🔥 НОВЫЕ СВОЙСТВА для индикации статуса модели
     [ObservableProperty]
     private bool _isModelReady = false;
 
@@ -101,14 +100,13 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     #region Constructor
 
-    // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
     public AudioSettingsViewModel(
         IConfigurationService configurationService,
         AppConfig currentConfig,
         ISpeechRecognitionService speechRecognitionService)
         : base(configurationService, currentConfig)
     {
-        Log.Information("[AudioSettingsViewModel] Конструктор вызван (новый Whisper модуль)");
+        Log.Information("[AudioSettingsViewModel] Конструктор вызван (Whisper модуль)");
 
         _speechRecognitionService = speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
         
@@ -161,7 +159,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
         Log.Information("🔄 Модель изменена: {Model} ({DisplayName})",
             value?.ModelSize, value?.DisplayName);
 
-        // 🔥 ДОБАВЛЕНО: Проверяем статус новой модели при изменении
+        // Проверяем статус новой модели при изменении
         _ = Task.Run(async () =>
         {
             try
@@ -235,7 +233,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             ApplyConfigToProperties();
             Log.Information("[ДИАГНОСТИКА] ПОСЛЕ ApplyConfigToProperties()");
 
-            // 🔥 ДОБАВЛЕНО: Проверяем статус модели после загрузки настроек
+            // Проверяем статус модели после загрузки настроек
             Log.Information("[ДИАГНОСТИКА] Проверяем статус модели...");
             await CheckModelStatusAsync();
             Log.Information("[ДИАГНОСТИКА] Проверка статуса модели завершена");
@@ -259,7 +257,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             config.Audio.SampleRate = SelectedSampleRate;
             config.Audio.MaxRecordingSeconds = MaxRecordingSeconds;
 
-            // ✅ НОВЫЙ ПОДХОД: Применяем Whisper настройки через EngineSettings
+            // Применяем Whisper настройки через EngineSettings
             config.SpeechRecognition.Language = SelectedLanguage;
             config.SpeechRecognition.EngineSettings["ModelSize"] = SelectedModel?.ModelSize ?? WhisperConstants.ModelSizes.Base;
 
@@ -282,14 +280,14 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             Log.Information("[AudioSettingsViewModel] Применяем настройки к сервисам...");
 
             // Устанавливаем активное устройство
-            if (SelectedDevice != null && _audioService != null)
+            if (SelectedDevice != null)
             {
                 await _audioService.SetActiveDeviceAsync(SelectedDevice.Id);
                 Log.Information("[AudioSettingsViewModel] Активное устройство установлено: {DeviceName}",
                     SelectedDevice.Name);
             }
 
-            // ✅ НОВЫЙ ПОДХОД: Переинициализируем Whisper модуль если модель изменена
+            // Переинициализируем Whisper модуль если модель изменена
             if (SelectedModel != null)
             {
                 var speechConfig = _currentConfig.SpeechRecognition;
@@ -311,7 +309,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
     public override void SubscribeToUIEvents()
     {
-        // ✅ Observable свойства автоматически работают через XAML привязки
+        // Observable свойства автоматически работают через XAML привязки
         Log.Information("[AudioSettingsViewModel] UI события обрабатываются через XAML привязки");
     }
 
@@ -349,7 +347,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             
             UpdateModelStatus("Загрузка...", "#ff9800", ModelState.Downloading);
 
-            // ✅ НОВЫЙ ПОДХОД: Загрузка через новый Whisper модуль
+            // Загрузка через новый Whisper модуль
             // Обновляем конфигурацию и перезагружаем модуль
             var speechConfig = _currentConfig.SpeechRecognition;
             speechConfig.EngineSettings["ModelSize"] = SelectedModel.ModelSize;
@@ -405,13 +403,6 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
     {
         try
         {
-            if (_audioService == null)
-            {
-                Log.Error("[AudioSettingsViewModel] AudioService не инициализирован!");
-                AvailableDevices = new List<AudioDevice>();
-                return;
-            }
-
             var devices = await _audioService.GetAvailableDevicesAsync();
             AvailableDevices = devices.ToList();
 
@@ -433,7 +424,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
         {
             Log.Information("[AudioSettingsViewModel] Применяем конфиг к свойствам...");
 
-            // ✅ ИСПРАВЛЕНО: Временно отключаем IsLoadingUI чтобы обновить свойства
+            // Временно отключаем IsLoadingUI чтобы обновить свойства
             var wasLoading = IsLoadingUI;
             IsLoadingUI = false;
 
@@ -441,7 +432,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
             MaxRecordingSeconds = _currentConfig.Audio.MaxRecordingSeconds;
             SelectedSampleRate = _currentConfig.Audio.SampleRate;
 
-            // ✅ ИСПРАВЛЕНО: Находим и устанавливаем выбранное устройство
+            // Находим и устанавливаем выбранное устройство
             if (!string.IsNullOrEmpty(_currentConfig.Audio.SelectedDeviceId))
             {
                 SelectedDevice = AvailableDevices.FirstOrDefault(d => d.Id == _currentConfig.Audio.SelectedDeviceId);
@@ -449,7 +440,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
                     _currentConfig.Audio.SelectedDeviceId, SelectedDevice?.Name ?? "не найдено");
             }
 
-            // ✅ ИСПРАВЛЕНО: Если устройство не найдено ИЛИ пустое - автовыбор
+            // Если устройство не найдено ИЛИ пустое - автовыбор
             if (SelectedDevice == null && AvailableDevices.Any())
             {
                 SelectedDevice = AvailableDevices.FirstOrDefault(d => d.IsDefault) 
@@ -457,7 +448,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
                 Log.Information("Автовыбор устройства: {DeviceName}", SelectedDevice.Name);
             }
 
-            // ✅ НОВЫЙ ПОДХОД: Применяем Whisper настройки из EngineSettings
+            // Применяем Whisper настройки из EngineSettings
             var modelSize = _currentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var modelObj) 
                 ? modelObj?.ToString() 
                 : WhisperConstants.ModelSizes.Base;
@@ -467,7 +458,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
 
             SelectedLanguage = _currentConfig.SpeechRecognition.Language;
 
-            // ✅ ИСПРАВЛЕНО: Восстанавливаем флаг IsLoadingUI
+            // Восстанавливаем флаг IsLoadingUI
             IsLoadingUI = wasLoading;
 
             Log.Information(
@@ -493,7 +484,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
                 return;
             }
 
-            // ✅ НОВЫЙ ПОДХОД: Проверка через ISpeechRecognitionService
+            // Проверка через ISpeechRecognitionService
             if (_speechRecognitionService.IsInitialized)
             {
                 UpdateModelStatus("Модель готова", "#4caf50", ModelState.Ready);
@@ -513,7 +504,7 @@ public partial class AudioSettingsViewModel : BaseSettingsViewModel
     }
 
     /// <summary>
-    /// 🔥 НОВЫЙ МЕТОД: Обновляет статус модели для UI
+    /// Обновляет статус модели для UI
     /// </summary>
     public void UpdateModelStatus(string status, string color, ModelState state)
     {

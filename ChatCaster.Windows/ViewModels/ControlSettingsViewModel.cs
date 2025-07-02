@@ -67,7 +67,6 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         public ControlSettingsViewModel(
             IConfigurationService configurationService,
             AppConfig currentConfig,
@@ -83,7 +82,6 @@ namespace ChatCaster.Windows.ViewModels
             
             try
             {
-                // ✅ ИСПРАВЛЕНО: Создаем компоненты без ServiceContext
                 GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator);
                 KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig);
 

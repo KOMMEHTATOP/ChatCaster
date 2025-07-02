@@ -1,4 +1,3 @@
-using System;
 using System.Windows.Controls;
 
 namespace ChatCaster.Windows.ViewModels.Navigation

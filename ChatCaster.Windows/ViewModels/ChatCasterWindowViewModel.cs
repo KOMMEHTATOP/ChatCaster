@@ -26,22 +26,7 @@ namespace ChatCaster.Windows.ViewModels
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
         private readonly NavigationManager _navigationManager;
-
-        // ✅ TrayService будет установлен отдельно после создания
-        private TrayService? _trayService;
-
-        #endregion
-
-        #region TrayService Management
-
-        /// <summary>
-        /// Устанавливает TrayService после создания окна
-        /// </summary>
-        public void SetTrayService(TrayService trayService)
-        {
-            _trayService = trayService;
-            Log.Debug("TrayService установлен в ViewModel");
-        }
+        private readonly ITrayService _trayService;
 
         #endregion
 
@@ -129,7 +114,6 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Constructor
 
-        // ✅ ИСПРАВЛЕНО: Используем прямые инъекции вместо ServiceContext, TrayService отдельно
         public ChatCasterWindowViewModel(
             IAudioCaptureService audioService,
             ISpeechRecognitionService speechService,
@@ -139,7 +123,9 @@ namespace ChatCaster.Windows.ViewModels
             IConfigurationService configurationService,
             IVoiceRecordingService voiceRecordingService,
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            AppConfig currentConfig)
+            AppConfig currentConfig,
+            ITrayService trayService,
+            TrayNotificationCoordinator trayCoordinator) 
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -150,12 +136,13 @@ namespace ChatCaster.Windows.ViewModels
             _voiceRecordingService = voiceRecordingService;
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
             _currentConfig = currentConfig;
+            _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
 
-            // Создаем NavigationManager БЕЗ ServiceContext
+            // Создаем NavigationManager с TrayNotificationCoordinator
             _navigationManager = new NavigationManager(
                 audioService, speechService, gamepadService, systemService,
                 overlayService, configurationService, currentConfig, 
-                voiceRecordingService, gamepadVoiceCoordinator);
+                voiceRecordingService, gamepadVoiceCoordinator, trayCoordinator); 
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
@@ -166,6 +153,8 @@ namespace ChatCaster.Windows.ViewModels
 
             // Подписка на события
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
+
+            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и TrayNotificationCoordinator из DI");
         }
 
         #endregion
@@ -180,10 +169,14 @@ namespace ChatCaster.Windows.ViewModels
 
                 Log.Debug("Загружаем конфигурацию...");
                 CurrentConfig = await _configurationService.LoadConfigAsync();
-                _trayService.SetConfig(CurrentConfig);
-                Log.Information("Конфигурация загружена");
+                
+                if (_trayService is TrayService trayServiceImpl)
+                {
+                    trayServiceImpl.SetConfig(CurrentConfig);
+                }
+                
+                Log.Information("Конфигурация загружена и передана в TrayService");
 
-                // ✅ ИСПРАВЛЕНИЕ: Если конфиг новый, устанавливаем дефолты для нового Whisper модуля
                 if (string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
                 {
                     Log.Information("Новая установка - применяем дефолтные настройки");
@@ -227,7 +220,6 @@ namespace ChatCaster.Windows.ViewModels
                 }
 
                 // Инициализируем геймпад координатор
-                Log.Debug("Проверяем GamepadVoiceCoordinator...");
                 Log.Debug("GamepadVoiceCoordinator найден, начинаем инициализацию...");
                 var gamepadInitialized = await _gamepadVoiceCoordinator.InitializeAsync();
                 Log.Information("Геймпад инициализирован: {Initialized}", gamepadInitialized);
@@ -252,38 +244,67 @@ namespace ChatCaster.Windows.ViewModels
             _navigationManager.NavigateToSettings();
         }
 
+        private bool _isCleanedUp;
+
         public void Cleanup()
         {
+            if (_isCleanedUp)
+            {
+                Log.Debug("Cleanup уже выполнен, пропускаем");
+                return;
+            }
+
             Log.Information("Cleanup ChatCasterWindowViewModel начат");
+            _isCleanedUp = true;
 
-            _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
-            _navigationManager.NavigationChanged -= OnNavigationChanged;
+            try
+            {
+                // 1. Отписываемся от событий
+                _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
+                _navigationManager.NavigationChanged -= OnNavigationChanged;
 
-            Task.Run(async () => await _gamepadVoiceCoordinator.ShutdownAsync());
+                // 2. Очищаем страницы
+                _navigationManager.CleanupAllPages();
 
-            // Очищаем все страницы через NavigationManager
-            Log.Debug("Очищаем все кешированные страницы...");
-            _navigationManager.CleanupAllPages();
+                // 3. Останавливаем геймпад (обычно быстро)
+                try
+                {
+                    _gamepadVoiceCoordinator.ShutdownAsync().Wait(1000); // Максимум 1 секунда
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Геймпад не остановился быстро, пропускаем");
+                }
 
-            // Освобождаем сервисы
-            if (_gamepadService is IDisposable disposableGamepad)
-                disposableGamepad.Dispose();
-            
-            if (_systemService is IDisposable disposableSystem)
-                disposableSystem.Dispose();
+                // 4. Снимаем хоткеи (обычно быстро)
+                try
+                {
+                    _systemService.UnregisterGlobalHotkeyAsync().Wait(500); // Максимум 0.5 секунды
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Хоткеи не сняты быстро, пропускаем");
+                }
+
+                // 5. Быстрые сервисы
+                try { if (_audioService is IDisposable da) da.Dispose(); }
+                catch
+                {
+                    // ignored
+                }
+
+                try { if (_overlayService is IDisposable do_) do_.Dispose(); }
+                catch
+                {
+                    // ignored
+                }
                 
-            if (_overlayService is IDisposable disposableOverlay)
-                disposableOverlay.Dispose();
-                
-            if (_audioService is IDisposable disposableAudio)
-                disposableAudio.Dispose();
-                
-            if (_speechService is IDisposable disposableSpeech)
-                disposableSpeech.Dispose();
-                
-            _trayService?.Dispose();
-
-            Log.Information("Cleanup ChatCasterWindowViewModel завершен");
+                Log.Information("Cleanup ChatCasterWindowViewModel завершен");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка в Cleanup, но продолжаем");
+            }
         }
         #endregion
 
@@ -311,7 +332,7 @@ namespace ChatCaster.Windows.ViewModels
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка обработки хоткея");
-                _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея");
+                _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея", NotificationType.Error);
             }
         }
 
@@ -342,7 +363,7 @@ namespace ChatCaster.Windows.ViewModels
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка в HandleVoiceRecordingAsync");
-                _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи");
+                _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи", NotificationType.Error);
                 StatusText = NavigationConstants.StatusReady;
             }
         }

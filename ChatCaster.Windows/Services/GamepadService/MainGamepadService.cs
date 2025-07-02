@@ -34,44 +34,33 @@ public class MainGamepadService : IGamepadService, IDisposable
     public MainGamepadService() : this(new XInputProvider())
     {
         Console.WriteLine("🎮 [MainGamepadService] Конструктор по умолчанию вызван");
-        Console.WriteLine(Environment.StackTrace);
     }
 
     public MainGamepadService(IXInputProvider inputProvider)
     {
-        Console.WriteLine("🎮 [MainGamepadService] Конструктор с параметром вызван");
-    
         _inputProvider = inputProvider ?? throw new ArgumentNullException(nameof(inputProvider));
         _monitor = new GamepadMonitor(_inputProvider);
         _detector = new ShortcutDetector();
-
-        Console.WriteLine("🎮 [MainGamepadService] Компоненты созданы");
-
+        
         // Подписываемся на события компонентов
         _monitor.GamepadConnected += OnGamepadConnected;
         _monitor.GamepadDisconnected += OnGamepadDisconnected;
         _detector.ShortcutPressed += OnShortcutPressed;
-    
-        Console.WriteLine("🎮 [MainGamepadService] События подключены");
-    
+        
         // Проверяем доступность XInput
         try 
         {
             bool isAvailable = _inputProvider.IsXInputAvailable();
-            Console.WriteLine($"🎮 [MainGamepadService] XInput доступен: {isAvailable}");
         
             if (isAvailable)
             {
                 int firstController = _inputProvider.FindFirstConnectedController();
-                Console.WriteLine($"🎮 [MainGamepadService] Первый подключенный контроллер: {firstController}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ [MainGamepadService] Ошибка проверки XInput: {ex.Message}");
         }
-    
-        Console.WriteLine("🎮 [MainGamepadService] Конструктор завершен");
     }
 
     #region IGamepadService Implementation
@@ -204,8 +193,6 @@ public class MainGamepadService : IGamepadService, IDisposable
 
             _currentShortcut = null;
             _isMonitoring = false;
-
-            Console.WriteLine("[MainGamepadService] Мониторинг остановлен");
         }
         catch (Exception ex)
         {
@@ -290,8 +277,6 @@ public class MainGamepadService : IGamepadService, IDisposable
     /// </summary>
     private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
     {
-        Console.WriteLine($"[MainGamepadService] Геймпад подключен: {e.GamepadInfo.Name}");
-        
         // Пробрасываем событие дальше
         GamepadConnected?.Invoke(this, e);
 
@@ -304,8 +289,6 @@ public class MainGamepadService : IGamepadService, IDisposable
     /// </summary>
     private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
     {
-        Console.WriteLine($"[MainGamepadService] Геймпад отключен: слот {e.GamepadIndex}");
-        
         // Сбрасываем состояние детектора
         _detector.ResetState();
         
@@ -318,8 +301,6 @@ public class MainGamepadService : IGamepadService, IDisposable
     /// </summary>
     private void OnShortcutPressed(object? sender, GamepadShortcutPressedEvent e)
     {
-        Console.WriteLine($"[MainGamepadService] Комбинация сработала: {e.Shortcut.DisplayText} ({e.HoldTimeMs}ms)");
-        
         // Пробрасываем событие дальше
         ShortcutPressed?.Invoke(this, e);
     }

@@ -11,8 +11,8 @@ public partial class AudioSettingsView
     private readonly IAudioCaptureService? _audioCaptureService;
     private readonly ISpeechRecognitionService? _speechRecognitionService;
 
-    private bool _isTestingMicrophone = false;
-    private bool _isDownloadingModel = false;
+    private bool _isTestingMicrophone;
+    private bool _isDownloadingModel;
 
     public AudioSettingsView()
     {
@@ -20,7 +20,6 @@ public partial class AudioSettingsView
         Log.Information("AudioSettingsView создан");
     }
 
-    // ✅ ИСПРАВЛЕНО: Конструктор остается тем же (интерфейсы)
     public AudioSettingsView(IAudioCaptureService audioCaptureService, 
                             ISpeechRecognitionService speechRecognitionService) : this()
     {
@@ -31,7 +30,7 @@ public partial class AudioSettingsView
     }
 
     /// <summary>
-    /// ✅ МЕТОД ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ - устанавливает ViewModel для работы с новым Whisper модулем
+    /// ViewModel для работы с новым Whisper модулем
     /// </summary>
     public void SetViewModel(AudioSettingsViewModel viewModel)
     {
@@ -48,13 +47,13 @@ public partial class AudioSettingsView
             // Устанавливаем новый DataContext
             DataContext = viewModel;
             
-            // ✅ НОВЫЙ ПОДХОД: Подписка на события нового Whisper модуля
+            // Подписка на события нового Whisper модуля
             SubscribeToNewWhisperEvents(viewModel);
             
             // Инициализируем ViewModel
             _ = viewModel.InitializeAsync();
             
-            Log.Information("✅ ViewModel установлен для нового Whisper модуля");
+            Log.Information("ViewModel установлен для нового Whisper модуля");
         }
         catch (Exception ex)
         {
@@ -71,20 +70,10 @@ public partial class AudioSettingsView
     {
         try
         {
-            // ✅ НОВЫЙ ПОДХОД: События приходят от ISpeechRecognitionService
             if (_speechRecognitionService != null)
             {
-                // Если у нового Whisper модуля есть события - подписываемся
-                // Возможно у вашего ISpeechRecognitionService есть события типа:
-                // _speechRecognitionService.ModelStatusChanged += OnModelStatusChanged;
-                // _speechRecognitionService.DownloadProgress += OnDownloadProgress;
-                
                 Log.Information("Подписались на события нового Whisper модуля");
             }
-            
-            // Альтернативно: события могут быть в самом ViewModel
-            // viewModel.ModelStatusChanged += OnModelStatusChanged;
-            
         }
         catch (Exception ex)
         {
@@ -99,10 +88,8 @@ public partial class AudioSettingsView
     {
         try
         {
-            // ✅ Очищаем старые подписки если они были
             if (_speechRecognitionService != null)
             {
-                // Отписываемся от событий если они есть
                 Log.Information("Отписались от старых событий");
             }
         }
@@ -117,11 +104,10 @@ public partial class AudioSettingsView
     /// </summary>
     private void OnModelStatusChanged(object? sender, EventArgs e)
     {
-        Dispatcher.Invoke(new Action(() =>
+        Dispatcher.Invoke(() =>
         {
             try
             {
-                // ✅ Обновляем статус модели в UI
                 UpdateModelStatus("Модель готова", "#4caf50");
                 Log.Information("Статус модели обновлен");
             }
@@ -129,7 +115,7 @@ public partial class AudioSettingsView
             {
                 Log.Error(ex, "Ошибка обновления статуса модели в UI");
             }
-        }));
+        });
     }
 
     #endregion
@@ -144,19 +130,19 @@ public partial class AudioSettingsView
 
             if (_isTestingMicrophone || _audioCaptureService == null) 
             {
-                Log.Warning("⚠️ Тест уже идет или сервис недоступен");
+                Log.Warning("Тест уже идет или сервис недоступен");
                 return;
             }
 
             await HandleTestMicrophoneAsync();
         
-            Log.Information("✅ Тест микрофона завершен БЕЗ ОШИБОК");
+            Log.Information("Тест микрофона завершен БЕЗ ОШИБОК");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "❌ КРИТИЧЕСКАЯ ОШИБКА в тесте микрофона");
-            System.Windows.MessageBox.Show($"Ошибка теста: {ex.Message}", "Ошибка", 
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            Log.Error(ex, "КРИТИЧЕСКАЯ ОШИБКА в тесте микрофона");
+            MessageBox.Show($"Ошибка теста: {ex.Message}", "Ошибка", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -168,7 +154,7 @@ public partial class AudioSettingsView
             TestMicrophoneButton.IsEnabled = false;
             UpdateMicrophoneStatus("Тестируется...", "#ff9800");
 
-            Log.Information("🔄 Начинаем тест микрофона");
+            Log.Information("Начинаем тест микрофона");
 
             var viewModel = DataContext as AudioSettingsViewModel;
             var selectedDevice = viewModel?.SelectedDevice;
@@ -192,12 +178,12 @@ public partial class AudioSettingsView
             if (testResult)
             {
                 UpdateMicrophoneStatus("Микрофон работает", "#4caf50");
-                Log.Information("✅ Тест микрофона прошел успешно");
+                Log.Information("Тест микрофона прошел успешно");
             }
             else
             {
                 UpdateMicrophoneStatus("Проблема с микрофоном", "#f44336");
-                Log.Warning("❌ Тест микрофона не прошел");
+                Log.Warning("Тест микрофона не прошел");
             }
         }
         catch (Exception ex)
@@ -217,12 +203,11 @@ public partial class AudioSettingsView
         try
         {
             if (_isDownloadingModel) return;
-            
-            var viewModel = DataContext as AudioSettingsViewModel;
-            if (viewModel != null)
+
+            if (DataContext is AudioSettingsViewModel viewModel)
             {
                 Log.Information("Запускаем загрузку модели через ViewModel");
-                _ = viewModel.DownloadModelAsync(); // Используем метод ViewModel
+                _ = viewModel.DownloadModelAsync(); 
             }
             else
             {
@@ -241,20 +226,20 @@ public partial class AudioSettingsView
     
     private void OnModelDownloadProgress(object? sender, EventArgs e)
     {
-        Dispatcher.Invoke(new Action(() =>
+        Dispatcher.Invoke(() =>
         {
             UpdateModelStatus("Загрузка...", "#ff9800");
-        }));
+        });
     }
 
     private void OnModelDownloadCompleted(object? sender, EventArgs e)
     {
-        Dispatcher.Invoke(new Action(() =>
+        Dispatcher.Invoke(() =>
         {
             UpdateModelStatus("Модель готова", "#4caf50");
             Log.Information("Модель успешно загружена");
             _isDownloadingModel = false;
-        }));
+        });
     }
 
     #endregion
