@@ -15,6 +15,7 @@ namespace ChatCaster.Windows.ViewModels
 {
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
+
         #region Services
 
         private readonly IAudioCaptureService _audioService;
@@ -125,7 +126,7 @@ namespace ChatCaster.Windows.ViewModels
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
             AppConfig currentConfig,
             ITrayService trayService,
-            TrayNotificationCoordinator trayCoordinator) 
+            INotificationService notificationService) // ✅ ЗАМЕНИЛИ TrayNotificationCoordinator на INotificationService
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -140,8 +141,8 @@ namespace ChatCaster.Windows.ViewModels
 
             _navigationManager = new NavigationManager(
                 audioService, speechService, gamepadService, systemService,
-                overlayService, configurationService, configurationService.CurrentConfig, 
-                voiceRecordingService, gamepadVoiceCoordinator, trayCoordinator); 
+                overlayService, configurationService, configurationService.CurrentConfig,
+                voiceRecordingService, gamepadVoiceCoordinator, notificationService); // ✅ ЗАМЕНИЛИ trayCoordinator на notificationService
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
@@ -153,7 +154,7 @@ namespace ChatCaster.Windows.ViewModels
             // Подписка на события
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
 
-            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и TrayNotificationCoordinator из DI");
+            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и INotificationService из DI"); // ✅ ОБНОВИЛИ лог
         }
 
         #endregion
@@ -168,22 +169,17 @@ namespace ChatCaster.Windows.ViewModels
 
                 Log.Debug("Загружаем конфигурацию...");
                 await _configurationService.LoadConfigAsync();
-                CurrentConfig = _configurationService.CurrentConfig; 
+                CurrentConfig = _configurationService.CurrentConfig;
                 
-                if (_trayService is TrayService trayServiceImpl)
-                {
-                    trayServiceImpl.SetConfig(CurrentConfig);
-                }
-                
-                Log.Information("Конфигурация загружена и передана в TrayService");
+                Log.Information("Конфигурация загружена");
 
                 if (string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
                 {
                     Log.Information("Новая установка - применяем дефолтные настройки");
-                    
+
                     // Устанавливаем дефолтную модель в EngineSettings
                     CurrentConfig.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
-                    
+
                     // Сохраняем обновленный конфиг
                     await _configurationService.SaveConfigAsync(CurrentConfig);
                     Log.Information("Дефолтная модель Whisper установлена: tiny");
@@ -195,10 +191,12 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Information("Сервис распознавания речи инициализирован: {Success}", speechInitialized);
 
                 Log.Debug("Применяем аудио настройки...");
+
                 if (!string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
                 {
                     await _audioService.SetActiveDeviceAsync(CurrentConfig.Audio.SelectedDeviceId);
-                    Log.Information("Активное аудио устройство установлено: {DeviceId}", CurrentConfig.Audio.SelectedDeviceId);
+                    Log.Information("Активное аудио устройство установлено: {DeviceId}",
+                        CurrentConfig.Audio.SelectedDeviceId);
                 }
                 else
                 {
@@ -207,14 +205,14 @@ namespace ChatCaster.Windows.ViewModels
 
                 Log.Debug("Применяем конфигурацию к OverlayService...");
                 await _overlayService.ApplyConfigAsync(CurrentConfig.Overlay);
-                Log.Information("Конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}", 
+                Log.Information("Конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
                     CurrentConfig.Overlay.Position, CurrentConfig.Overlay.Opacity);
 
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
-                    Log.Debug("Регистрируем хоткей: {Key} + {Modifiers}", 
+                    Log.Debug("Регистрируем хоткей: {Key} + {Modifiers}",
                         CurrentConfig.Input.KeyboardShortcut.Key, CurrentConfig.Input.KeyboardShortcut.Modifiers);
-                    
+
                     var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
                     Log.Information("Хоткей зарегистрирован: {Registered}", registered);
                 }
@@ -238,7 +236,7 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Error(ex, "Ошибка инициализации ChatCasterWindowViewModel");
             }
         }
-        
+
         public void NavigateToSettings()
         {
             _navigationManager.NavigateToSettings();
@@ -287,18 +285,24 @@ namespace ChatCaster.Windows.ViewModels
                 }
 
                 // 5. Быстрые сервисы
-                try { if (_audioService is IDisposable da) da.Dispose(); }
+                try
+                {
+                    if (_audioService is IDisposable da) da.Dispose();
+                }
                 catch
                 {
                     // ignored
                 }
 
-                try { if (_overlayService is IDisposable do_) do_.Dispose(); }
+                try
+                {
+                    if (_overlayService is IDisposable do_) do_.Dispose();
+                }
                 catch
                 {
                     // ignored
                 }
-                
+
                 Log.Information("Cleanup ChatCasterWindowViewModel завершен");
             }
             catch (Exception ex)
@@ -306,6 +310,7 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Error(ex, "Ошибка в Cleanup, но продолжаем");
             }
         }
+
         #endregion
 
         #region Event Handlers
@@ -355,7 +360,7 @@ namespace ChatCaster.Windows.ViewModels
                 else
                 {
                     Log.Debug("Начинаем запись через VoiceRecordingService...");
-                    
+
                     // Просто начинаем запись - VoiceRecordingService уведомит всех подписчиков
                     await _voiceRecordingService.StartRecordingAsync();
                 }
@@ -391,5 +396,6 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         #endregion
+
     }
 }

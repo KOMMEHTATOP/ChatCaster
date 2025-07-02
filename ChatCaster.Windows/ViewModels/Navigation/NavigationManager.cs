@@ -25,7 +25,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private readonly AppConfig _currentConfig;
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
-        private readonly TrayNotificationCoordinator _trayCoordinator;
+        private readonly INotificationService _notificationService; // ✅ ЗАМЕНИЛИ TrayNotificationCoordinator
 
         public string CurrentPageTag { get; private set; } = NavigationConstants.MainPage;
         public Page? CurrentPage { get; private set; }
@@ -43,7 +43,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             AppConfig currentConfig,
             IVoiceRecordingService voiceRecordingService,
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            TrayNotificationCoordinator trayCoordinator)
+            INotificationService notificationService) // ✅ ЗАМЕНИЛИ параметр
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -54,7 +54,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _currentConfig = currentConfig;
             _voiceRecordingService = voiceRecordingService;
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
-            _trayCoordinator = trayCoordinator;
+            _notificationService = notificationService; // ✅ ЗАМЕНИЛИ инициализацию
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
@@ -83,7 +83,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private void LoadMainPage()
         {
             _mainPageViewModel =
-                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _trayCoordinator);
+                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService); // ✅ ЗАМЕНИЛИ
 
             var mainPage = new MainPageView
             {
@@ -123,7 +123,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private Page CreateMainPage()
         {
             _mainPageViewModel ??=
-                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _trayCoordinator);
+                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService); // ✅ ЗАМЕНИЛИ
 
             var mainPage = new MainPageView();
             mainPage.DataContext = _mainPageViewModel;

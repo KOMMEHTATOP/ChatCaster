@@ -1,32 +1,23 @@
-using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
 using Serilog;
-using Application = System.Windows.Application;
 
 namespace ChatCaster.Windows.Services;
 
 /// <summary>
-/// Сервис для работы с системным треем
-/// Слабо связан с UI через события
+/// Упрощенная реализация TrayService - только работа с NotifyIcon
+/// Вся сложная бизнес-логика вынесена в Window
 /// </summary>
 public class TrayService : ITrayService, IDisposable
 {
-    #region Fields
-
     private NotifyIcon? _notifyIcon;
-    private AppConfig? _config;
+    private readonly IConfigurationService _configService;
     private bool _hasShownFirstTimeNotification = false;
     private bool _isDisposed = false;
 
-    // Константы
     private const string NormalIconPath = "Resources/mic_normal.ico";
-    private const string DefaultTooltip = "ChatCaster - Готов к работе";
-
-    #endregion
 
     #region Properties
 
@@ -42,34 +33,34 @@ public class TrayService : ITrayService, IDisposable
 
     #endregion
 
-    #region Constructor & Initialization
+    #region Constructor
 
-    public TrayService()
+    public TrayService(IConfigurationService configService)
     {
-        Log.Information($"TrayService #{GetHashCode()} создан");
-
-        // Подписываемся на события закрытия приложения для гарантированной очистки
-        Application.Current.Exit += (s, e) => Dispose();
-        Application.Current.SessionEnding += (s, e) => Dispose();
-        AppDomain.CurrentDomain.ProcessExit += (s, e) => Dispose();
+        _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        Log.Information("TrayService создан");
     }
+
+    #endregion
+
+    #region Public Methods
 
     public void Initialize()
     {
         if (_isDisposed)
         {
-            Log.Warning($"Попытка инициализации уже освобожденного TrayService #{GetHashCode()}");
+            Log.Warning("Попытка инициализации уже освобожденного TrayService");
             return;
         }
 
-        Log.Information($"Инициализация TrayService #{GetHashCode()}");
+        Log.Information("Инициализация TrayService");
 
         try
         {
             _notifyIcon = new NotifyIcon
             {
                 Icon = LoadIcon(),
-                Text = DefaultTooltip,
+                Text = "ChatCaster - Готов к работе",
                 Visible = true
             };
 
@@ -78,116 +69,21 @@ public class TrayService : ITrayService, IDisposable
 
             CreateContextMenu();
 
-            Log.Information($"TrayService #{GetHashCode()} успешно инициализирован");
+            Log.Information("TrayService успешно инициализирован");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Ошибка инициализации TrayService #{GetHashCode()}");
-            
-            // Fallback для критической ошибки
-            try
-            {
-                _notifyIcon = new NotifyIcon
-                {
-                    Icon = SystemIcons.Application,
-                    Text = DefaultTooltip,
-                    Visible = true
-                };
-                CreateContextMenu();
-                Log.Warning($"TrayService #{GetHashCode()} инициализирован с fallback иконкой");
-            }
-            catch (Exception fallbackEx)
-            {
-                Log.Fatal(fallbackEx, $"Критическая ошибка инициализации TrayService #{GetHashCode()}");
-            }
+            Log.Error(ex, "Ошибка инициализации TrayService");
+            throw;
         }
     }
-
-    /// <summary>
-    /// Устанавливает конфигурацию для проверки настроек уведомлений
-    /// </summary>
-    public void SetConfig(AppConfig config)
-    {
-        _config = config;
-        Log.Debug($"Конфигурация установлена в TrayService #{GetHashCode()}");
-    }
-
-    #endregion
-
-    #region Icon Management
-
-    private Icon LoadIcon()
-    {
-        try
-        {
-            if (File.Exists(NormalIconPath))
-            {
-                return new Icon(NormalIconPath);
-            }
-            else
-            {
-                Log.Warning("Файл иконки не найден: {IconPath}, используем системную", NormalIconPath);
-                return SystemIcons.Application;
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка загрузки иконки, используем системную");
-            return SystemIcons.Application;
-        }
-    }
-
-    #endregion
-
-    #region Context Menu
-
-    private void CreateContextMenu()
-    {
-        if (_notifyIcon == null) 
-        {
-            Log.Warning("Попытка создания контекстного меню для null NotifyIcon");
-            return;
-        }
-
-        try
-        {
-            var contextMenu = new ContextMenuStrip();
-            
-            // 📋 Показать окно
-            contextMenu.Items.Add("📋 Показать окно", null, (s, e) => OnShowMainWindowRequested());
-            
-            // ⚙️ Настройки
-            contextMenu.Items.Add("⚙️ Настройки", null, (s, e) => OnShowSettingsRequested());
-            
-            // Разделитель
-            contextMenu.Items.Add(new ToolStripSeparator());
-            
-            // ℹ️ О программе
-            contextMenu.Items.Add("ℹ️ О программе", null, (s, e) => ShowAboutDialog());
-            
-            // ❌ Выход
-            contextMenu.Items.Add("❌ Выход", null, (s, e) => OnExitApplicationRequested());
-
-            _notifyIcon.ContextMenuStrip = contextMenu;
-            
-            Log.Debug("Контекстное меню создано");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка создания контекстного меню");
-        }
-    }
-
-    #endregion
-
-    #region Public Methods
 
     public void ShowNotification(string title, string message, NotificationType type = NotificationType.Info, int timeout = 3000)
     {
         try
         {
             // Проверяем настройки перед показом уведомления
-            if (_config?.System?.ShowNotifications != true)
+            if (_configService.CurrentConfig?.System?.ShowNotifications != true)
             {
                 Log.Debug("Уведомления отключены в настройках, пропускаем: {Title} - {Message}", title, message);
                 return;
@@ -235,11 +131,8 @@ public class TrayService : ITrayService, IDisposable
 
     public void ShowFirstTimeNotification()
     {
-        if (_hasShownFirstTimeNotification || _config?.System?.ShowNotifications != true)
-        {
-            return;
-        }
-
+        if (_hasShownFirstTimeNotification) return;
+        
         ShowNotification(
             "ChatCaster", 
             "Приложение свернуто в системный трей. Двойной клик для возврата.", 
@@ -251,14 +144,63 @@ public class TrayService : ITrayService, IDisposable
 
     #endregion
 
-    #region Event Handlers
+    #region Private Methods
+
+    private Icon LoadIcon()
+    {
+        try
+        {
+            if (File.Exists(NormalIconPath))
+            {
+                return new Icon(NormalIconPath);
+            }
+            else
+            {
+                Log.Warning("Файл иконки не найден: {IconPath}, используем системную", NormalIconPath);
+                return SystemIcons.Application;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка загрузки иконки, используем системную");
+            return SystemIcons.Application;
+        }
+    }
+
+    private void CreateContextMenu()
+    {
+        if (_notifyIcon == null) 
+        {
+            Log.Warning("Попытка создания контекстного меню для null NotifyIcon");
+            return;
+        }
+
+        try
+        {
+            var contextMenu = new ContextMenuStrip();
+            
+            contextMenu.Items.Add("📋 Показать окно", null, (s, e) => ShowMainWindowRequested?.Invoke(this, EventArgs.Empty));
+            contextMenu.Items.Add("⚙️ Настройки", null, (s, e) => ShowSettingsRequested?.Invoke(this, EventArgs.Empty));
+            contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add("ℹ️ О программе", null, (s, e) => ShowAboutDialog());
+            contextMenu.Items.Add("❌ Выход", null, (s, e) => ExitApplicationRequested?.Invoke(this, EventArgs.Empty));
+
+            _notifyIcon.ContextMenuStrip = contextMenu;
+            
+            Log.Debug("Контекстное меню создано");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка создания контекстного меню");
+        }
+    }
 
     private void OnDoubleClick(object? sender, EventArgs e)
     {
         try
         {
             Log.Debug("Двойной клик по иконке трея");
-            OnShowMainWindowRequested();
+            ShowMainWindowRequested?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
@@ -266,45 +208,7 @@ public class TrayService : ITrayService, IDisposable
         }
     }
 
-    private void OnShowMainWindowRequested()
-    {
-        try
-        {
-            Log.Debug("Запрос показа главного окна из трея");
-            ShowMainWindowRequested?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка вызова события ShowMainWindowRequested");
-        }
-    }
-
-    private void OnShowSettingsRequested()
-    {
-        try
-        {
-            Log.Debug("Запрос открытия настроек из трея");
-            ShowSettingsRequested?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка вызова события ShowSettingsRequested");
-        }
-    }
-
-    private void OnExitApplicationRequested()
-    {
-        try
-        {
-            Log.Debug("Запрос выхода из приложения из трея");
-            ExitApplicationRequested?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка вызова события ExitApplicationRequested");
-        }
-    }
-
+    // Единственная "бизнес-логика" которая остается
     private void ShowAboutDialog()
     {
         try
@@ -328,16 +232,12 @@ public class TrayService : ITrayService, IDisposable
         }
     }
 
-    #endregion
-
-    #region Helper Methods
-
     private ToolTipIcon GetToolTipIcon(NotificationType type)
     {
         return type switch
         {
             NotificationType.Info => ToolTipIcon.Info,
-            NotificationType.Success => ToolTipIcon.Info, // Windows не имеет Success иконки
+            NotificationType.Success => ToolTipIcon.Info, 
             NotificationType.Warning => ToolTipIcon.Warning,
             NotificationType.Error => ToolTipIcon.Error,
             _ => ToolTipIcon.Info
@@ -348,129 +248,37 @@ public class TrayService : ITrayService, IDisposable
 
     #region Disposal
 
-    ~TrayService()
-    {
-        // ✅ ДОБАВЛЕНО: Финализатор для гарантированной очистки
-        Dispose();
-    }
-
     public void Dispose()
     {
         if (_isDisposed)
         {
-            Log.Debug($"TrayService #{GetHashCode()} уже был освобожден");
+            Log.Debug("TrayService уже был освобожден");
             return;
         }
 
         try
         {
-            Log.Information($"Освобождение ресурсов TrayService #{GetHashCode()}");
+            Log.Information("Освобождение ресурсов TrayService");
 
             if (_notifyIcon != null)
             {
-                Log.Debug($"Скрываем NotifyIcon #{GetHashCode()}");
                 _notifyIcon.Visible = false;
-                
-                Log.Debug($"Освобождаем иконку #{GetHashCode()}");
                 _notifyIcon.Icon?.Dispose();
-                
-                Log.Debug($"Освобождаем контекстное меню #{GetHashCode()}");
                 _notifyIcon.ContextMenuStrip?.Dispose();
-                
-                Log.Debug($"Освобождаем NotifyIcon #{GetHashCode()}");
                 _notifyIcon.Dispose();
                 _notifyIcon = null;
-                
-                // ✅ ДОБАВЛЕНО: Принудительное обновление системного трея
-                try
-                {
-                    // Метод 1: Win32 API
-                    RefreshSystemTray();
-                    
-                    // Метод 2: Небольшая задержка + повторное обновление
-                    Task.Delay(100).ContinueWith(_ => 
-                    {
-                        try
-                        {
-                            // Принуждаем сборщик мусора для окончательной очистки
-                            GC.Collect();
-                            GC.WaitForPendingFinalizers();
-                            GC.Collect();
-                            
-                            // Повторное обновление трея
-                            RefreshSystemTray();
-                            Log.Debug("Повторное обновление системного трея выполнено");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Debug(ex, "Ошибка повторного обновления трея");
-                        }
-                    });
-                    
-                    Log.Debug("Системный трей принудительно обновлен");
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Не удалось обновить системный трей");
-                }
             }
 
             _isDisposed = true;
-            
-            // ✅ ДОБАВЛЕНО: Подавляем финализатор если Dispose вызван явно
             GC.SuppressFinalize(this);
             
-            Log.Information($"TrayService #{GetHashCode()} успешно освобожден");
+            Log.Information("TrayService успешно освобожден");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Ошибка освобождения TrayService #{GetHashCode()}");
+            Log.Error(ex, "Ошибка освобождения TrayService");
         }
     }
-
-    /// <summary>
-    /// Принудительно обновляет системный трей Windows
-    /// </summary>
-    private static void RefreshSystemTray()
-    {
-        try
-        {
-            // Получаем handle окна системного трея
-            var systemTrayHandle = FindWindow("Shell_TrayWnd", null);
-            if (systemTrayHandle != IntPtr.Zero)
-            {
-                var trayNotifyHandle = FindWindowEx(systemTrayHandle, IntPtr.Zero, "TrayNotifyWnd", null);
-                if (trayNotifyHandle != IntPtr.Zero)
-                {
-                    var sysPagerHandle = FindWindowEx(trayNotifyHandle, IntPtr.Zero, "SysPager", null);
-                    if (sysPagerHandle != IntPtr.Zero)
-                    {
-                        var toolbarHandle = FindWindowEx(sysPagerHandle, IntPtr.Zero, "ToolbarWindow32", null);
-                        if (toolbarHandle != IntPtr.Zero)
-                        {
-                            // Отправляем сообщение для обновления трея
-                            SendMessage(toolbarHandle, 0x001A, IntPtr.Zero, IntPtr.Zero); // WM_SETTINGCHANGE
-                            Log.Debug("Отправлено сообщение обновления системного трея");
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Ошибка при обновлении системного трея");
-        }
-    }
-
-    // ✅ ДОБАВЛЕНО: Win32 API для работы с системным треем
-    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
-
-    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
     #endregion
 }

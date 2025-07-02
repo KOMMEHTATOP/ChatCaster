@@ -37,84 +37,18 @@ namespace ChatCaster.Windows
                 // Получаем главное окно и сервисы из DI
                 var mainWindow = _serviceProvider.GetRequiredService<ChatCasterWindow>();
                 var trayService = _serviceProvider.GetRequiredService<ITrayService>();
-                var trayCoordinator = _serviceProvider.GetRequiredService<TrayNotificationCoordinator>();
-                
-                // ПОДПИСЫВАЕМСЯ НА СОБЫТИЯ TRAYSERVICE
-                trayService.ShowMainWindowRequested += (s, e) => {
-                    try
-                    {
-                        mainWindow.Show();
-                        mainWindow.WindowState = WindowState.Normal;
-                        mainWindow.ShowInTaskbar = true;
-                        mainWindow.Activate();
-                        mainWindow.Focus();
-                        Log.Debug("Главное окно показано по запросу из трея");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Ошибка показа главного окна из трея");
-                    }
-                };
+                var notificationService = _serviceProvider.GetRequiredService<INotificationService>();
 
-                trayService.ShowSettingsRequested += (s, e) => {
-                    try
-                    {
-                        mainWindow.Show();
-                        mainWindow.WindowState = WindowState.Normal;
-                        mainWindow.ShowInTaskbar = true;
-                        mainWindow.Activate();
-                        
-                        // Навигация на правильную страницу Control Settings
-                        var viewModel = _serviceProvider.GetRequiredService<ChatCasterWindowViewModel>();
-                        viewModel.NavigateToPageCommand.Execute("Control"); 
-                        
-                        Log.Debug("Настройки Control открыты по запросу из трея");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Ошибка открытия настроек из трея");
-                    }
-                };
-
-                trayService.ExitApplicationRequested += (s, e) => {
-                    try
-                    {
-                        Log.Information("Выход из приложения по запросу из трея");
-                        
-                        Application.Current.Dispatcher.Invoke(() => {
-                            try
-                            {
-                                Application.Current.Shutdown();
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex, "Ошибка при закрытии");
-                                Environment.Exit(0);
-                            }
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Ошибка выхода из трея");
-                        Environment.Exit(0);
-                    }
-                };
+                // ✅ УБРАЛИ: Дублирующую подписку на события трея - теперь это делает ChatCasterWindow
+                // ✅ УБРАЛИ: SetConfig - теперь TrayService сам получает конфигурацию через DI
 
                 // Инициализируем TrayService
                 trayService.Initialize();
+                Log.Information("TrayService инициализирован");
                 
-                // Передаем конфигурацию в TrayService
-                if (trayService is TrayService trayServiceImpl)
-                {
-                    var appConfig = _serviceProvider.GetRequiredService<AppConfig>();
-                    trayServiceImpl.SetConfig(appConfig);
-                    Log.Debug("Конфигурация передана в TrayService");
-                }
-        
-                // Инициализируем координатор уведомлений (синхронно в Main)
-                trayCoordinator.InitializeAsync().GetAwaiter().GetResult();
-        
-                Log.Information("TrayService и TrayNotificationCoordinator инициализированы");
+                // Инициализируем NotificationService (заменяет TrayNotificationCoordinator)
+                notificationService.InitializeAsync().GetAwaiter().GetResult();
+                Log.Information("NotificationService инициализирован");
 
                 app.MainWindow = mainWindow;
                 
@@ -190,8 +124,11 @@ namespace ChatCaster.Windows
 
             // === TRAY СЕРВИСЫ ===
             services.AddSingleton<ITrayService, TrayService>();
-            // Регистрируем координатор уведомлений
-            services.AddSingleton<TrayNotificationCoordinator>();
+            
+            // ✅ НОВОЕ: NotificationService заменяет TrayNotificationCoordinator
+            services.AddSingleton<INotificationService, NotificationService>();
+
+            // ✅ УБРАЛИ: TrayNotificationCoordinator - заменен на NotificationService
 
             // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
             // VoiceRecordingService зависит от других сервисов

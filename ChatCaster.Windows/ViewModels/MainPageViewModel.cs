@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
-using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,7 +16,7 @@ namespace ChatCaster.Windows.ViewModels
         private readonly IAudioCaptureService _audioService;
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly AppConfig _config;
-        private readonly TrayNotificationCoordinator _trayCoordinator;
+        private readonly INotificationService _notificationService; 
 
         #endregion
 
@@ -118,18 +117,18 @@ namespace ChatCaster.Windows.ViewModels
                 {
                     RecordingStatusText = "Микрофон работает";
                     
-                    // Отправляем уведомление об успешном тесте
+                    // ✅ ЗАМЕНИЛИ: Отправляем уведомление об успешном тесте через новый сервис
                     var deviceName = !string.IsNullOrEmpty(CurrentMicrophone) && CurrentMicrophone != "Не выбран" 
                         ? CurrentMicrophone 
                         : null;
-                    _trayCoordinator.NotifyMicrophoneTestResult(true, deviceName);
+                    _notificationService.NotifyMicrophoneTest(true, deviceName);
                 }
                 else
                 {
                     RecordingStatusText = "Проблема с микрофоном";
                     
-                    // Отправляем уведомление об ошибке теста
-                    _trayCoordinator.NotifyMicrophoneTestResult(false);
+                    // ✅ ЗАМЕНИЛИ: Отправляем уведомление об ошибке теста через новый сервис
+                    _notificationService.NotifyMicrophoneTest(false);
                 }
             }
             catch (Exception ex)
@@ -137,8 +136,8 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Error(ex, "Ошибка тестирования микрофона");
                 RecordingStatusText = $"Ошибка тестирования: {ex.Message}";
                 
-                // Отправляем уведомление об ошибке
-                _trayCoordinator.NotifyMicrophoneTestResult(false);
+                // ✅ ЗАМЕНИЛИ: Отправляем уведомление об ошибке через новый сервис
+                _notificationService.NotifyMicrophoneTest(false);
             }
         }
 
@@ -150,12 +149,12 @@ namespace ChatCaster.Windows.ViewModels
             IAudioCaptureService audioService,
             IVoiceRecordingService voiceRecordingService,
             AppConfig config,
-            TrayNotificationCoordinator trayCoordinator)
+            INotificationService notificationService)
         {
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _trayCoordinator = trayCoordinator ?? throw new ArgumentNullException(nameof(trayCoordinator));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService)); // ✅ ЗАМЕНИЛИ инициализацию
 
             // Подписываемся на события
             SubscribeToEvents();
@@ -163,7 +162,7 @@ namespace ChatCaster.Windows.ViewModels
             // Инициализируем начальные значения
             InitializeInitialValues();
 
-            Log.Debug("MainPageViewModel инициализирован с TrayNotificationCoordinator");
+            Log.Debug("MainPageViewModel инициализирован с INotificationService"); // ✅ ОБНОВИЛИ лог
         }
 
         #endregion
