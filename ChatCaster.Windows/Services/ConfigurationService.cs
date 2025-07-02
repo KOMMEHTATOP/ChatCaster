@@ -3,6 +3,7 @@ using System.Text.Json;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Events;
+using Serilog;
 using System.Text.Json.Serialization;
 
 namespace ChatCaster.Windows.Services;
@@ -79,19 +80,31 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[CONFIG] Сохраняем конфигурацию в: {ConfigPath}");
-            
+            Log.Debug("[CONFIG] Сохраняем конфигурацию в: {ConfigPath}", ConfigPath);
+        
+            // ✅ ДИАГНОСТИКА: Логируем что сохраняем
+            Log.Debug("[SAVE] AllowCompleteExit = {AllowCompleteExit}, Config HashCode = {HashCode}", 
+                config.System?.AllowCompleteExit, config.GetHashCode());
+        
             var jsonText = JsonSerializer.Serialize(config, GetJsonOptions());
             await File.WriteAllTextAsync(ConfigPath, jsonText);
-            
-            // Обновляем кеш (без события - событие стреляется при изменении конкретных настроек)
+        
+            // ✅ ДИАГНОСТИКА: Проверяем что записалось в файл
+            var savedText = await File.ReadAllTextAsync(ConfigPath);
+            Log.Debug("[SAVE] В файле сохранено allowCompleteExit: {HasField}", savedText.Contains("allowCompleteExit"));
+        
+            // Обновляем кеш
             CurrentConfig = config;
-            
-            System.Diagnostics.Debug.WriteLine("[CONFIG] Конфигурация успешно сохранена");
+        
+            // ✅ ДИАГНОСТИКА: Проверяем кеш после обновления
+            Log.Debug("[SAVE] CurrentConfig.AllowCompleteExit = {AllowCompleteExit}, HashCode = {HashCode}", 
+                CurrentConfig.System?.AllowCompleteExit, CurrentConfig.GetHashCode());
+        
+            Log.Debug("[CONFIG] Конфигурация успешно сохранена");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CONFIG] Ошибка сохранения конфигурации: {ex.Message}");
+            Log.Error(ex, "[CONFIG] Ошибка сохранения конфигурации");
             throw;
         }
     }

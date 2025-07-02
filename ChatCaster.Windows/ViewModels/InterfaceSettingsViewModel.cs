@@ -161,6 +161,12 @@ namespace ChatCaster.Windows.ViewModels
             config.System.StartWithSystem = StartWithWindows; 
             config.System.StartMinimized = StartMinimized;
 
+            Log.Debug("Config HashCode в Settings: {HashCode}, AllowCompleteExit установлен в: {Value}, MinimizeToTray был: {MinimizeToTray}", 
+                config.GetHashCode(), 
+                config.System.AllowCompleteExit,
+                MinimizeToTray);
+
+            
             Log.Debug("Настройки интерфейса применены к конфигурации");
             return Task.CompletedTask;
         }

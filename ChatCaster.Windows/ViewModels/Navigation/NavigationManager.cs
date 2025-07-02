@@ -141,15 +141,14 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             {
                 Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
 
-                // Создаем View с интерфейсами вместо конкретных классов
                 var audioView = new AudioSettingsView(_audioService, _speechService);
                 Log.Information("AudioSettingsView создан");
 
                 var audioViewModel = new AudioSettingsViewModel(
-                    _configService,
-                    _currentConfig,
+                    _configService, 
+                    _configService.CurrentConfig, 
                     _speechService,
-                    _audioService);
+                    _audioService); 
                 Log.Information("AudioSettingsViewModel создан");
 
                 audioView.SetViewModel(audioViewModel);
@@ -160,11 +159,10 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка создания AudioSettingsPage");
-                // Возвращаем fallback страницу
                 return _cachedPages[NavigationConstants.MainPage];
             }
         }
-
+        
         /// <summary>
         /// Создает страницу Interface Settings
         /// </summary>
@@ -172,15 +170,16 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         {
             try
             {
-                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _currentConfig);
-
-                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _currentConfig, _overlayService);
-
+                // ✅ ИСПРАВЛЕНИЕ: Используем ConfigurationService.CurrentConfig вместо _currentConfig
+                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _configService.CurrentConfig);
+        
+                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _configService.CurrentConfig, _overlayService);
+        
                 interfaceView.DataContext = interfaceViewModel;
-
+        
                 // Инициализируем ViewModel
                 _ = interfaceViewModel.InitializeAsync();
-
+        
                 return interfaceView;
             }
             catch (Exception ex)
@@ -197,11 +196,9 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         {
             try
             {
-                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _currentConfig,
-                    _gamepadVoiceCoordinator);
-
-                var controlViewModel = new ControlSettingsViewModel(_configService, _currentConfig, _gamepadService,
-                    _systemService, _gamepadVoiceCoordinator);
+                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _configService.CurrentConfig, _gamepadVoiceCoordinator);
+        
+                var controlViewModel = new ControlSettingsViewModel(_configService, _configService.CurrentConfig, _gamepadService, _systemService, _gamepadVoiceCoordinator);
 
                 controlView.DataContext = controlViewModel;
 

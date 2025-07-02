@@ -16,13 +16,16 @@ namespace ChatCaster.Windows.Views
     {
         private readonly ChatCasterWindowViewModel _viewModel;
         private readonly ITrayService _trayService;
+        private readonly IConfigurationService _configurationService;
 
-        public ChatCasterWindow(ChatCasterWindowViewModel viewModel, ITrayService trayService)
+        public ChatCasterWindow(ChatCasterWindowViewModel viewModel, ITrayService trayService,
+            IConfigurationService configurationService)
         {
             InitializeComponent();
 
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
 
             // Установка DataContext
             DataContext = _viewModel;
@@ -66,13 +69,18 @@ namespace ChatCaster.Windows.Views
         {
             Log.Debug("Попытка закрытия окна");
 
-            if (_viewModel.CurrentConfig?.System?.AllowCompleteExit != true)
+            var currentConfig = _configurationService.CurrentConfig;
+
+            Log.Debug("[CLOSE] Используем ConfigService HashCode: {HashCode}, AllowCompleteExit: {AllowCompleteExit}",
+                currentConfig?.GetHashCode(), currentConfig?.System?.AllowCompleteExit);
+
+            if (currentConfig?.System?.AllowCompleteExit != true)
             {
                 // AllowCompleteExit = false --> MinimizeToTray = true --> сворачиваем в трей
                 e.Cancel = true;
                 Hide();
                 ShowInTaskbar = false;
-        
+
                 _trayService.ShowFirstTimeNotification();
                 Log.Information("Окно скрыто в трей (настройка сворачивания включена)");
             }
@@ -80,17 +88,17 @@ namespace ChatCaster.Windows.Views
             {
                 // AllowCompleteExit = true --> MinimizeToTray = false --> полное закрытие
                 Log.Information("Полное завершение работы ChatCaster (настройка полного закрытия включена)");
-        
+
                 try
                 {
-                    // ✅ Запускаем cleanup асинхронно БЕЗ ожидания
+                    // Запускаем cleanup асинхронно БЕЗ ожидания
                     _ = Task.Run(() => _viewModel.Cleanup());
-            
-                    // ✅ Освобождаем TrayService синхронно (быстрая операция)
+
+                    // Освобождаем TrayService синхронно (быстрая операция)
                     _trayService.Dispose();
                     Log.Debug("TrayService освобожден при закрытии");
-            
-                    // ✅ НОВОЕ: Принудительное завершение через 200ms для гарантии
+
+                    // Принудительное завершение через 200ms для гарантии
                     _ = Task.Delay(200).ContinueWith(_ =>
                     {
                         try
@@ -107,14 +115,13 @@ namespace ChatCaster.Windows.Views
                 catch (Exception ex)
                 {
                     Log.Error(ex, "Ошибка при очистке ресурсов");
-            
-                    // ✅ Fallback: немедленное завершение при критической ошибке
+
+                    // Fallback: немедленное завершение при критической ошибке
                     _ = Task.Run(() => Environment.Exit(1));
                 }
             }
         }
-        
-        
+
         public void NavigateToSettings()
         {
             _viewModel.NavigateToSettings();
@@ -134,7 +141,7 @@ namespace ChatCaster.Windows.Views
                 Log.Error(ex, "Ошибка при навигации на страницу");
             }
         }
-        
+
         private async Task NavigateToPageWithAnimation(string pageTag)
         {
             Log.Debug("Навигация на страницу: {PageTag}", pageTag);
@@ -240,7 +247,7 @@ namespace ChatCaster.Windows.Views
                 Log.Error(ex, "Ошибка при обработке клавиши: {Key}", e.Key);
             }
         }
-        
+
         protected override void OnClosed(EventArgs e)
         {
             Log.Information("Окно ChatCaster закрыто");

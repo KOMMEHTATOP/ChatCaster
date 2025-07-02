@@ -138,10 +138,9 @@ namespace ChatCaster.Windows.ViewModels
             _currentConfig = currentConfig;
             _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
 
-            // Создаем NavigationManager с TrayNotificationCoordinator
             _navigationManager = new NavigationManager(
                 audioService, speechService, gamepadService, systemService,
-                overlayService, configurationService, currentConfig, 
+                overlayService, configurationService, configurationService.CurrentConfig, 
                 voiceRecordingService, gamepadVoiceCoordinator, trayCoordinator); 
 
             // Подписываемся на события навигации
@@ -168,7 +167,8 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Information("Инициализация ChatCasterWindowViewModel начата");
 
                 Log.Debug("Загружаем конфигурацию...");
-                CurrentConfig = await _configurationService.LoadConfigAsync();
+                await _configurationService.LoadConfigAsync();
+                CurrentConfig = _configurationService.CurrentConfig; 
                 
                 if (_trayService is TrayService trayServiceImpl)
                 {

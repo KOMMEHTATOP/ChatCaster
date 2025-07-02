@@ -90,6 +90,10 @@ namespace ChatCaster.Windows.ViewModels.Base
                 // Применяем настройки к конфигурации
                 await ApplySettingsToConfigAsync(_currentConfig);
 
+                Log.Debug("После сохранения - Config HashCode: {HashCode}, AllowCompleteExit: {Value}", 
+                    _currentConfig.GetHashCode(), 
+                    _currentConfig.System?.AllowCompleteExit);
+
                 // Сохраняем конфигурацию
                 await _configurationService.SaveConfigAsync(_currentConfig);
                 Log.Information("[{ViewModelName}] Конфигурация сохранена в файл", GetType().Name);
