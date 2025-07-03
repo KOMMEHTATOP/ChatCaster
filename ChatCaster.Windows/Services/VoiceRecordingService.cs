@@ -307,8 +307,6 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
                 lock (_recordingBuffer)
                 {
                     _recordingBuffer.AddRange(audioData);
-                    Console.WriteLine(
-                        $"Получен аудио блок: {audioData.Length} байт, всего в буфере: {_recordingBuffer.Count} байт");
                 }
             }
         }

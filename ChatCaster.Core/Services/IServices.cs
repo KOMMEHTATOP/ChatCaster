@@ -123,21 +123,101 @@ public interface IOverlayService
 }
 
 /// <summary>
-/// Сервис системной интеграции (Platform-specific)
+/// Композитный сервис системной интеграции - объединяет все платформо-специфичные сервисы
 /// </summary>
 public interface ISystemIntegrationService
 {
+    // Текстовый ввод
     Task<bool> SendTextAsync(string text);
+    void SetTypingDelay(int delayMs);
+    
+    // Горячие клавиши
     Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut);
     Task<bool> UnregisterGlobalHotkeyAsync();
-
+    event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
+    
+    // Системные функции
     Task<bool> SetAutoStartAsync(bool enabled);
     Task<bool> IsAutoStartEnabledAsync();
-
     Task ShowNotificationAsync(string title, string message);
-
-    event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
+    
+    // Информация о состоянии
+    bool IsTextInputAvailable { get; }
+    string ActiveWindowTitle { get; }
 }
+
+/// <summary>
+/// Сервис для работы с окнами системы
+/// </summary>
+public interface IWindowService
+{
+    /// <summary>
+    /// Получает заголовок активного окна
+    /// </summary>
+    string GetActiveWindowTitle();
+    
+    /// <summary>
+    /// Проверяет, является ли окно собственным окном приложения
+    /// </summary>
+    bool IsOwnWindow(string windowTitle);
+    
+    /// <summary>
+    /// Проверяет, является ли окно Steam-приложением
+    /// </summary>
+    bool IsSteamWindow(string windowTitle);
+    
+    /// <summary>
+    /// Получает handle активного окна
+    /// </summary>
+    IntPtr GetActiveWindowHandle();
+}
+
+/// <summary>
+/// Сервис для ввода текста в активное окно
+/// </summary>
+public interface ITextInputService
+{
+    /// <summary>
+    /// Отправляет текст в активное окно
+    /// </summary>
+    Task<bool> SendTextAsync(string text);
+    
+    /// <summary>
+    /// Устанавливает задержку между вводом символов
+    /// </summary>
+    void SetTypingDelay(int delayMs);
+    
+    /// <summary>
+    /// Проверяет возможность ввода в текущее активное окно
+    /// </summary>
+    bool CanSendToActiveWindow();
+}
+
+/// <summary>
+/// Сервис для работы с глобальными горячими клавишами
+/// </summary>
+public interface IGlobalHotkeyService
+{
+    event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
+    
+    Task<bool> RegisterAsync(KeyboardShortcut shortcut);
+    Task<bool> UnregisterAsync();
+    
+    bool IsRegistered { get; }
+    KeyboardShortcut? CurrentShortcut { get; }
+}
+
+/// <summary>
+/// Сервис для системных уведомлений и автозапуска
+/// </summary>
+public interface ISystemNotificationService
+{
+    Task ShowNotificationAsync(string title, string message);
+    Task<bool> SetAutoStartAsync(bool enabled);
+    Task<bool> IsAutoStartEnabledAsync();
+}
+
+
 
 /// <summary>
 /// Интерфейс для работы с системным треем

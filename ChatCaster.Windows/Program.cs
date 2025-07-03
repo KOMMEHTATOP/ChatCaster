@@ -10,6 +10,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Core.Logging;
 using ChatCaster.SpeechRecognition.Whisper.Extensions;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
+using ChatCaster.Windows.Services.IntegrationService;
 using Serilog;
 
 namespace ChatCaster.Windows
@@ -133,6 +134,12 @@ namespace ChatCaster.Windows
             services.AddSingleton<IGamepadService>(provider => 
                 provider.GetRequiredService<Services.GamepadService.MainGamepadService>());
 
+            // === ИНТЕГРАЦИОННЫЕ СЕРВИСЫ ===
+            services.AddSingleton<IWindowService, WindowService>();
+            services.AddSingleton<ITextInputService, TextInputService>();
+            services.AddSingleton<IGlobalHotkeyService, GlobalHotkeyService>();
+            services.AddSingleton<ISystemNotificationService, SystemNotificationService>();
+            
             // === TRAY СЕРВИСЫ ===
             services.AddSingleton<ITrayService, TrayService>();
             services.AddSingleton<INotificationService, NotificationService>();
