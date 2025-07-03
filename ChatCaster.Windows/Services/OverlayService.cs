@@ -31,7 +31,6 @@ public class OverlayService : IOverlayService, IDisposable
 
     public void SubscribeToVoiceService(IVoiceRecordingService voiceService, IConfigurationService configService)
     {
-        // ✅ ИСПРАВЛЕНИЕ: Отписываемся от старого сервиса если есть
         if (_voiceService != null)
         {
             _voiceService.StatusChanged -= OnRecordingStatusChanged;

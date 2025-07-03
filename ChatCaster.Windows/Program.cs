@@ -39,8 +39,19 @@ namespace ChatCaster.Windows
                 var trayService = _serviceProvider.GetRequiredService<ITrayService>();
                 var notificationService = _serviceProvider.GetRequiredService<INotificationService>();
 
-                // ✅ УБРАЛИ: Дублирующую подписку на события трея - теперь это делает ChatCasterWindow
-                // ✅ УБРАЛИ: SetConfig - теперь TrayService сам получает конфигурацию через DI
+                // ✅ ДОБАВЛЕНО: Инициализируем подписку оверлея на события записи
+                var overlayService = _serviceProvider.GetRequiredService<IOverlayService>() as OverlayService;
+                var voiceRecordingService = _serviceProvider.GetRequiredService<IVoiceRecordingService>();
+                var configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
+                if (overlayService != null)
+                {
+                    overlayService.SubscribeToVoiceService(voiceRecordingService, configurationService);
+                    Log.Information("OverlayService подписан на события VoiceRecordingService");
+                }
+                else
+                {
+                    Log.Warning("Не удалось получить OverlayService для подписки на события");
+                }
 
                 // Инициализируем TrayService
                 trayService.Initialize();
@@ -124,12 +135,8 @@ namespace ChatCaster.Windows
 
             // === TRAY СЕРВИСЫ ===
             services.AddSingleton<ITrayService, TrayService>();
-            
-            // ✅ НОВОЕ: NotificationService заменяет TrayNotificationCoordinator
             services.AddSingleton<INotificationService, NotificationService>();
-
-            // ✅ УБРАЛИ: TrayNotificationCoordinator - заменен на NotificationService
-
+            
             // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
             // VoiceRecordingService зависит от других сервисов
             services.AddSingleton<IVoiceRecordingService>(provider =>

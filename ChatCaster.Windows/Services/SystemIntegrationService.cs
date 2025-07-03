@@ -496,9 +496,7 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
         SendInput(2, inputs, INPUT.Size);
     }
-
-// В SystemIntegrationService.cs - ПОЛНОСТЬЮ заменить RegisterGlobalHotkeyAsync:
-
+    
     public async Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut)
     {
         Console.WriteLine($"[SystemIntegration] Регистрируем хоткей: {shortcut.Modifiers}+{shortcut.Key}");

@@ -73,7 +73,7 @@ public class SpeechEngineCapabilities
     public bool SupportsGpuAcceleration { get; set; }
     public bool SupportsRealTimeProcessing { get; set; }
     public bool RequiresInternetConnection { get; set; }
-    public int[] SupportedSampleRates { get; set; } = Array.Empty<int>();
+    public int[] SupportedSampleRates { get; set; } = [];
     public int MinAudioDurationMs { get; set; }
     public int MaxAudioDurationMs { get; set; }
 }

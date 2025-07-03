@@ -207,7 +207,7 @@ namespace ChatCaster.Windows.ViewModels
                 await _overlayService.ApplyConfigAsync(CurrentConfig.Overlay);
                 Log.Information("Конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
                     CurrentConfig.Overlay.Position, CurrentConfig.Overlay.Opacity);
-
+                
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
                     Log.Debug("Регистрируем хоткей: {Key} + {Modifiers}",

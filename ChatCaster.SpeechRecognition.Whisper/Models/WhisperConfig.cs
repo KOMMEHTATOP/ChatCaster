@@ -1,6 +1,5 @@
 using ChatCaster.Core.Models;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
-using ChatCaster.SpeechRecognition.Whisper.Exceptions;
 
 namespace ChatCaster.SpeechRecognition.Whisper.Models;
 
