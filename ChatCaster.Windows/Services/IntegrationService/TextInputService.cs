@@ -111,7 +111,11 @@ public class TextInputService : ITextInputService
                 _logger.LogInformation("Отправляем текст: '{Text}'", text);
 
                 var activeWindow = _windowService.GetActiveWindowTitle();
-                _logger.LogDebug("Активное окно: '{ActiveWindow}'", activeWindow);
+                _logger.LogInformation("=== АНАЛИЗ ОКНА ===");
+                _logger.LogInformation("Активное окно: '{ActiveWindow}'", activeWindow);
+                _logger.LogInformation("Длина названия: {Length}", activeWindow.Length);
+                _logger.LogInformation("Это собственное окно: {IsOwn}", _windowService.IsOwnWindow(activeWindow));
+                _logger.LogInformation("Это Steam окно: {IsSteam}", _windowService.IsSteamWindow(activeWindow));
 
                 if (_windowService.IsOwnWindow(activeWindow))
                 {
@@ -182,7 +186,34 @@ public class TextInputService : ITextInputService
         
         _logger.LogDebug("Текст отправлен в Steam Store");
     }
+    
+    public async Task<bool> ClearActiveFieldAsync()
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var activeWindow = _windowService.GetActiveWindowTitle();
+                _logger.LogInformation("Очищаем активное поле в окне: '{ActiveWindow}'", activeWindow);
 
+                if (_windowService.IsOwnWindow(activeWindow))
+                {
+                    _logger.LogWarning("Отказ: попытка очистки в собственном окне ChatCaster");
+                    return false;
+                }
+
+                SendClearField();
+                _logger.LogInformation("Поле успешно очищено");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка очистки активного поля");
+                return false;
+            }
+        });
+    }
+    
     private void SendClearField()
     {
         _logger.LogTrace("Очищаем поле ввода");
@@ -571,6 +602,35 @@ public class TextInputService : ITextInputService
         }
     }
 
+    public async Task<bool> SelectAllTextAsync()
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var activeWindow = _windowService.GetActiveWindowTitle();
+                _logger.LogDebug("Выделяем весь текст в окне: '{ActiveWindow}'", activeWindow);
+
+                if (_windowService.IsOwnWindow(activeWindow))
+                {
+                    _logger.LogWarning("Отказ: попытка выделения в собственном окне ChatCaster");
+                    return false;
+                }
+
+                // Отправляем Ctrl+A
+                SendKeyCombo(0x11, 0x41); // VK_CONTROL + VK_A
+            
+                _logger.LogDebug("Текст выделен");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка выделения текста");
+                return false;
+            }
+        });
+    }
+    
     private void SendCharWithScanCode(char c)
     {
         short vk = VkKeyScan(c);

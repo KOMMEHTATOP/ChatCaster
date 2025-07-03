@@ -83,7 +83,36 @@ public class GamepadVoiceCoordinator : IDisposable
             }
         }
     }
-
+    
+    private async void HandleClearField()
+    {
+        try
+        {
+            Console.WriteLine("[GamepadVoiceCoordinator] 🧹 Активирована очистка поля");
+        
+            // Выделяем текст для визуальной обратной связи
+            await _systemService.SelectAllTextAsync();
+            Thread.Sleep(200); // Пауза чтобы пользователь увидел выделение
+        
+            // Очищаем поле (Delete или Backspace)
+            bool success = await _systemService.ClearActiveFieldAsync();
+        
+            if (success)
+            {
+                Console.WriteLine($"[GamepadVoiceCoordinator] ✅ Поле очищено");
+                _trayService.ShowNotification("ChatCaster", "✅ Поле очищено", NotificationType.Success, 1500);
+            }
+            else
+            {
+                Console.WriteLine($"[GamepadVoiceCoordinator] ❌ Не удалось очистить поле");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GamepadVoiceCoordinator] ❌ Ошибка очистки: {ex.Message}");
+        }
+    }
+    
     /// <summary>
     /// Статус активности геймпада
     /// </summary>
@@ -286,25 +315,35 @@ public class GamepadVoiceCoordinator : IDisposable
     {
         Console.WriteLine($"[GamepadVoiceCoordinator] 🎯 Комбинация сработала: {e.Shortcut.DisplayText} ({e.HoldTimeMs}ms)");
 
-        // Обрабатываем нажатие в фоновом потоке
-        Task.Run(async () =>
+        // Определяем действие по времени удержания
+        if (e.HoldTimeMs >= 2000) // Длинное удержание - очистка поля
         {
-            try
+            Console.WriteLine("[GamepadVoiceCoordinator] 🧹 Длинное удержание - очищаем поле");
+            HandleClearField();
+        }
+        else // Короткое нажатие - голосовой ввод
+        {
+            Console.WriteLine("[GamepadVoiceCoordinator] 🎤 Короткое нажатие - голосовой ввод");
+        
+            // Обрабатываем голосовой ввод в фоновом потоке
+            Task.Run(async () =>
             {
-                await HandleShortcutPressed(e);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GamepadVoiceCoordinator] Ошибка обработки комбинации: {ex.Message}");
-                _trayService.ShowNotification("Ошибка", "Ошибка обработки геймпада", NotificationType.Error);
-            }
-        });
+                try
+                {
+                    await HandleVoiceInput(e);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[GamepadVoiceCoordinator] Ошибка обработки комбинации: {ex.Message}");
+                    _trayService.ShowNotification("Ошибка", "Ошибка обработки геймпада", NotificationType.Error);
+                }
+            });
+        }
     }
-
     /// <summary>
     /// Обработка нажатия комбинации в зависимости от режима
     /// </summary>
-    private async Task HandleShortcutPressed(GamepadShortcutPressedEvent e)
+    private async Task HandleVoiceInput(GamepadShortcutPressedEvent e)
     {
         switch (_activationMode)
         {

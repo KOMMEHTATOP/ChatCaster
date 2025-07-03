@@ -130,10 +130,13 @@ public interface ISystemIntegrationService
     // Текстовый ввод
     Task<bool> SendTextAsync(string text);
     void SetTypingDelay(int delayMs);
-    
+    Task<bool> ClearActiveFieldAsync();
+    Task<bool> SelectAllTextAsync();
+
     // Горячие клавиши
     Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut);
     Task<bool> UnregisterGlobalHotkeyAsync();
+
     event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
     
     // Системные функции
@@ -181,7 +184,8 @@ public interface ITextInputService
     /// Отправляет текст в активное окно
     /// </summary>
     Task<bool> SendTextAsync(string text);
-    
+    Task<bool> ClearActiveFieldAsync();
+    Task<bool> SelectAllTextAsync();
     /// <summary>
     /// Устанавливает задержку между вводом символов
     /// </summary>

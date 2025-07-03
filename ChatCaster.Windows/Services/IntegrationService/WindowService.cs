@@ -26,16 +26,31 @@ public class WindowService : IWindowService
     public string GetActiveWindowTitle()
     {
         IntPtr handle = GetForegroundWindow();
-        if (handle == IntPtr.Zero) return string.Empty;
+        _logger.LogDebug("GetForegroundWindow returned handle: {Handle}", handle);
+    
+        if (handle == IntPtr.Zero) 
+        {
+            _logger.LogWarning("GetForegroundWindow returned Zero handle");
+            return string.Empty;
+        }
 
         int length = GetWindowTextLength(handle);
-        if (length <= 0) return string.Empty;
+        _logger.LogDebug("Window text length: {Length}", length);
+    
+        if (length <= 0) 
+        {
+            _logger.LogWarning("Window text length is {Length}", length);
+            return string.Empty;
+        }
 
         var title = new StringBuilder(length + 1);
-        GetWindowText(handle, title, title.Capacity);
-        return title.ToString();
+        int result = GetWindowText(handle, title, title.Capacity);
+        var windowTitle = title.ToString();
+    
+        _logger.LogDebug("Window title retrieved: '{Title}' (result: {Result})", windowTitle, result);
+        return windowTitle;
     }
-
+    
     public IntPtr GetActiveWindowHandle() => GetForegroundWindow();
 
     public bool IsOwnWindow(string windowTitle) => 

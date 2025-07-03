@@ -38,9 +38,12 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
     #region Текстовый ввод
     public Task<bool> SendTextAsync(string text) => _textInputService.SendTextAsync(text);
 
+    public Task<bool> ClearActiveFieldAsync() => _textInputService.ClearActiveFieldAsync(); 
+    public Task<bool> SelectAllTextAsync() => _textInputService.SelectAllTextAsync();
+
     public void SetTypingDelay(int delayMs) => _textInputService.SetTypingDelay(delayMs);
     #endregion
-
+    
     #region Горячие клавиши
     public Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut) => 
         _hotkeyService.RegisterAsync(shortcut);
