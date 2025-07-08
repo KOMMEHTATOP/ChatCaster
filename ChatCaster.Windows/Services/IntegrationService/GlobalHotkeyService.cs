@@ -1,14 +1,15 @@
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Windows.Converters;
 using NHotkey.Wpf;
 using Serilog;
-using WpfKey = System.Windows.Input.Key;
-using WpfModifierKeys = System.Windows.Input.ModifierKeys;
 
 namespace ChatCaster.Windows.Services.IntegrationService;
 
 public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
 {
+    private readonly static ILogger _logger = Log.ForContext<GlobalHotkeyService>();
+
     public event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
 
     private KeyboardShortcut? _registeredHotkey;
@@ -18,27 +19,17 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
 
     public async Task<bool> RegisterAsync(KeyboardShortcut shortcut)
     {
-        Log.Information($"[GlobalHotkeyService] Регистрируем хоткей: {shortcut.Modifiers}+{shortcut.Key}");
+        _logger.Debug("Регистрируем хоткей: {Modifiers}+{Key}", shortcut.Modifiers, shortcut.Key);
 
         try
         {
-            // Конвертируем модификаторы
-            var modifiers = WpfModifierKeys.None;
-            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Control))
-                modifiers |= WpfModifierKeys.Control;
-            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Shift))
-                modifiers |= WpfModifierKeys.Shift;
-            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Alt))
-                modifiers |= WpfModifierKeys.Alt;
-            if (shortcut.Modifiers.HasFlag(Core.Models.ModifierKeys.Windows))
-                modifiers |= WpfModifierKeys.Windows;
+            // Используем конвертер вместо дублирования логики
+            var modifiers = WpfCoreConverter.ConvertToWpf(shortcut.Modifiers);
+            var key = WpfCoreConverter.ConvertToWpf(shortcut.Key);
 
-            // Конвертируем клавишу
-            var key = ConvertKey(shortcut.Key);
-
-            if (key == WpfKey.None)
+            if (key == null)
             {
-                Log.Information($"❌ Неподдерживаемая клавиша: {shortcut.Key}");
+                _logger.Warning("Неподдерживаемая клавиша: {Key}", shortcut.Key);
                 return false;
             }
 
@@ -46,7 +37,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
 
             if (System.Windows.Application.Current != null)
             {
-                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     try
                     {
@@ -57,22 +48,23 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                         }
                         catch { }
 
-                        Thread.Sleep(100);
+                        // Небольшая задержка для очистки
+                        await Task.Delay(100);
 
                         // Регистрируем новый хоткей
-                        HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, (sender, e) =>
+                        HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key.Value, modifiers, (sender, e) =>
                         {
-                            Log.Information($"🎯 Хоткей сработал: {shortcut.Modifiers}+{shortcut.Key}");
+                            _logger.Debug("Хоткей сработал: {Modifiers}+{Key}", shortcut.Modifiers, shortcut.Key);
                             GlobalHotkeyPressed?.Invoke(this, shortcut);
                         });
 
                         _registeredHotkey = shortcut;
                         result = true;
-                        Log.Information($"✅ Хоткей зарегистрирован успешно");
+                        _logger.Information("Хоткей зарегистрирован успешно: {DisplayText}", shortcut.DisplayText);
                     }
                     catch (Exception ex)
                     {
-                        Log.Information($"❌ Ошибка регистрации: {ex.Message}");
+                        _logger.Error(ex, "Ошибка регистрации хоткея");
                         result = false;
                     }
                 });
@@ -82,14 +74,14 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Information($"❌ Критическая ошибка: {ex.Message}");
+            _logger.Error(ex, "Критическая ошибка регистрации хоткея");
             return false;
         }
     }
 
     public async Task<bool> UnregisterAsync()
     {
-        Log.Information($"[GlobalHotkeyService] UnregisterAsync вызван");
+        _logger.Debug("Отмена регистрации хоткея");
 
         try
         {
@@ -105,11 +97,11 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                         {
                             HotkeyManager.Current.Remove("ChatCasterVoiceInput");
                             result = true;
-                            Log.Information($"[GlobalHotkeyService] Глобальный хоткей отменен");
+                            _logger.Debug("Глобальный хоткей отменен");
                         }
                         catch (Exception ex)
                         {
-                            Log.Information($"[GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
+                            _logger.Warning(ex, "Ошибка отмены хоткея");
                             result = false;
                         }
                     });
@@ -127,79 +119,9 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Information($"❌ [GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
+            _logger.Error(ex, "Ошибка отмены хоткея");
             return false;
         }
-    }
-
-    private WpfKey ConvertKey(Core.Models.Key key)
-    {
-        return key switch
-        {
-            Core.Models.Key.A => WpfKey.A,
-            Core.Models.Key.B => WpfKey.B,
-            Core.Models.Key.C => WpfKey.C,
-            Core.Models.Key.D => WpfKey.D,
-            Core.Models.Key.E => WpfKey.E,
-            Core.Models.Key.F => WpfKey.F,
-            Core.Models.Key.G => WpfKey.G,
-            Core.Models.Key.H => WpfKey.H,
-            Core.Models.Key.I => WpfKey.I,
-            Core.Models.Key.J => WpfKey.J,
-            Core.Models.Key.K => WpfKey.K,
-            Core.Models.Key.L => WpfKey.L,
-            Core.Models.Key.M => WpfKey.M,
-            Core.Models.Key.N => WpfKey.N,
-            Core.Models.Key.O => WpfKey.O,
-            Core.Models.Key.P => WpfKey.P,
-            Core.Models.Key.Q => WpfKey.Q,
-            Core.Models.Key.R => WpfKey.R,
-            Core.Models.Key.S => WpfKey.S,
-            Core.Models.Key.T => WpfKey.T,
-            Core.Models.Key.U => WpfKey.U,
-            Core.Models.Key.V => WpfKey.V,
-            Core.Models.Key.W => WpfKey.W,
-            Core.Models.Key.X => WpfKey.X,
-            Core.Models.Key.Y => WpfKey.Y,
-            Core.Models.Key.Z => WpfKey.Z,
-            Core.Models.Key.F1 => WpfKey.F1,
-            Core.Models.Key.F2 => WpfKey.F2,
-            Core.Models.Key.F3 => WpfKey.F3,
-            Core.Models.Key.F4 => WpfKey.F4,
-            Core.Models.Key.F5 => WpfKey.F5,
-            Core.Models.Key.F6 => WpfKey.F6,
-            Core.Models.Key.F7 => WpfKey.F7,
-            Core.Models.Key.F8 => WpfKey.F8,
-            Core.Models.Key.F9 => WpfKey.F9,
-            Core.Models.Key.F10 => WpfKey.F10,
-            Core.Models.Key.F11 => WpfKey.F11,
-            Core.Models.Key.F12 => WpfKey.F12,
-            Core.Models.Key.Space => WpfKey.Space,
-            Core.Models.Key.Enter => WpfKey.Enter,
-            Core.Models.Key.Tab => WpfKey.Tab,
-            Core.Models.Key.Escape => WpfKey.Escape,
-            Core.Models.Key.D0 => WpfKey.D0,
-            Core.Models.Key.D1 => WpfKey.D1,
-            Core.Models.Key.D2 => WpfKey.D2,
-            Core.Models.Key.D3 => WpfKey.D3,
-            Core.Models.Key.D4 => WpfKey.D4,
-            Core.Models.Key.D5 => WpfKey.D5,
-            Core.Models.Key.D6 => WpfKey.D6,
-            Core.Models.Key.D7 => WpfKey.D7,
-            Core.Models.Key.D8 => WpfKey.D8,
-            Core.Models.Key.D9 => WpfKey.D9,
-            Core.Models.Key.NumPad0 => WpfKey.NumPad0,
-            Core.Models.Key.NumPad1 => WpfKey.NumPad1,
-            Core.Models.Key.NumPad2 => WpfKey.NumPad2,
-            Core.Models.Key.NumPad3 => WpfKey.NumPad3,
-            Core.Models.Key.NumPad4 => WpfKey.NumPad4,
-            Core.Models.Key.NumPad5 => WpfKey.NumPad5,
-            Core.Models.Key.NumPad6 => WpfKey.NumPad6,
-            Core.Models.Key.NumPad7 => WpfKey.NumPad7,
-            Core.Models.Key.NumPad8 => WpfKey.NumPad8,
-            Core.Models.Key.NumPad9 => WpfKey.NumPad9,
-            _ => WpfKey.None
-        };
     }
 
     public void Dispose()
@@ -209,16 +131,16 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
             var task = UnregisterAsync();
             if (task.Wait(1000))
             {
-                Log.Information("✅ Хоткей снят успешно");
+                _logger.Debug("Хоткей снят при Dispose");
             }
             else
             {
-                Log.Information("⚠️ Таймаут снятия хоткея");
+                _logger.Warning("Таймаут снятия хоткея при Dispose");
             }
         }
         catch (Exception ex)
         {
-            Log.Information($"❌ Ошибка снятия хоткея: {ex.Message}");
+            _logger.Warning(ex, "Ошибка снятия хоткея при Dispose");
         }
     }
 }
