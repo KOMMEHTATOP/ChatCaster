@@ -17,22 +17,21 @@ namespace ChatCaster.Windows.ViewModels.Base
         #region Observable Properties
 
         [ObservableProperty]
-        private bool _isLoadingUI = false;
+        private bool _isLoadingUI;
 
         [ObservableProperty]
-        private bool _isInitialized = false;
+        private bool _isInitialized;
 
         [ObservableProperty]
         private string _statusMessage = "";
 
         [ObservableProperty]
-        private bool _hasUnsavedChanges = false;
+        private bool _hasUnsavedChanges;
 
         #endregion
 
         #region Constructor
 
-        // ✅ ИСПРАВЛЕНО: Конструктор без ServiceContext
         protected BaseSettingsViewModel(
             IConfigurationService configurationService, 
             AppConfig currentConfig)
@@ -84,7 +83,7 @@ namespace ChatCaster.Windows.ViewModels.Base
             {
                 StatusMessage = "Сохранение настроек...";
 
-                // ✅ ДИАГНОСТИКА: Логируем применение настроек
+                // Логируем применение настроек
                 Log.Information("[{ViewModelName}] === ПРИМЕНЕНИЕ НАСТРОЕК ===", GetType().Name);
 
                 // Применяем настройки к конфигурации
@@ -159,7 +158,7 @@ namespace ChatCaster.Windows.ViewModels.Base
         /// <summary>
         /// Загружает базовые настройки (по умолчанию)
         /// </summary>
-        protected virtual async Task LoadBaseSettingsAsync()
+        protected async Task LoadBaseSettingsAsync()
         {
             // Базовая загрузка - может быть переопределена
             await Task.CompletedTask;
@@ -213,24 +212,14 @@ namespace ChatCaster.Windows.ViewModels.Base
         #region Protected Helper Methods
 
         /// <summary>
-        /// Вызывается при изменении любого UI элемента для автоприменения
-        /// </summary>
-        protected async void OnUISettingChanged()
-        {
-            if (IsLoadingUI) return;
-
-            HasUnsavedChanges = true;
-            await ApplySettingsAsync();
-        }
-
-        /// <summary>
         /// Асинхронная версия для использования в ViewModels
         /// </summary>
         protected async Task OnUISettingChangedAsync()
         {
             if (IsLoadingUI) return;
 
-            // ✅ ДИАГНОСТИКА: Логируем изменение настроек в UI
+            // Логируем изменение настроек
+            // в UI
             Log.Debug("[{ViewModelName}] UI настройка изменена, применяем...", GetType().Name);
 
             HasUnsavedChanges = true;
@@ -252,49 +241,7 @@ namespace ChatCaster.Windows.ViewModels.Base
                 Log.Information("[{ViewModelName}] {Message}", GetType().Name, message);
             }
         }
-
-        /// <summary>
-        /// Проверяет готовность для работы с настройками
-        /// </summary>
-        protected bool IsReadyForOperation()
-        {
-            if (IsLoadingUI)
-            {
-                Log.Debug("[{ViewModelName}] Операция пропущена - идет загрузка UI", GetType().Name);
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Помощник для привязки ComboBox к enum значениям
-        /// </summary>
-        protected void SelectComboBoxItemByTag<T>(System.Windows.Controls.ComboBox comboBox, T value) where T : struct, Enum
-        {
-            foreach (System.Windows.Controls.ComboBoxItem item in comboBox.Items)
-            {
-                if (item.Tag is string tag && Enum.TryParse<T>(tag, out var itemValue) && itemValue.Equals(value))
-                {
-                    item.IsSelected = true;
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Помощник для получения выбранного enum значения из ComboBox
-        /// </summary>
-        protected T? GetSelectedComboBoxValue<T>(System.Windows.Controls.ComboBox comboBox) where T : struct, Enum
-        {
-            var selectedItem = comboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
-            if (selectedItem?.Tag is string tag && Enum.TryParse<T>(tag, out var value))
-            {
-                return value;
-            }
-            return null;
-        }
-
+        
         #endregion
 
         #region Public Initialization Method

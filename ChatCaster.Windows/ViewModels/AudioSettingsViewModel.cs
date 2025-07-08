@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Serilog;
 using System.Collections.ObjectModel;
 
-namespace ChatCaster.Windows.ViewModels.Settings;
+namespace ChatCaster.Windows.ViewModels;
 
 public partial class AudioSettingsViewModel : BaseSettingsViewModel
 {

@@ -2,6 +2,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.Utilities;
+using Serilog;
 
 namespace ChatCaster.Windows.Managers
 {
@@ -10,6 +11,8 @@ namespace ChatCaster.Windows.Managers
     /// </summary>
     public sealed class GamepadCaptureManager : ICaptureManager<GamepadShortcut>
     {
+        private readonly static ILogger _logger = Log.ForContext<GamepadCaptureManager>();
+
         #region Events
 
         /// <summary>
@@ -140,11 +143,11 @@ namespace ChatCaster.Windows.Managers
 
         private void OnGamepadShortcutCaptured(object? sender, GamepadShortcut capturedShortcut)
         {
-            System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] OnGamepadShortcutCaptured: {capturedShortcut.DisplayText}");
+            _logger.Debug("OnGamepadShortcutCaptured: {Shortcut}", capturedShortcut.DisplayText);
             
             if (_isDisposed) 
             {
-                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] ОТКЛОНЕНО - объект disposed");
+                _logger.Debug("Shortcut capture rejected - object disposed");
                 return;
             }
 
@@ -152,18 +155,17 @@ namespace ChatCaster.Windows.Managers
             {
                 // Останавливаем таймер
                 _captureTimer.Stop();
-                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] Таймер остановлен");
+                _logger.Debug("Capture timer stopped");
                 
                 // Уведомляем о успешном захвате
                 StatusChanged?.Invoke("Комбинация захвачена!");
-                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] StatusChanged вызвано");
+                _logger.Information("Gamepad shortcut captured: {Shortcut}", capturedShortcut.DisplayText);
                 
                 CaptureCompleted?.Invoke(capturedShortcut);
-                System.Diagnostics.Debug.WriteLine($"🎮 [GamepadCaptureManager] CaptureCompleted вызвано");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ [GamepadCaptureManager] Ошибка: {ex.Message}");
+                _logger.Error(ex, "Error processing gamepad shortcut capture");
                 CaptureError?.Invoke($"Ошибка обработки захвата: {ex.Message}");
             }
         }
@@ -176,31 +178,6 @@ namespace ChatCaster.Windows.Managers
             if (!status.Contains("Захват остановлен"))
             {
                 StatusChanged?.Invoke(status);
-            }
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Обновляет доступность геймпада
-        /// </summary>
-        /// <returns>true если геймпад доступен</returns>
-        public async Task<bool> UpdateAvailabilityAsync()
-        {
-            if (_isDisposed) return false;
-
-            try
-            {
-                var gamepad = await _gamepadService.GetConnectedGamepadAsync();
-                IsAvailable = gamepad != null;
-                return IsAvailable;
-            }
-            catch
-            {
-                IsAvailable = false;
-                return false;
             }
         }
 

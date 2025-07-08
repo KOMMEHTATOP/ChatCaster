@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using ChatCaster.Core.Services;
-using ChatCaster.Windows.ViewModels.Settings;
+using ChatCaster.Windows.ViewModels;
 using Serilog;
 
 namespace ChatCaster.Windows.Views.ViewSettings;

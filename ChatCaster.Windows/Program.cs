@@ -11,6 +11,7 @@ using ChatCaster.Core.Logging;
 using ChatCaster.SpeechRecognition.Whisper.Extensions;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.Windows.Services.IntegrationService;
+using ChatCaster.Windows.Services.OverlayService;
 using Serilog;
 
 namespace ChatCaster.Windows
@@ -39,21 +40,7 @@ namespace ChatCaster.Windows
                 var mainWindow = _serviceProvider.GetRequiredService<ChatCasterWindow>();
                 var trayService = _serviceProvider.GetRequiredService<ITrayService>();
                 var notificationService = _serviceProvider.GetRequiredService<INotificationService>();
-
-                // ✅ ДОБАВЛЕНО: Инициализируем подписку оверлея на события записи
-                var overlayService = _serviceProvider.GetRequiredService<IOverlayService>() as OverlayService;
-                var voiceRecordingService = _serviceProvider.GetRequiredService<IVoiceRecordingService>();
-                var configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
-                if (overlayService != null)
-                {
-                    overlayService.SubscribeToVoiceService(voiceRecordingService, configurationService);
-                    Log.Information("OverlayService подписан на события VoiceRecordingService");
-                }
-                else
-                {
-                    Log.Warning("Не удалось получить OverlayService для подписки на события");
-                }
-
+                
                 // Инициализируем TrayService
                 trayService.Initialize();
                 Log.Information("TrayService инициализирован");
@@ -126,7 +113,7 @@ namespace ChatCaster.Windows
             // === ОСНОВНЫЕ СЕРВИСЫ ===
             services.AddSingleton<IAudioCaptureService, AudioCaptureService>();
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
-            services.AddSingleton<IOverlayService, OverlayService>();
+            services.AddSingleton<IOverlayService, WindowsOverlayService>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
 
             // === ГЕЙМПАД СЕРВИСЫ ===

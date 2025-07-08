@@ -1,5 +1,5 @@
-
 using System.Windows;
+using Serilog;
 
 namespace ChatCaster.Windows.Utilities
 {
@@ -33,6 +33,8 @@ namespace ChatCaster.Windows.Utilities
     /// </summary>
     public sealed class CaptureUIStateManager : IDisposable
     {
+        private readonly static ILogger _logger = Log.ForContext<CaptureUIStateManager>();
+
         #region Events
 
         /// <summary>
@@ -56,7 +58,6 @@ namespace ChatCaster.Windows.Utilities
         private const string CapturingColor = "#ff6b6b";  // Красноватый
         private const string SuccessColor = "#4caf50";    // Зеленый
         private const string ErrorColor = "#f44336";      // Красный
-        private const string ProgressColor = "#81c784";   // Светло-зеленый
 
         #endregion
 
@@ -117,7 +118,7 @@ namespace ChatCaster.Windows.Utilities
         {
             if (_isDisposed) return;
 
-            // ✅ ОСТАНАВЛИВАЕМ предыдущий таймер если есть
+            // ОСТАНАВЛИВАЕМ предыдущий таймер если есть
             _countdownTimer?.Dispose();
 
             var timeLeft = timeoutSeconds;
@@ -132,15 +133,14 @@ namespace ChatCaster.Windows.Utilities
                 State = CaptureState.Capturing
             };
 
-            System.Diagnostics.Debug.WriteLine($"🕐 StartCapture: timeLeft = {timeLeft}");
+            _logger.Debug("Начат захват: {Message}, таймаут: {Timeout}с", capturingMessage, timeoutSeconds);
 
-            // ✅ ЗАПУСКАЕМ таймер обратного отсчета
+            // ЗАПУСКАЕМ таймер обратного отсчета
             _countdownTimer = new Timer(_ =>
             {
                 if (_isDisposed || CurrentState.State != CaptureState.Capturing) return;
 
                 timeLeft--;
-                System.Diagnostics.Debug.WriteLine($"🕐 Timer tick: timeLeft = {timeLeft}");
 
                 if (timeLeft >= 0)
                 {
@@ -171,27 +171,6 @@ namespace ChatCaster.Windows.Utilities
         }
 
         /// <summary>
-        /// Обновляет состояние во время захвата
-        /// </summary>
-        /// <param name="statusMessage">Текущий статус</param>
-        /// <param name="timeLeft">Оставшееся время</param>
-        /// <param name="isProgress">Показывает ли сообщение прогресс</param>
-        public void UpdateCapture(string statusMessage, int timeLeft, bool isProgress = false)
-        {
-            if (_isDisposed || CurrentState.State != CaptureState.Capturing) return;
-
-            CurrentState = new CaptureUIState
-            {
-                Text = statusMessage,
-                TextColor = isProgress ? ProgressColor : CapturingColor,
-                StatusMessage = CurrentState.StatusMessage,
-                ShowTimer = true,
-                TimeLeft = timeLeft,
-                State = CaptureState.Capturing
-            };
-        }
-
-        /// <summary>
         /// Завершает захват успешно
         /// </summary>
         /// <param name="successText">Текст успешного результата</param>
@@ -200,7 +179,6 @@ namespace ChatCaster.Windows.Utilities
         {
             if (_isDisposed) return;
 
-            // ✅ ИСПРАВЛЕНИЕ: Обновляем _originalText новым значением
             _originalText = successText;
 
             CurrentState = new CaptureUIState
@@ -213,11 +191,13 @@ namespace ChatCaster.Windows.Utilities
                 State = CaptureState.Success
             };
 
+            _logger.Information("Захват завершен успешно: {Text}", successText);
+
             // Через 2 секунды возвращаем к исходному состоянию
             await Task.Delay(2000);
             if (!_isDisposed)
             {
-                ReturnToIdle(); // ← Теперь вернет НОВЫЙ текст
+                ReturnToIdle();
             }
         }
         
@@ -238,6 +218,8 @@ namespace ChatCaster.Windows.Utilities
                 TimeLeft = 0,
                 State = CaptureState.Error
             };
+
+            _logger.Warning("Захват завершен с ошибкой: {Error}", errorMessage);
 
             // Через 3 секунды возвращаем к исходному состоянию
             await Task.Delay(3000);
@@ -264,26 +246,14 @@ namespace ChatCaster.Windows.Utilities
                 State = CaptureState.Timeout
             };
 
+            _logger.Debug("Захват завершен по таймауту");
+
             // Через 2 секунды очищаем сообщение
             await Task.Delay(2000);
             if (!_isDisposed)
             {
                 ReturnToIdle();
             }
-        }
-
-        /// <summary>
-        /// Принудительно останавливает захват
-        /// </summary>
-        public void StopCapture()
-        {
-            if (_isDisposed) return;
-            
-            // ✅ ОСТАНАВЛИВАЕМ таймер
-            _countdownTimer?.Dispose();
-            _countdownTimer = null;
-            
-            ReturnToIdle();
         }
 
         /// <summary>
@@ -313,7 +283,7 @@ namespace ChatCaster.Windows.Utilities
         {
             if (_isDisposed) return;
             
-            // ✅ ОСТАНАВЛИВАЕМ таймер при освобождении ресурсов
+            // ОСТАНАВЛИВАЕМ таймер при освобождении ресурсов
             _countdownTimer?.Dispose();
             _countdownTimer = null;
             

@@ -3,7 +3,6 @@ using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Views.ViewSettings;
 using ChatCaster.Windows.Services.GamepadService;
-using AudioSettingsViewModel = ChatCaster.Windows.ViewModels.Settings.AudioSettingsViewModel;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation

@@ -4,6 +4,9 @@ using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Utilities;
 using NHotkey;
 using NHotkey.Wpf;
+using Serilog;
+using Key = System.Windows.Input.Key;
+using ModifierKeys = System.Windows.Input.ModifierKeys;
 
 namespace ChatCaster.Windows.Managers
 {
@@ -12,6 +15,10 @@ namespace ChatCaster.Windows.Managers
     /// </summary>
     public sealed class KeyboardCaptureManager : ICaptureManager<KeyboardShortcut>
     {
+        private readonly static ILogger _logger = Log.ForContext<KeyboardCaptureManager>();
+
+        private static Dictionary<string, (Key key, ModifierKeys modifiers)>? _hotkeyLookup;
+        
         #region Events
 
         /// <summary>
@@ -43,45 +50,37 @@ namespace ChatCaster.Windows.Managers
         private bool _isDisposed;
 
         // Ограниченный набор клавиш для захвата (вместо 100+ хоткеев)
-        private static readonly System.Windows.Input.Key[] CaptureKeys = 
+        private readonly static Key[] CaptureKeys = 
         {
             // Функциональные клавиши (наиболее популярные для хоткеев)
-            System.Windows.Input.Key.F1, System.Windows.Input.Key.F2, System.Windows.Input.Key.F3, 
-            System.Windows.Input.Key.F4, System.Windows.Input.Key.F5, System.Windows.Input.Key.F6, 
-            System.Windows.Input.Key.F7, System.Windows.Input.Key.F8, System.Windows.Input.Key.F9, 
-            System.Windows.Input.Key.F10, System.Windows.Input.Key.F11, System.Windows.Input.Key.F12,
+            Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6, 
+            Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
             
             // Numpad (часто используется в играх)
-            System.Windows.Input.Key.NumPad0, System.Windows.Input.Key.NumPad1, System.Windows.Input.Key.NumPad2, 
-            System.Windows.Input.Key.NumPad3, System.Windows.Input.Key.NumPad4, System.Windows.Input.Key.NumPad5, 
-            System.Windows.Input.Key.NumPad6, System.Windows.Input.Key.NumPad7, System.Windows.Input.Key.NumPad8, 
-            System.Windows.Input.Key.NumPad9,
+            Key.NumPad0, Key.NumPad1, Key.NumPad2, Key.NumPad3, Key.NumPad4, 
+            Key.NumPad5, Key.NumPad6, Key.NumPad7, Key.NumPad8, Key.NumPad9,
             
             // Навигационные клавиши
-            System.Windows.Input.Key.Insert, System.Windows.Input.Key.Delete, 
-            System.Windows.Input.Key.Home, System.Windows.Input.Key.End, 
-            System.Windows.Input.Key.PageUp, System.Windows.Input.Key.PageDown,
+            Key.Insert, Key.Delete, Key.Home, Key.End, Key.PageUp, Key.PageDown,
             
             // Стрелки
-            System.Windows.Input.Key.Up, System.Windows.Input.Key.Down, 
-            System.Windows.Input.Key.Left, System.Windows.Input.Key.Right,
+            Key.Up, Key.Down, Key.Left, Key.Right,
             
             // Специальные клавиши для удобства тестирования
-            System.Windows.Input.Key.Space, System.Windows.Input.Key.Tab, System.Windows.Input.Key.Escape,
+            Key.Space, Key.Tab, Key.Escape,
             
             // Буквы для отладки (можно убрать после тестирования)
-            System.Windows.Input.Key.R, System.Windows.Input.Key.Q, 
-            System.Windows.Input.Key.W, System.Windows.Input.Key.E, System.Windows.Input.Key.V
+            Key.R, Key.Q, Key.W, Key.E, Key.V
         };
 
-        private static readonly System.Windows.Input.ModifierKeys[] CaptureModifiers = 
+        private readonly static ModifierKeys[] CaptureModifiers = 
         {
-            System.Windows.Input.ModifierKeys.Control,
-            System.Windows.Input.ModifierKeys.Shift,
-            System.Windows.Input.ModifierKeys.Alt,
-            System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift,
-            System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt,
-            System.Windows.Input.ModifierKeys.Shift | System.Windows.Input.ModifierKeys.Alt
+            ModifierKeys.Control,
+            ModifierKeys.Shift,
+            ModifierKeys.Alt,
+            ModifierKeys.Control | ModifierKeys.Shift,
+            ModifierKeys.Control | ModifierKeys.Alt,
+            ModifierKeys.Shift | ModifierKeys.Alt
         };
 
         #endregion
@@ -191,28 +190,27 @@ namespace ChatCaster.Windows.Managers
                         // Отладка для первых нескольких регистраций
                         if (registeredCount <= 5)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Registered: {hotkeyName} = {key} + {modifier}");
+                            _logger.Debug("Registered hotkey: {HotkeyName} = {Key} + {Modifier}", hotkeyName, key, modifier);
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Логируем конфликты для отладки
-                        System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Failed to register {key} + {modifier}: {ex.Message}");
+                        _logger.Debug("Failed to register hotkey {Key} + {Modifier}: {Error}", key, modifier, ex.Message);
                     }
                 }
             }
             
-            System.Diagnostics.Debug.WriteLine($"[KeyboardCapture] Total registered hotkeys: {registeredCount}");
+            _logger.Debug("Total registered hotkeys: {Count}", registeredCount);
         }
 
-private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
+        private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] OnHotkeyPressed: {e.Name}");
-            System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] IsCapturing: {IsCapturing}, _isDisposed: {_isDisposed}");
+            _logger.Debug("OnHotkeyPressed: {Name}", e.Name);
+            _logger.Debug("IsCapturing: {IsCapturing}, _isDisposed: {IsDisposed}", IsCapturing, _isDisposed);
             
             if (!IsCapturing || _isDisposed) 
             {
-                System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] ОТКЛОНЕНО - не захватываем или disposed");
+                _logger.Debug("Hotkey rejected - not capturing or disposed");
                 return;
             }
 
@@ -221,34 +219,31 @@ private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
                 // Получаем информацию о нажатой комбинации из имени хоткея
                 if (TryGetHotkeyInfo(e.Name, out var key, out var modifiers))
                 {
-                    System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Detected: {key} + {modifiers}");
+                    _logger.Debug("Detected hotkey: {Key} + {Modifiers}", key, modifiers);
                     
                     var keyboardShortcut = WpfCoreConverter.CreateKeyboardShortcut(key, modifiers);
                     
                     if (keyboardShortcut != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Created shortcut: {keyboardShortcut.DisplayText}");
+                        _logger.Information("Captured keyboard shortcut: {Shortcut}", keyboardShortcut.DisplayText);
                         
                         // Останавливаем захват
                         _captureTimer.Stop();
                         ClearRegisteredHotkeys();
-                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Захват остановлен");
+                        _logger.Debug("Capture stopped");
                         
                         StatusChanged?.Invoke($"Захвачена комбинация: {keyboardShortcut.DisplayText}");
-                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] StatusChanged вызвано");
-                        
                         CaptureCompleted?.Invoke(keyboardShortcut);
-                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] CaptureCompleted вызвано");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Failed to create shortcut for {key} + {modifiers}");
+                        _logger.Warning("Failed to create shortcut for {Key} + {Modifiers}", key, modifiers);
                         CaptureError?.Invoke("Неподдерживаемая комбинация клавиш");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"⌨️ [KeyboardCapture] Failed to parse hotkey: {e.Name}");
+                    _logger.Warning("Failed to parse hotkey: {Name}", e.Name);
                     CaptureError?.Invoke("Ошибка распознавания комбинации");
                 }
                 
@@ -256,39 +251,45 @@ private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ [KeyboardCapture] Exception: {ex.Message}");
+                _logger.Error(ex, "Error processing hotkey");
                 CaptureError?.Invoke($"Ошибка обработки клавиш: {ex.Message}");
                 StopCapture();
             }
         }
 
-        private bool TryGetHotkeyInfo(string hotkeyName, out System.Windows.Input.Key key, out System.Windows.Input.ModifierKeys modifiers)
+        private static Dictionary<string, (Key key, ModifierKeys modifiers)> GetHotkeyLookup()
         {
-            // Простой способ получить информацию о хоткее через поиск
-            // В реальном приложении можно использовать Dictionary для производительности
-            
-            int hotkeyIndex = 0;
-            
-            foreach (var modifier in CaptureModifiers)
+            if (_hotkeyLookup == null)
             {
-                foreach (var captureKey in CaptureKeys)
+                _hotkeyLookup = new Dictionary<string, (Key, ModifierKeys)>();
+                int hotkeyIndex = 0;
+        
+                foreach (var modifier in CaptureModifiers)
                 {
-                    var expectedName = $"KeyCapture_{hotkeyIndex++}";
-                    
-                    if (expectedName == hotkeyName)
+                    foreach (var captureKey in CaptureKeys)
                     {
-                        key = captureKey;
-                        modifiers = modifier;
-                        return true;
+                        var hotkeyName = $"KeyCapture_{hotkeyIndex++}";
+                        _hotkeyLookup[hotkeyName] = (captureKey, modifier);
                     }
                 }
             }
-            
-            key = System.Windows.Input.Key.None;
-            modifiers = System.Windows.Input.ModifierKeys.None;
-            return false;
+            return _hotkeyLookup;
         }
 
+        private bool TryGetHotkeyInfo(string hotkeyName, out Key key, out ModifierKeys modifiers)
+        {
+            if (GetHotkeyLookup().TryGetValue(hotkeyName, out var result))
+            {
+                key = result.key;
+                modifiers = result.modifiers;
+                return true;
+            }
+    
+            key = Key.None;
+            modifiers = ModifierKeys.None;
+            return false;
+        }
+        
         private void ClearRegisteredHotkeys()
         {
             foreach (var hotkeyName in _registeredHotkeys)
@@ -312,40 +313,6 @@ private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
 
             ClearRegisteredHotkeys();
             CaptureTimeout?.Invoke();
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Получает список поддерживаемых клавиш для захвата
-        /// </summary>
-        /// <returns>Массив поддерживаемых клавиш</returns>
-        public static System.Windows.Input.Key[] GetSupportedKeys()
-        {
-            return CaptureKeys;
-        }
-
-        /// <summary>
-        /// Получает список поддерживаемых модификаторов
-        /// </summary>
-        /// <returns>Массив поддерживаемых модификаторов</returns>
-        public static System.Windows.Input.ModifierKeys[] GetSupportedModifiers()
-        {
-            return CaptureModifiers;
-        }
-
-        /// <summary>
-        /// Проверяет, поддерживается ли комбинация для захвата
-        /// </summary>
-        /// <param name="key">Клавиша</param>
-        /// <param name="modifiers">Модификаторы</param>
-        /// <returns>true если комбинация поддерживается</returns>
-        public static bool IsCombinationSupported(System.Windows.Input.Key key, System.Windows.Input.ModifierKeys modifiers)
-        {
-            return Array.Exists(CaptureKeys, k => k == key) && 
-                   Array.Exists(CaptureModifiers, m => m == modifiers);
         }
 
         #endregion

@@ -115,9 +115,17 @@ public interface IOverlayService
 
     Task<bool> ApplyConfigAsync(OverlayConfig config);
 
+    /// <summary>
+    /// Подписывается на события VoiceRecordingService для автоматического управления overlay
+    /// </summary>
+    /// <param name="voiceService">Сервис записи голоса</param>
+    /// <param name="configService">Сервис конфигурации для проверки настроек overlay</param>
+    void SubscribeToVoiceService(IVoiceRecordingService voiceService, IConfigurationService configService);
+
     bool IsVisible { get; }
     (int X, int Y) CurrentPosition { get; }
 }
+
 
 /// <summary>
 /// Композитный сервис системной интеграции - объединяет все платформо-специфичные сервисы

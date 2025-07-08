@@ -12,6 +12,8 @@ namespace ChatCaster.Windows.Services.GamepadService;
 /// </summary>
 public class MainGamepadService : IGamepadService, IDisposable
 {
+    private readonly static ILogger _logger = Log.ForContext<MainGamepadService>();
+
     // Интерфейсные события
     public event EventHandler<GamepadEvent>? GamepadEvent;
     public event EventHandler<GamepadShortcutPressedEvent>? ShortcutPressed;
@@ -26,10 +28,10 @@ public class MainGamepadService : IGamepadService, IDisposable
     private readonly object _lockObject = new();
     
     // Состояние
-    private bool _isMonitoring = false;
-    private bool _isDisposed = false;
+    private bool _isMonitoring;
+    private bool _isDisposed;
     private GamepadShortcut? _currentShortcut;
-    private int _pollingRateMs = 16; // ~60 FPS по умолчанию
+    private readonly int _pollingRateMs; 
     
     public MainGamepadService(IXInputProvider inputProvider, IConfigurationService configurationService)
     {
@@ -50,12 +52,12 @@ public class MainGamepadService : IGamepadService, IDisposable
         
             if (isAvailable)
             {
-                int firstController = _inputProvider.FindFirstConnectedController();
+                _inputProvider.FindFirstConnectedController();
             }
         }
         catch (Exception ex)
         {
-            Log.Information($"❌ [MainGamepadService] Ошибка проверки XInput: {ex.Message}");
+            _logger.Error(ex, "Ошибка проверки XInput");
         }
     }
 
@@ -109,7 +111,7 @@ public class MainGamepadService : IGamepadService, IDisposable
                     StartButtonPolling();
 
                     _isMonitoring = true;
-                    Log.Information($"[MainGamepadService] Мониторинг запущен: {shortcut.DisplayText}");
+                    _logger.Information("Мониторинг геймпада запущен: {Shortcut}", shortcut.DisplayText);
                 }
                 catch (Exception ex)
                 {
@@ -134,10 +136,7 @@ public class MainGamepadService : IGamepadService, IDisposable
 
     public async Task<GamepadInfo?> GetConnectedGamepadAsync()
     {
-        return await Task.Run(() =>
-        {
-            return _monitor.GetActiveGamepadInfo();
-        });
+        return await Task.Run(() => _monitor.GetActiveGamepadInfo());
     }
 
     public GamepadState? GetCurrentState()
@@ -202,7 +201,7 @@ public class MainGamepadService : IGamepadService, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Information($"[MainGamepadService] Ошибка при остановке: {ex.Message}");
+            _logger.Error(ex, "Ошибка при остановке мониторинга геймпада");
         }
     }
 
@@ -270,7 +269,7 @@ public class MainGamepadService : IGamepadService, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Information($"[MainGamepadService] Ошибка в опросе кнопок: {ex.Message}");
+            _logger.Error(ex, "Ошибка в опросе кнопок геймпада");
         }
     }
 
@@ -308,47 +307,6 @@ public class MainGamepadService : IGamepadService, IDisposable
     {
         // Пробрасываем событие дальше
         ShortcutPressed?.Invoke(this, e);
-    }
-
-    #endregion
-
-    #region Configuration
-
-    /// <summary>
-    /// Устанавливает частоту опроса кнопок
-    /// </summary>
-    /// <param name="pollingRateMs">Частота в миллисекундах (минимум 10ms)</param>
-    public void SetPollingRate(int pollingRateMs)
-    {
-        lock (_lockObject)
-        {
-            _pollingRateMs = Math.Max(pollingRateMs, 10); // Минимум 10ms (100 FPS)
-            
-            // Если мониторинг активен, перезапускаем таймер
-            if (_isMonitoring && _pollingTimer != null)
-            {
-                StartButtonPolling();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Получает текущую частоту опроса
-    /// </summary>
-    public int GetPollingRate()
-    {
-        lock (_lockObject)
-        {
-            return _pollingRateMs;
-        }
-    }
-
-    /// <summary>
-    /// Получает статистику детектора
-    /// </summary>
-    public (bool isPressed, int? holdTime) GetShortcutStatus()
-    {
-        return (_detector.IsShortcutCurrentlyPressed(), _detector.GetCurrentHoldTime());
     }
 
     #endregion

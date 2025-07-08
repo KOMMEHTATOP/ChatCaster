@@ -11,6 +11,8 @@ namespace ChatCaster.Windows.Services.GamepadService;
 /// </summary>
 public class GamepadMonitor : IDisposable
 {
+    private readonly static ILogger _logger = Log.ForContext<GamepadMonitor>();
+
     public event EventHandler<GamepadEvent>? GamepadEvent;
 
     private readonly IXInputProvider _inputProvider;
@@ -20,8 +22,8 @@ public class GamepadMonitor : IDisposable
 
     // Состояние мониторинга
     private int _activeControllerIndex = -1;
-    private bool _wasConnected = false;
-    private bool _isMonitoring = false;
+    private bool _wasConnected;
+    private bool _isMonitoring;
 
     // Настройки
     private int _connectionCheckIntervalMs = 1000; // Проверяем подключение раз в секунду
@@ -55,20 +57,6 @@ public class GamepadMonitor : IDisposable
             lock (_lockObject)
             {
                 return _activeControllerIndex >= 0 && _wasConnected;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Статус мониторинга
-    /// </summary>
-    public bool IsMonitoring
-    {
-        get
-        {
-            lock (_lockObject)
-            {
-                return _isMonitoring;
             }
         }
     }
@@ -188,8 +176,7 @@ public class GamepadMonitor : IDisposable
         }
         catch (Exception ex)
         {
-            // Логируем ошибку, но не останавливаем мониторинг
-            Log.Information($"[GamepadMonitor] Ошибка при проверке подключения: {ex.Message}");
+            _logger.Error(ex, "Ошибка при проверке подключения геймпада");
         }
     }
 
@@ -208,8 +195,7 @@ public class GamepadMonitor : IDisposable
                 // Геймпад всё ещё подключен - ничего не делаем
                 return;
             }
-            else
-            {
+
                 // Активный геймпад отключился
                 if (_wasConnected)
                 {
@@ -218,7 +204,7 @@ public class GamepadMonitor : IDisposable
                 }
 
                 _activeControllerIndex = -1;
-            }
+            
         }
 
         // Ищем новый геймпад (только если текущего нет)
@@ -263,12 +249,12 @@ public class GamepadMonitor : IDisposable
                 };
 
                 GamepadEvent?.Invoke(this, eventArgs);
-                Log.Information($"[GamepadMonitor] Геймпад подключен: слот {controllerIndex}");
+                _logger.Information("Геймпад подключен: слот {Slot}", controllerIndex);
             }
         }
         catch (Exception ex)
         {
-            Log.Information($"[GamepadMonitor] Ошибка при отправке события подключения: {ex.Message}");
+            _logger.Error(ex, "Ошибка при отправке события подключения геймпада");
         }
     }
     
@@ -291,11 +277,11 @@ public class GamepadMonitor : IDisposable
             };
 
             GamepadEvent?.Invoke(this, eventArgs);
-            Log.Information($"[GamepadMonitor] Геймпад отключен: слот {controllerIndex}");
+            _logger.Information("Геймпад отключен: слот {Slot}", controllerIndex);
         }
         catch (Exception ex)
         {
-            Log.Information($"[GamepadMonitor] Ошибка при отправке события отключения: {ex.Message}");
+            _logger.Error(ex, "Ошибка при отправке события отключения геймпада");
         }
     }
     
