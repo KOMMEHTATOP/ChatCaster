@@ -2,7 +2,7 @@ using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Exeptions;
+using Serilog;
 
 namespace ChatCaster.Windows.Services;
 
@@ -35,7 +35,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 for (int i = 0; i < WaveInEvent.DeviceCount; i++)
                 {
                     var caps = WaveInEvent.GetCapabilities(i);
-                    
+
                     devices.Add(new AudioDevice
                     {
                         Id = $"wavein:{i}",
@@ -45,14 +45,17 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                         IsEnabled = true,
                         Type = DetectDeviceType(caps.ProductName),
                         MaxChannels = caps.Channels,
-                        SupportedSampleRates = new[] { 8000, 11025, 16000, 22050, 44100, 48000 }
+                        SupportedSampleRates = new[]
+                        {
+                            8000, 11025, 16000, 22050, 44100, 48000
+                        }
                     });
                 }
 
                 // WASAPI устройства (современный Windows Audio API)
                 using var deviceEnumerator = new MMDeviceEnumerator();
                 var wasapiDevices = deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                
+
                 foreach (var device in wasapiDevices)
                 {
                     try
@@ -62,11 +65,16 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                             Id = $"wasapi:{device.ID}",
                             Name = device.FriendlyName,
                             Description = device.DeviceFriendlyName,
-                            IsDefault = device.ID == deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications).ID,
+                            IsDefault =
+                                device.ID == deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications)
+                                    .ID,
                             IsEnabled = device.State == DeviceState.Active,
                             Type = DetectDeviceType(device.FriendlyName),
                             MaxChannels = device.AudioClient.MixFormat.Channels,
-                            SupportedSampleRates = new[] { 8000, 16000, 22050, 44100, 48000 }
+                            SupportedSampleRates = new[]
+                            {
+                                8000, 16000, 22050, 44100, 48000
+                            }
                         });
                     }
                     catch
@@ -77,7 +85,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             }
             catch (Exception ex)
             {
-                throw new AudioException($"Ошибка получения аудио устройств: {ex.Message}", ex);
+                throw new InvalidOperationException($"Ошибка получения аудио устройств: {ex.Message}", ex);
             }
 
             return devices.DistinctBy(d => d.Name).ToList();
@@ -103,12 +111,12 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             // Запоминаем активное устройство
             var devices = await GetAvailableDevicesAsync();
             ActiveDevice = devices.FirstOrDefault(d => d.Id == deviceId);
-            
+
             return ActiveDevice != null;
         }
         catch (Exception ex)
         {
-            throw new AudioException($"Ошибка установки аудио устройства {deviceId}: {ex.Message}", ex);
+            throw new InvalidOperationException($"Ошибка установки аудио устройства {deviceId}: {ex.Message}", ex);
         }
     }
 
@@ -122,13 +130,14 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 {
                     if (IsCapturing)
                     {
-                        throw new AudioException("Захват уже запущен");
+                        throw new InvalidOperationException("Захват уже запущен");
                     }
 
                     _currentConfig = config;
 
                     // Определяем устройство
                     int deviceNumber = 0;
+
                     if (!string.IsNullOrEmpty(config.SelectedDeviceId))
                     {
                         if (config.SelectedDeviceId.StartsWith("wavein:"))
@@ -138,7 +147,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     }
 
                     // Создаем WaveIn - принудительно устанавливаем 16kHz для Whisper
-                    Console.WriteLine("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
+                    Log.Information("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
 
                     _waveIn = new WaveInEvent
                     {
@@ -159,7 +168,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    throw new AudioException($"Ошибка запуска захвата аудио: {ex.Message}", ex);
+                    throw new InvalidOperationException($"Ошибка запуска захвата аудио: {ex.Message}", ex);
                 }
             }
         });
@@ -185,7 +194,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    throw new AudioException($"Ошибка остановки захвата аудио: {ex.Message}", ex);
+                    throw new InvalidOperationException($"Ошибка остановки захвата аудио: {ex.Message}", ex);
                 }
             }
         });
@@ -199,6 +208,9 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             float volume = CalculateVolume(e.Buffer, e.BytesRecorded);
             CurrentVolume = volume;
             VolumeChanged?.Invoke(this, volume);
+
+            if (_currentConfig == null || !(volume >= _currentConfig.VolumeThreshold))
+                return;
 
             // Отправляем аудио данные
             var audioData = new byte[e.BytesRecorded];
@@ -245,23 +257,23 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     private static AudioDeviceType DetectDeviceType(string deviceName)
     {
         var name = deviceName.ToLower();
-        
+
         if (name.Contains("usb")) return AudioDeviceType.UsbMicrophone;
         if (name.Contains("bluetooth")) return AudioDeviceType.BluetoothMicrophone;
         if (name.Contains("webcam") || name.Contains("camera")) return AudioDeviceType.WebcamMicrophone;
         if (name.Contains("headset")) return AudioDeviceType.HeadsetMicrophone;
         if (name.Contains("line")) return AudioDeviceType.LineIn;
-        
+
         return AudioDeviceType.Microphone;
     }
-    
+
     public async Task<bool> TestMicrophoneAsync()
     {
         try
         {
             if (ActiveDevice == null)
             {
-                Console.WriteLine("Нет активного аудио устройства для тестирования");
+                Log.Information("Нет активного аудио устройства для тестирования");
                 return false;
             }
 
@@ -272,65 +284,67 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 SampleRate = 16000,
                 Channels = 1,
                 BitsPerSample = 16,
-                MaxRecordingSeconds = 1 // Тест на 1 секунду
+                MaxRecordingSeconds = _currentConfig!.MinRecordingSeconds
             };
 
             bool captureStarted = await StartCaptureAsync(testConfig);
+
             if (captureStarted)
             {
                 await Task.Delay(500); // Записываем полсекунды
                 await StopCaptureAsync();
-                Console.WriteLine("Тест микрофона успешен");
+                Log.Information("Тест микрофона успешен");
                 return true;
             }
 
-            Console.WriteLine("Не удалось запустить захват для тестирования");
+            Log.Information("Не удалось запустить захват для тестирования");
             return false;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка тестирования микрофона: {ex.Message}");
+            Log.Information($"Ошибка тестирования микрофона: {ex.Message}");
             return false;
         }
     }
-    
+
     public void Dispose()
     {
         if (!_isDisposed)
         {
             try
             {
-                Console.WriteLine("AudioCaptureService Dispose начат");
-            
+                Log.Information("AudioCaptureService Dispose начат");
+
                 lock (_lockObject)
                 {
                     // ✅ ИСПРАВЛЕНИЕ: Останавливаем захват синхронно
                     if (_waveIn != null && IsCapturing)
                     {
-                        Console.WriteLine("Останавливаем WaveIn...");
+                        Log.Information("Останавливаем WaveIn...");
                         _waveIn.StopRecording();
                         _waveIn.DataAvailable -= OnDataAvailable;
                         _waveIn.RecordingStopped -= OnRecordingStopped;
                         _waveIn.Dispose();
                         _waveIn = null;
-                        Console.WriteLine("WaveIn остановлен");
+                        Log.Information("WaveIn остановлен");
                     }
 
                     IsCapturing = false;
                     CurrentVolume = 0;
                     ActiveDevice = null;
                     _currentConfig = null;
-                
-                    Console.WriteLine("AudioCaptureService Dispose завершен");
+
+                    Log.Information("AudioCaptureService Dispose завершен");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка в AudioCaptureService.Dispose: {ex.Message}");
+                Log.Information($"Ошибка в AudioCaptureService.Dispose: {ex.Message}");
             }
             finally
             {
                 _isDisposed = true;
             }
         }
-    }}
+    }
+}

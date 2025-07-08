@@ -67,8 +67,7 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             // События геймпада
-            _gamepadService.GamepadConnected += OnGamepadConnected;
-            _gamepadService.GamepadDisconnected += OnGamepadDisconnected;
+            _gamepadService.GamepadEvent += OnGamepadEvent;
 
             // События конфигурации
             _configurationService.ConfigurationChanged += OnConfigurationChanged;
@@ -81,14 +80,33 @@ public class NotificationService : INotificationService, IDisposable
             throw;
         }
     }
-
+    private void OnGamepadEvent(object? sender, GamepadEvent e)
+    {
+        try
+        {
+            switch (e.EventType)
+            {
+                case GamepadEventType.Connected:
+                    NotifyGamepadConnected(e.GamepadInfo);
+                    break;
+                
+                case GamepadEventType.Disconnected:
+                    NotifyGamepadDisconnected(e.GamepadInfo);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Ошибка обработки события геймпада: {e.EventType}");
+        }
+    }
+    
     private void UnsubscribeFromSystemEvents()
     {
         try
         {
             // События геймпада
-            _gamepadService.GamepadConnected -= OnGamepadConnected;
-            _gamepadService.GamepadDisconnected -= OnGamepadDisconnected;
+            _gamepadService.GamepadEvent -= OnGamepadEvent;
 
             // События конфигурации
             _configurationService.ConfigurationChanged -= OnConfigurationChanged;
@@ -268,29 +286,6 @@ public class NotificationService : INotificationService, IDisposable
 
     #region Event Handlers
 
-    private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
-    {
-        try
-        {
-            NotifyGamepadConnected(e.GamepadInfo);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка обработки события подключения геймпада");
-        }
-    }
-
-    private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
-    {
-        try
-        {
-            NotifyGamepadDisconnected(e.GamepadInfo);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка обработки события отключения геймпада");
-        }
-    }
 
     private async void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
     {

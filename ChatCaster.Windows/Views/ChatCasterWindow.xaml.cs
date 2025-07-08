@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using ChatCaster.Core.Services;
@@ -136,10 +135,7 @@ namespace ChatCaster.Windows.Views
                 _isForceExitFromTray = true;
                 
                 // Запускаем процесс закрытия окна
-                Dispatcher.Invoke(() =>
-                {
-                    Close();
-                });
+                Dispatcher.Invoke(Close);
             }
             catch (Exception ex)
             {
@@ -334,7 +330,7 @@ namespace ChatCaster.Windows.Views
                 }
             };
 
-            ContentFrame.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            ContentFrame.BeginAnimation(OpacityProperty, fadeIn);
         }
 
         private void ToggleMenu_Click(object sender, RoutedEventArgs e)
@@ -351,7 +347,7 @@ namespace ChatCaster.Windows.Views
                 }
             };
 
-            SidebarBorder.BeginAnimation(Border.WidthProperty, animation);
+            SidebarBorder.BeginAnimation(WidthProperty, animation);
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)

@@ -5,6 +5,7 @@ using System.Windows.Media.Effects;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Events;
+using Serilog;
 using System.Diagnostics;
 
 namespace ChatCaster.Windows.Services;
@@ -297,16 +298,16 @@ public class OverlayService : IOverlayService, IDisposable
     {
         try
         {
-            Console.WriteLine($"🔍 ApplyConfigInternal вызван: Position={config.Position}");
+            Log.Information($"🔍 ApplyConfigInternal вызван: Position={config.Position}");
             _currentConfig = config;
             if (_overlayWindow != null)
             {
-                Console.WriteLine($"🔍 Применяем к существующему окну: {config.Position}");
+                Log.Information($"🔍 Применяем к существующему окну: {config.Position}");
                 ApplyConfigToWindow(_overlayWindow, config);
             }
             else
             {
-                Console.WriteLine("🔍 Окно еще не создано, сохраняем конфигурацию");
+                Log.Information("🔍 Окно еще не создано, сохраняем конфигурацию");
             }
             Debug.WriteLine("Конфигурация overlay применена");
             return true;
@@ -322,17 +323,17 @@ public class OverlayService : IOverlayService, IDisposable
     {
         try
         {
-            Console.WriteLine($"🔍 CreateOverlayWindow: _currentConfig = {(_currentConfig != null ? $"Position={_currentConfig.Position}" : "NULL")}");
+            Log.Information($"🔍 CreateOverlayWindow: _currentConfig = {(_currentConfig != null ? $"Position={_currentConfig.Position}" : "NULL")}");
         
             _overlayWindow = new OverlayWindow();
             if (_currentConfig != null)
             {
-                Console.WriteLine($"🔍 Применяем сохраненную конфигурацию: {_currentConfig.Position}");
+                Log.Information($"🔍 Применяем сохраненную конфигурацию: {_currentConfig.Position}");
                 ApplyConfigToWindow(_overlayWindow, _currentConfig);
             }
             else
             {
-                Console.WriteLine("🔍 Применяем дефолтную конфигурацию: TopRight");
+                Log.Information("🔍 Применяем дефолтную конфигурацию: TopRight");
                 var defaultConfig = new OverlayConfig
                 {
                     Position = OverlayPosition.TopRight,

@@ -1,6 +1,7 @@
 using System.Timers;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
+using Serilog;
 
 namespace ChatCaster.Windows.Services.GamepadService;
 
@@ -10,8 +11,7 @@ namespace ChatCaster.Windows.Services.GamepadService;
 /// </summary>
 public class GamepadMonitor : IDisposable
 {
-    public event EventHandler<GamepadConnectedEvent>? GamepadConnected;
-    public event EventHandler<GamepadDisconnectedEvent>? GamepadDisconnected;
+    public event EventHandler<GamepadEvent>? GamepadEvent;
 
     private readonly IXInputProvider _inputProvider;
     private System.Timers.Timer? _connectionTimer;
@@ -189,7 +189,7 @@ public class GamepadMonitor : IDisposable
         catch (Exception ex)
         {
             // Логируем ошибку, но не останавливаем мониторинг
-            Console.WriteLine($"[GamepadMonitor] Ошибка при проверке подключения: {ex.Message}");
+            Log.Information($"[GamepadMonitor] Ошибка при проверке подключения: {ex.Message}");
         }
     }
 
@@ -255,22 +255,23 @@ public class GamepadMonitor : IDisposable
             var gamepadInfo = _inputProvider.GetControllerInfo(controllerIndex);
             if (gamepadInfo != null)
             {
-                var eventArgs = new GamepadConnectedEvent
+                var eventArgs = new GamepadEvent
                 {
+                    EventType = GamepadEventType.Connected,
                     GamepadIndex = controllerIndex,
                     GamepadInfo = gamepadInfo
                 };
 
-                GamepadConnected?.Invoke(this, eventArgs);
-                Console.WriteLine($"[GamepadMonitor] Геймпад подключен: слот {controllerIndex}");
+                GamepadEvent?.Invoke(this, eventArgs);
+                Log.Information($"[GamepadMonitor] Геймпад подключен: слот {controllerIndex}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GamepadMonitor] Ошибка при отправке события подключения: {ex.Message}");
+            Log.Information($"[GamepadMonitor] Ошибка при отправке события подключения: {ex.Message}");
         }
     }
-
+    
     /// <summary>
     /// Отправляет событие отключения геймпада
     /// </summary>
@@ -278,8 +279,9 @@ public class GamepadMonitor : IDisposable
     {
         try
         {
-            var eventArgs = new GamepadDisconnectedEvent
+            var eventArgs = new GamepadEvent
             {
+                EventType = GamepadEventType.Disconnected,
                 GamepadIndex = controllerIndex,
                 GamepadInfo = new GamepadInfo
                 {
@@ -288,15 +290,15 @@ public class GamepadMonitor : IDisposable
                 }
             };
 
-            GamepadDisconnected?.Invoke(this, eventArgs);
-            Console.WriteLine($"[GamepadMonitor] Геймпад отключен: слот {controllerIndex}");
+            GamepadEvent?.Invoke(this, eventArgs);
+            Log.Information($"[GamepadMonitor] Геймпад отключен: слот {controllerIndex}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GamepadMonitor] Ошибка при отправке события отключения: {ex.Message}");
+            Log.Information($"[GamepadMonitor] Ошибка при отправке события отключения: {ex.Message}");
         }
     }
-
+    
     public void Dispose()
     {
         if (!_isDisposed)

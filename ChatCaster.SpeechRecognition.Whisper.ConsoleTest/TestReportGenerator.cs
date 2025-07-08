@@ -1,4 +1,5 @@
-using Microsoft.Extensions.Logging;
+
+using Serilog;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
 
@@ -176,52 +177,48 @@ public class TestReportGenerator
         Console.Clear(); // Очищаем экран для чистого отчета
         
         // Header
-        Console.WriteLine("".PadRight(80, '='));
-        Console.WriteLine("🎯 WHISPER MODULE TEST REPORT");
-        Console.WriteLine("".PadRight(80, '='));
-        Console.WriteLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        Console.WriteLine();
+        Log.Information("".PadRight(80, '='));
+        Log.Information("🎯 WHISPER MODULE TEST REPORT");
+        Log.Information("".PadRight(80, '='));
+        Log.Information($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
         // Errors first (most important)
         if (_errors.Any())
         {
-            Console.WriteLine("🚨 ERRORS:");
+            Log.Information("🚨 ERRORS:");
             foreach (var error in _errors)
             {
-                Console.WriteLine($"   {error}");
+                Log.Information($"   {error}");
             }
-            Console.WriteLine();
         }
 
         // Then warnings
         if (_warnings.Any())
         {
-            Console.WriteLine("⚠️ WARNINGS:");
+            Log.Information("⚠️ WARNINGS:");
             foreach (var warning in _warnings)
             {
-                Console.WriteLine($"   {warning}");
+                Log.Information($"   {warning}");
             }
-            Console.WriteLine();
         }
 
         // Main report
         foreach (var line in _reportLines)
         {
-            Console.WriteLine(line);
+            Log.Information(line);
         }
 
         // Footer
-        Console.WriteLine();
-        Console.WriteLine("".PadRight(80, '='));
+        Log.Information("".PadRight(80, '='));
         if (_errors.Count == 0)
         {
-            Console.WriteLine("✅ ALL TESTS COMPLETED SUCCESSFULLY");
+            Log.Information("✅ ALL TESTS COMPLETED SUCCESSFULLY");
         }
         else
         {
-            Console.WriteLine($"❌ TESTS COMPLETED WITH {_errors.Count} ERRORS");
+            Log.Information($"❌ TESTS COMPLETED WITH {_errors.Count} ERRORS");
         }
-        Console.WriteLine("".PadRight(80, '='));
+        Log.Information("".PadRight(80, '='));
     }
 
     public void SaveToFile(string fileName = "whisper-test-report.txt")
@@ -257,7 +254,7 @@ public class TestReportGenerator
         lines.Add("".PadRight(80, '='));
 
         File.WriteAllLines(fileName, lines);
-        Console.WriteLine($"\n💾 Report saved to: {fileName}");
+        Log.Information($"\n💾 Report saved to: {fileName}");
     }
     
     public void AddDiagnosticLog(string category, string message)

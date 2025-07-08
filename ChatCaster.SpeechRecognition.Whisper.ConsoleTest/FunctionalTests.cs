@@ -5,6 +5,7 @@ using ChatCaster.SpeechRecognition.Whisper.Models;
 using ChatCaster.SpeechRecognition.Whisper.Services;
 using ChatCaster.SpeechRecognition.Whisper.Utils;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
 
@@ -38,7 +39,7 @@ public class FunctionalTests
     /// </summary>
     public async Task TestModelDownloadAsync()
     {
-        Console.WriteLine("\n🔽 Testing model download and management...");
+        Log.Information("\n🔽 Testing model download and management...");
 
         // Тестируем tiny модель (самая маленькая)
         var modelSize = WhisperConstants.ModelSizes.Tiny;
@@ -48,34 +49,34 @@ public class FunctionalTests
         {
             // Проверяем доступность модели
             var availability = await _modelManager.CheckModelAvailabilityAsync(modelSize, modelDirectory);
-            Console.WriteLine($"   Model {modelSize} availability:");
-            Console.WriteLine($"   - Local: {availability.IsAvailableLocally}");
-            Console.WriteLine($"   - Download: {availability.IsAvailableForDownload}");
-            Console.WriteLine($"   - Supported: {availability.IsSupported}");
+            Log.Information($"   Model {modelSize} availability:");
+            Log.Information($"   - Local: {availability.IsAvailableLocally}");
+            Log.Information($"   - Download: {availability.IsAvailableForDownload}");
+            Log.Information($"   - Supported: {availability.IsSupported}");
 
             if (availability.IsAvailableForDownload)
             {
-                Console.WriteLine($"   - Download size: {availability.DownloadSizeBytes / 1024.0 / 1024.0:F1} MB");
+                Log.Information($"   - Download size: {availability.DownloadSizeBytes / 1024.0 / 1024.0:F1} MB");
             }
 
             // Подготавливаем модель (загружаем если нужно)
-            Console.WriteLine($"   Preparing model {modelSize}...");
+            Log.Information($"   Preparing model {modelSize}...");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
             var modelPath = await _modelManager.PrepareModelAsync(modelSize, modelDirectory);
             stopwatch.Stop();
 
-            Console.WriteLine($"   ✅ Model ready: {Path.GetFileName(modelPath)}");
-            Console.WriteLine($"   ⏱️ Preparation time: {stopwatch.ElapsedMilliseconds}ms");
+            Log.Information($"   ✅ Model ready: {Path.GetFileName(modelPath)}");
+            Log.Information($"   ⏱️ Preparation time: {stopwatch.ElapsedMilliseconds}ms");
 
             // Проверяем файл модели
             var fileInfo = new FileInfo(modelPath);
-            Console.WriteLine($"   📁 File size: {fileInfo.Length / 1024.0 / 1024.0:F1} MB");
-            Console.WriteLine($"   📅 Last modified: {fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}");
+            Log.Information($"   📁 File size: {fileInfo.Length / 1024.0 / 1024.0:F1} MB");
+            Log.Information($"   📅 Last modified: {fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Model download test failed: {ex.Message}");
+            Log.Information($"   ❌ Model download test failed: {ex.Message}");
             _logger.LogError(ex, "Model download test failed");
             throw;
         }
@@ -86,13 +87,13 @@ public class FunctionalTests
     /// </summary>
     public async Task TestAudioConversionAsync()
     {
-        Console.WriteLine("\n🎵 Testing audio conversion...");
+        Log.Information("\n🎵 Testing audio conversion...");
 
         try
         {
             // Создаем тестовый аудио сигнал (синусоида)
             var testAudio = GenerateTestAudio(duration: 3.0, frequency: 440.0); // 3 секунды, 440 Hz
-            Console.WriteLine($"   Generated test audio: {testAudio.Length} bytes");
+            Log.Information($"   Generated test audio: {testAudio.Length} bytes");
 
             // Получаем информацию об аудио
             var audioInfo = _audioConverter.GetAudioInfo(
@@ -101,29 +102,29 @@ public class FunctionalTests
                 WhisperConstants.Audio.RequiredChannels,
                 WhisperConstants.Audio.RequiredBitsPerSample);
 
-            Console.WriteLine($"   Audio info: {audioInfo}");
-            Console.WriteLine($"   Compatible with Whisper: {audioInfo.IsCompatibleWithWhisper}");
+            Log.Information($"   Audio info: {audioInfo}");
+            Log.Information($"   Compatible with Whisper: {audioInfo.IsCompatibleWithWhisper}");
 
             // Тестируем конвертацию
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var samples = await _audioConverter.ConvertToSamplesAsync(testAudio, CancellationToken.None);
             stopwatch.Stop();
 
-            Console.WriteLine($"   ✅ Conversion completed: {samples.Length} samples");
-            Console.WriteLine($"   ⏱️ Conversion time: {stopwatch.ElapsedMilliseconds}ms");
+            Log.Information($"   ✅ Conversion completed: {samples.Length} samples");
+            Log.Information($"   ⏱️ Conversion time: {stopwatch.ElapsedMilliseconds}ms");
 
             // Анализируем результат
             var avgAmplitude = samples.Select(Math.Abs).Average();
             var maxAmplitude = samples.Select(Math.Abs).Max();
-            Console.WriteLine($"   📊 Average amplitude: {avgAmplitude:F4}");
-            Console.WriteLine($"   📊 Max amplitude: {maxAmplitude:F4}");
+            Log.Information($"   📊 Average amplitude: {avgAmplitude:F4}");
+            Log.Information($"   📊 Max amplitude: {maxAmplitude:F4}");
 
             // Тестируем разные форматы
             await TestDifferentAudioFormatsAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Audio conversion test failed: {ex.Message}");
+            Log.Information($"   ❌ Audio conversion test failed: {ex.Message}");
             _logger.LogError(ex, "Audio conversion test failed");
             throw;
         }
@@ -134,12 +135,12 @@ public class FunctionalTests
     /// </summary>
     public async Task TestSpeechRecognitionAsync()
     {
-        Console.WriteLine("\n🎤 Testing speech recognition...");
+        Log.Information("\n🎤 Testing speech recognition...");
 
         try
         {
             // Инициализируем движок
-            Console.WriteLine("   Initializing speech recognition engine...");
+            Log.Information("   Initializing speech recognition engine...");
             var config = CreateTestConfig();
             
             var initStopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -151,27 +152,27 @@ public class FunctionalTests
                 throw new InvalidOperationException("Failed to initialize speech recognition engine");
             }
 
-            Console.WriteLine($"   ✅ Engine initialized in {initStopwatch.ElapsedMilliseconds}ms");
+            Log.Information($"   ✅ Engine initialized in {initStopwatch.ElapsedMilliseconds}ms");
 
             // Получаем возможности движка
             var capabilities = await _speechService.GetCapabilitiesAsync();
-            Console.WriteLine($"   🔧 Engine capabilities:");
-            Console.WriteLine($"   - Language auto-detection: {capabilities.SupportsLanguageAutoDetection}");
-            Console.WriteLine($"   - GPU acceleration: {capabilities.SupportsGpuAcceleration}");
-            Console.WriteLine($"   - Real-time processing: {capabilities.SupportsRealTimeProcessing}");
-            Console.WriteLine($"   - Requires internet: {capabilities.RequiresInternetConnection}");
-            Console.WriteLine($"   - Sample rates: {string.Join(", ", capabilities.SupportedSampleRates)}");
+            Log.Information($"   🔧 Engine capabilities:");
+            Log.Information($"   - Language auto-detection: {capabilities.SupportsLanguageAutoDetection}");
+            Log.Information($"   - GPU acceleration: {capabilities.SupportsGpuAcceleration}");
+            Log.Information($"   - Real-time processing: {capabilities.SupportsRealTimeProcessing}");
+            Log.Information($"   - Requires internet: {capabilities.RequiresInternetConnection}");
+            Log.Information($"   - Sample rates: {string.Join(", ", capabilities.SupportedSampleRates)}");
 
             // Получаем поддерживаемые языки
             var languages = await _speechService.GetSupportedLanguagesAsync();
-            Console.WriteLine($"   🌐 Supported languages: {string.Join(", ", languages.Take(5))}...");
+            Log.Information($"   🌐 Supported languages: {string.Join(", ", languages.Take(5))}...");
 
             // Тестируем распознавание с тестовым аудио
             await TestRecognitionWithDifferentInputsAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Speech recognition test failed: {ex.Message}");
+            Log.Information($"   ❌ Speech recognition test failed: {ex.Message}");
             _logger.LogError(ex, "Speech recognition test failed");
             throw;
         }
@@ -206,7 +207,7 @@ public class FunctionalTests
 
     private async Task TestDifferentAudioFormatsAsync()
     {
-        Console.WriteLine("   Testing different audio formats...");
+        Log.Information("   Testing different audio formats...");
 
         var testCases = new[]
         {
@@ -221,11 +222,11 @@ public class FunctionalTests
             {
                 var testAudio = GenerateTestAudioWithFormat(1.0, 440.0, testCase.SampleRate, testCase.Channels, testCase.BitsPerSample);
                 var samples = await _audioConverter.ConvertToSamplesAsync(testAudio, testCase.SampleRate, testCase.Channels, testCase.BitsPerSample, CancellationToken.None);
-                Console.WriteLine($"   ✅ {testCase.Description}: {samples.Length} samples");
+                Log.Information($"   ✅ {testCase.Description}: {samples.Length} samples");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {testCase.Description}: {ex.Message}");
+                Log.Information($"   ❌ {testCase.Description}: {ex.Message}");
             }
         }
     }
@@ -266,7 +267,7 @@ public class FunctionalTests
 
     private async Task TestRecognitionWithDifferentInputsAsync()
     {
-        Console.WriteLine("   Testing recognition with different inputs...");
+        Log.Information("   Testing recognition with different inputs...");
 
         var testCases = new[]
         {
@@ -279,26 +280,26 @@ public class FunctionalTests
         {
             try
             {
-                Console.WriteLine($"     Testing: {testCase.Description}");
+                Log.Information($"     Testing: {testCase.Description}");
                 var testAudio = GenerateTestAudio(testCase.Duration, testCase.Frequency);
                 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 var result = await _speechService.RecognizeAsync(testAudio);
                 stopwatch.Stop();
 
-                Console.WriteLine($"     ✅ Recognition completed in {stopwatch.ElapsedMilliseconds}ms");
-                Console.WriteLine($"     📝 Success: {result.Success}");
-                Console.WriteLine($"     🎯 Confidence: {result.Confidence:F2}");
-                Console.WriteLine($"     📄 Text: '{result.RecognizedText ?? "null"}'");
+                Log.Information($"     ✅ Recognition completed in {stopwatch.ElapsedMilliseconds}ms");
+                Log.Information($"     📝 Success: {result.Success}");
+                Log.Information($"     🎯 Confidence: {result.Confidence:F2}");
+                Log.Information($"     📄 Text: '{result.RecognizedText ?? "null"}'");
                 
                 if (!string.IsNullOrEmpty(result.ErrorMessage))
                 {
-                    Console.WriteLine($"     ⚠️ Error: {result.ErrorMessage}");
+                    Log.Information($"     ⚠️ Error: {result.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"     ❌ {testCase.Description} failed: {ex.Message}");
+                Log.Information($"     ❌ {testCase.Description} failed: {ex.Message}");
             }
         }
     }

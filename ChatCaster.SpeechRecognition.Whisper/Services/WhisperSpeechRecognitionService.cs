@@ -265,7 +265,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     
     public async Task<SpeechEngineCapabilities> GetCapabilitiesAsync()
     {
-        await Task.CompletedTask; // Метод синхронный, но интерфейс асинхронный
+        await Task.CompletedTask; 
 
         return new SpeechEngineCapabilities
         {
@@ -277,14 +277,12 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             {
                 WhisperConstants.Audio.RequiredSampleRate
             },
-            MinAudioDurationMs = WhisperConstants.Audio.MinAudioLengthMs,
-            MaxAudioDurationMs = WhisperConstants.Audio.MaxAudioLengthMs
         };
     }
 
     public async Task<IEnumerable<string>> GetSupportedLanguagesAsync()
     {
-        await Task.CompletedTask; // Метод синхронный, но интерфейс асинхронный
+        await Task.CompletedTask; 
         return WhisperConstants.Languages.Supported;
     }
 

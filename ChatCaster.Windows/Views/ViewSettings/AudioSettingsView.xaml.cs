@@ -9,10 +9,7 @@ namespace ChatCaster.Windows.Views.ViewSettings;
 public partial class AudioSettingsView 
 {
     private readonly IAudioCaptureService? _audioCaptureService;
-    private readonly ISpeechRecognitionService? _speechRecognitionService;
-
     private bool _isTestingMicrophone;
-    private bool _isDownloadingModel;
 
     public AudioSettingsView()
     {
@@ -20,40 +17,28 @@ public partial class AudioSettingsView
         Log.Information("AudioSettingsView создан");
     }
 
-    public AudioSettingsView(IAudioCaptureService audioCaptureService, 
-                            ISpeechRecognitionService speechRecognitionService) : this()
+    public AudioSettingsView(IAudioCaptureService audioCaptureService) : this()
     {
         _audioCaptureService = audioCaptureService;
-        _speechRecognitionService = speechRecognitionService;
-        
-        Log.Information("AudioSettingsView инициализирован с DI сервисами");
+        Log.Information("AudioSettingsView инициализирован с AudioCaptureService");
     }
 
     /// <summary>
-    /// ViewModel для работы с новым Whisper модулем
+    /// ViewModel для работы с аудио настройками
     /// </summary>
     public void SetViewModel(AudioSettingsViewModel viewModel)
     {
         try
         {
-            Log.Information("=== УСТАНОВКА VIEWMODEL (Новый Whisper модуль) ===");
-            
-            // Отписываемся от старых событий если есть старый ViewModel
-            if (DataContext is AudioSettingsViewModel oldViewModel)
-            {
-                UnsubscribeFromOldEvents(oldViewModel);
-            }
+            Log.Information("=== УСТАНОВКА VIEWMODEL ===");
             
             // Устанавливаем новый DataContext
             DataContext = viewModel;
             
-            // Подписка на события нового Whisper модуля
-            SubscribeToNewWhisperEvents(viewModel);
-            
             // Инициализируем ViewModel
             _ = viewModel.InitializeAsync();
             
-            Log.Information("ViewModel установлен для нового Whisper модуля");
+            Log.Information("ViewModel установлен успешно");
         }
         catch (Exception ex)
         {
@@ -61,65 +46,6 @@ public partial class AudioSettingsView
         }
     }
 
-    #region Управление подписками на события
-
-    /// <summary>
-    /// Подписывается на события нового Whisper модуля
-    /// </summary>
-    private void SubscribeToNewWhisperEvents(AudioSettingsViewModel viewModel)
-    {
-        try
-        {
-            if (_speechRecognitionService != null)
-            {
-                Log.Information("Подписались на события нового Whisper модуля");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка подписки на события нового Whisper модуля");
-        }
-    }
-
-    /// <summary>
-    /// Отписывается от старых событий
-    /// </summary>
-    private void UnsubscribeFromOldEvents(AudioSettingsViewModel viewModel)
-    {
-        try
-        {
-            if (_speechRecognitionService != null)
-            {
-                Log.Information("Отписались от старых событий");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка отписки от старых событий");
-        }
-    }
-
-    /// <summary>
-    /// Обработчик изменения статуса модели (совместимость)
-    /// </summary>
-    private void OnModelStatusChanged(object? sender, EventArgs e)
-    {
-        Dispatcher.Invoke(() =>
-        {
-            try
-            {
-                UpdateModelStatus("Модель готова", "#4caf50");
-                Log.Information("Статус модели обновлен");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка обновления статуса модели в UI");
-            }
-        });
-    }
-
-    #endregion
-    
     #region Button Click Handlers
 
     private async void TestMicrophoneButton_Click(object sender, RoutedEventArgs e)
@@ -202,8 +128,6 @@ public partial class AudioSettingsView
     {
         try
         {
-            if (_isDownloadingModel) return;
-
             if (DataContext is AudioSettingsViewModel viewModel)
             {
                 Log.Information("Запускаем загрузку модели через ViewModel");
@@ -222,28 +146,6 @@ public partial class AudioSettingsView
     
     #endregion
 
-    #region Event Handlers для загрузки модели (совместимость)
-    
-    private void OnModelDownloadProgress(object? sender, EventArgs e)
-    {
-        Dispatcher.Invoke(() =>
-        {
-            UpdateModelStatus("Загрузка...", "#ff9800");
-        });
-    }
-
-    private void OnModelDownloadCompleted(object? sender, EventArgs e)
-    {
-        Dispatcher.Invoke(() =>
-        {
-            UpdateModelStatus("Модель готова", "#4caf50");
-            Log.Information("Модель успешно загружена");
-            _isDownloadingModel = false;
-        });
-    }
-
-    #endregion
-
     #region UI Helper Methods
     
     private void UpdateMicrophoneStatus(string text, string color)
@@ -252,35 +154,6 @@ public partial class AudioSettingsView
         MicrophoneStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
         MicrophoneStatusIcon.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
-
-    private void UpdateModelStatus(string text, string color)
-    {
-        ModelStatusText.Text = text;
-        ModelStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-        ModelStatusIcon.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-    }
-
-    #endregion
-
-    #region Cleanup
     
-    private void Page_Unloaded(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (DataContext is AudioSettingsViewModel viewModel)
-            {
-                UnsubscribeFromOldEvents(viewModel);
-                viewModel.Cleanup();
-            }
-            
-            Log.Information("AudioSettingsView выгружен");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка при выгрузке AudioSettingsView");
-        }
-    }
-
     #endregion
 }

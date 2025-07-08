@@ -130,10 +130,14 @@ namespace ChatCaster.Windows
             services.AddSingleton<IConfigurationService, ConfigurationService>();
 
             // === ГЕЙМПАД СЕРВИСЫ ===
-            services.AddSingleton<Services.GamepadService.MainGamepadService>();
+            services.AddSingleton<Services.GamepadService.MainGamepadService>(provider =>
+                new Services.GamepadService.MainGamepadService(
+                    new Services.GamepadService.XInputProvider(),
+                    provider.GetRequiredService<IConfigurationService>()
+                ));
             services.AddSingleton<IGamepadService>(provider => 
                 provider.GetRequiredService<Services.GamepadService.MainGamepadService>());
-
+            
             // === ИНТЕГРАЦИОННЫЕ СЕРВИСЫ ===
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<ITextInputService, TextInputService>();
@@ -225,7 +229,7 @@ namespace ChatCaster.Windows
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка инициализации логирования: {ex.Message}");
+                Log.Information($"Ошибка инициализации логирования: {ex.Message}");
             }
         }
     }

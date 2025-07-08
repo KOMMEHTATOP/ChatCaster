@@ -2,6 +2,7 @@ using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Constants;
+using Serilog;
 
 namespace ChatCaster.Windows.Services.GamepadService;
 
@@ -37,7 +38,7 @@ public class GamepadCaptureService : IDisposable
     {
         if (_isCapturing)
         {
-            Console.WriteLine("🎮 [Capture] Захват уже активен");
+            Log.Information("🎮 [Capture] Захват уже активен");
             return false;
         }
         
@@ -48,7 +49,7 @@ public class GamepadCaptureService : IDisposable
             _accumulatedButtons.Clear();
             _firstButtonPressTime = DateTime.MinValue;
             
-            Console.WriteLine("🎮 [Capture] Начинаем захват комбинации геймпада");
+            Log.Information("🎮 [Capture] Начинаем захват комбинации геймпада");
             CaptureStatusChanged?.Invoke(this, "Нажмите любую комбинацию кнопок на геймпаде...");
             
             // Запускаем захват с таймаутом
@@ -58,7 +59,7 @@ public class GamepadCaptureService : IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [Capture] Ошибка захвата: {ex.Message}");
+            Log.Information($"❌ [Capture] Ошибка захвата: {ex.Message}");
             CaptureStatusChanged?.Invoke(this, $"Ошибка: {ex.Message}");
             StopCapture();
             return false;
@@ -79,12 +80,12 @@ public class GamepadCaptureService : IDisposable
             _isCapturing = false;
             _accumulatedButtons.Clear();
             
-            Console.WriteLine("🎮 [Capture] Захват остановлен");
+            Log.Information("🎮 [Capture] Захват остановлен");
             CaptureStatusChanged?.Invoke(this, "Захват остановлен");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [Capture] Ошибка остановки: {ex.Message}");
+            Log.Information($"❌ [Capture] Ошибка остановки: {ex.Message}");
         }
     }
     
@@ -100,7 +101,7 @@ public class GamepadCaptureService : IDisposable
             // Проверяем таймаут
             if (timeoutTask.IsCompleted)
             {
-                Console.WriteLine("⏰ [Capture] Таймаут захвата");
+                Log.Information("⏰ [Capture] Таймаут захвата");
                 CaptureStatusChanged?.Invoke(this, "Время ожидания истекло");
                 StopCapture();
                 return;
@@ -135,7 +136,7 @@ public class GamepadCaptureService : IDisposable
             if (_firstButtonPressTime == DateTime.MinValue)
             {
                 _firstButtonPressTime = DateTime.Now;
-                Console.WriteLine("🎮 [Capture] Началось нажатие кнопок");
+                Log.Information("🎮 [Capture] Началось нажатие кнопок");
             }
             
             // Добавляем новые кнопки в накопитель
@@ -143,12 +144,12 @@ public class GamepadCaptureService : IDisposable
             {
                 if (_accumulatedButtons.Add(button)) // Add возвращает true если элемент новый
                 {
-                    Console.WriteLine($"🎮 [Capture] Добавлена кнопка: {button}");
+                    Log.Information($"🎮 [Capture] Добавлена кнопка: {button}");
                 }
             }
             
-            Console.WriteLine($"🎮 [Capture] Нажатые кнопки: {string.Join(", ", currentlyPressed)}");
-            Console.WriteLine($"🎮 [Capture] Всего в комбинации: {string.Join(", ", _accumulatedButtons)}");
+            Log.Information($"🎮 [Capture] Нажатые кнопки: {string.Join(", ", currentlyPressed)}");
+            Log.Information($"🎮 [Capture] Всего в комбинации: {string.Join(", ", _accumulatedButtons)}");
         }
         else if (_accumulatedButtons.Count > 0)
         {
@@ -158,11 +159,11 @@ public class GamepadCaptureService : IDisposable
             // Проверяем минимальное время удержания (используем константу из Core)
             if (holdTime.TotalMilliseconds >= AppConstants.MinHoldTimeMs)
             {
-                Console.WriteLine("🎮 [Capture] Кнопки отпущены");
+                Log.Information("🎮 [Capture] Кнопки отпущены");
                 
                 // Создаем шорткат из накопленных кнопок
                 var shortcut = CreateShortcutFromAccumulatedButtons();
-                Console.WriteLine($"🎮 [Capture] Комбинация захвачена: {shortcut.DisplayText}");
+                Log.Information($"🎮 [Capture] Комбинация захвачена: {shortcut.DisplayText}");
                 
                 // Уведомляем о захвате
                 ShortcutCaptured?.Invoke(this, shortcut);
@@ -173,7 +174,7 @@ public class GamepadCaptureService : IDisposable
             }
             else
             {
-                Console.WriteLine($"🎮 [Capture] Слишком быстрое нажатие ({holdTime.TotalMilliseconds:F0}ms), сбрасываем");
+                Log.Information($"🎮 [Capture] Слишком быстрое нажатие ({holdTime.TotalMilliseconds:F0}ms), сбрасываем");
                 _accumulatedButtons.Clear();
                 _firstButtonPressTime = DateTime.MinValue;
             }

@@ -3,7 +3,6 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ChatCaster.Windows.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels.Base;
@@ -20,7 +19,6 @@ namespace ChatCaster.Windows.ViewModels
 
         private readonly IAudioCaptureService _audioService;
         private readonly ISpeechRecognitionService _speechService;
-        private readonly IGamepadService _gamepadService;
         private readonly IOverlayService _overlayService;
         private readonly ISystemIntegrationService _systemService;
         private readonly IConfigurationService _configurationService;
@@ -126,11 +124,10 @@ namespace ChatCaster.Windows.ViewModels
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
             AppConfig currentConfig,
             ITrayService trayService,
-            INotificationService notificationService) // ✅ ЗАМЕНИЛИ TrayNotificationCoordinator на INotificationService
+            INotificationService notificationService) 
         {
             _audioService = audioService;
             _speechService = speechService;
-            _gamepadService = gamepadService;
             _overlayService = overlayService;
             _systemService = systemService;
             _configurationService = configurationService;
@@ -142,7 +139,7 @@ namespace ChatCaster.Windows.ViewModels
             _navigationManager = new NavigationManager(
                 audioService, speechService, gamepadService, systemService,
                 overlayService, configurationService, configurationService.CurrentConfig,
-                voiceRecordingService, gamepadVoiceCoordinator, notificationService); // ✅ ЗАМЕНИЛИ trayCoordinator на notificationService
+                voiceRecordingService, gamepadVoiceCoordinator, notificationService); 
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
@@ -154,7 +151,7 @@ namespace ChatCaster.Windows.ViewModels
             // Подписка на события
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
 
-            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и INotificationService из DI"); // ✅ ОБНОВИЛИ лог
+            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и INotificationService из DI"); 
         }
 
         #endregion
@@ -267,7 +264,7 @@ namespace ChatCaster.Windows.ViewModels
                 // 3. Останавливаем геймпад (обычно быстро)
                 try
                 {
-                    _gamepadVoiceCoordinator.ShutdownAsync().Wait(1000); // Максимум 1 секунда
+                    _gamepadVoiceCoordinator.ShutdownAsync().Wait(1000); 
                 }
                 catch (Exception ex)
                 {
@@ -277,7 +274,7 @@ namespace ChatCaster.Windows.ViewModels
                 // 4. Снимаем хоткеи (обычно быстро)
                 try
                 {
-                    _systemService.UnregisterGlobalHotkeyAsync().Wait(500); // Максимум 0.5 секунды
+                    _systemService.UnregisterGlobalHotkeyAsync().Wait(500); 
                 }
                 catch (Exception ex)
                 {

@@ -1,5 +1,6 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
+using Serilog;
 
 namespace ChatCaster.Windows.Services.GamepadService;
 
@@ -15,10 +16,13 @@ public class ShortcutDetector
     private GamepadShortcut? _currentShortcut;
     private GamepadState? _previousState;
     private int _controllerIndex = -1;
+    private bool _feedbackShown = false;
 
     // Состояние детекции
     private DateTime? _shortcutPressStartTime;
     private bool _shortcutWasPressed = false;
+
+    public event EventHandler? LongHoldFeedbackTriggered;
 
     public ShortcutDetector()
     {
@@ -47,12 +51,6 @@ public class ShortcutDetector
     /// <param name="currentState">Текущее состояние геймпада</param>
     public void UpdateState(GamepadState currentState)
     {
-        if (currentState == null)
-        {
-            ResetState();
-            return;
-        }
-
         lock (_lockObject)
         {
             if (_currentShortcut == null)
@@ -73,7 +71,7 @@ public class ShortcutDetector
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ShortcutDetector] Ошибка при обработке состояния: {ex.Message}");
+                Log.Information($"[ShortcutDetector] Ошибка при обработке состояния: {ex.Message}");
                 ResetState();
             }
         }
@@ -116,6 +114,7 @@ public class ShortcutDetector
             // Комбинация только что нажата
             _shortcutPressStartTime = DateTime.Now;
             _shortcutWasPressed = true;
+            _feedbackShown = false; // Сброс флага обратной связи
         }
         else if (!isPressed && wasPressed)
         {
@@ -132,7 +131,7 @@ public class ShortcutDetector
                 }
                 else
                 {
-                    Console.WriteLine($"[ShortcutDetector] Комбинация отпущена слишком быстро: {holdTimeMs}ms < {_currentShortcut.HoldTimeMs}ms");
+                    Log.Information($"[ShortcutDetector] Комбинация отпущена слишком быстро: {holdTimeMs}ms < {_currentShortcut.HoldTimeMs}ms");
                 }
             }
 
@@ -142,11 +141,24 @@ public class ShortcutDetector
         }
         else if (isPressed && wasPressed)
         {
-            // Комбинация всё ещё удерживается - ничего не делаем
-            // Можно добавить логику для повторных срабатываний если нужно
+            // Комбинация всё ещё удерживается - проверяем обратную связь
+            CheckLongHoldFeedback();
         }
     }
 
+    private void CheckLongHoldFeedback()
+    {
+        if (!_shortcutWasPressed || !_shortcutPressStartTime.HasValue || _feedbackShown)
+            return;
+
+        var currentHoldTime = (int)(DateTime.Now - _shortcutPressStartTime.Value).TotalMilliseconds;
+   
+        if (currentHoldTime >= 2000)
+        {
+            LongHoldFeedbackTriggered?.Invoke(this, EventArgs.Empty);
+            _feedbackShown = true;
+        }
+    }
     /// <summary>
     /// Отправляет событие срабатывания комбинации
     /// </summary>
@@ -175,11 +187,11 @@ public class ShortcutDetector
 
             ShortcutPressed?.Invoke(this, eventArgs);
             
-            Console.WriteLine($"[ShortcutDetector] Комбинация сработала: {_currentShortcut.DisplayText}, удержание: {holdTimeMs}ms");
+            Log.Information($"[ShortcutDetector] Комбинация сработала: {_currentShortcut.DisplayText}, удержание: {holdTimeMs}ms");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ShortcutDetector] Ошибка при отправке события: {ex.Message}");
+            Log.Information($"[ShortcutDetector] Ошибка при отправке события: {ex.Message}");
         }
     }
 

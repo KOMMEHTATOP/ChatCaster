@@ -3,6 +3,7 @@ using ChatCaster.Core.Services;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.SpeechRecognition.Whisper.Services;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Diagnostics;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
@@ -34,7 +35,7 @@ public class ModelSwitchingTests
     /// </summary>
     public async Task TestModelSwitchingAsync()
     {
-        Console.WriteLine("\n🔄 Testing model switching...");
+        Log.Information("\n🔄 Testing model switching...");
         
         var testScenario = new[]
         {
@@ -54,25 +55,25 @@ public class ModelSwitchingTests
             var modelSize = testScenario[i];
             var stepName = $"Step {i + 1}: Switch to {modelSize}";
             
-            Console.WriteLine($"   {stepName}...");
+            Log.Information($"   {stepName}...");
             
             try
             {
                 var result = await PerformModelSwitchAsync(modelSize, testAudio, stepName);
                 results.Add(result);
                 
-                Console.WriteLine($"   ✅ {stepName} completed");
-                Console.WriteLine($"      Working Set: {result.MemoryBeforeMB:F0}MB → {result.MemoryAfterRecognitionMB:F0}MB → {result.MemoryAfterGCMB:F0}MB");
-                Console.WriteLine($"      Managed: {result.ManagedMemoryBeforeMB:F1}MB → {result.ManagedMemoryAfterGCMB:F1}MB");
-                Console.WriteLine($"      Time: Init {result.InitTimeMs}ms, Recognition {result.RecognitionTimeMs}ms");
-                Console.WriteLine($"      Recognition: {(result.RecognitionSuccess ? "✅" : "❌")}");
+                Log.Information($"   ✅ {stepName} completed");
+                Log.Information($"      Working Set: {result.MemoryBeforeMB:F0}MB → {result.MemoryAfterRecognitionMB:F0}MB → {result.MemoryAfterGCMB:F0}MB");
+                Log.Information($"      Managed: {result.ManagedMemoryBeforeMB:F1}MB → {result.ManagedMemoryAfterGCMB:F1}MB");
+                Log.Information($"      Time: Init {result.InitTimeMs}ms, Recognition {result.RecognitionTimeMs}ms");
+                Log.Information($"      Recognition: {(result.RecognitionSuccess ? "✅" : "❌")}");
                 
                 // Пауза между переключениями
                 await Task.Delay(1000);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {stepName} FAILED: {ex.Message}");
+                Log.Information($"   ❌ {stepName} FAILED: {ex.Message}");
                 _logger.LogError(ex, "Model switching failed at step {Step}", stepName);
                 
                 // Записываем краш в результаты
@@ -103,7 +104,7 @@ public class ModelSwitchingTests
     /// </summary>
     public async Task TestRapidModelSwitchingAsync()
     {
-        Console.WriteLine("\n⚡ Testing rapid model switching...");
+        Log.Information("\n⚡ Testing rapid model switching...");
         
         var models = new[] { WhisperConstants.ModelSizes.Tiny, WhisperConstants.ModelSizes.Base };
         var testAudio = GenerateTestAudio(2.0, 440.0);
@@ -116,21 +117,21 @@ public class ModelSwitchingTests
             var modelSize = models[i % models.Length];
             var stepName = $"Rapid {i + 1}: {modelSize}";
             
-            Console.WriteLine($"   {stepName}...");
+            Log.Information($"   {stepName}...");
             
             try
             {
                 var result = await PerformModelSwitchAsync(modelSize, testAudio, stepName, forceReload: true);
                 memorySnapshots.Add(result);
                 
-                Console.WriteLine($"   ✅ {result.MemoryAfterGCMB:F1}MB");
+                Log.Information($"   ✅ {result.MemoryAfterGCMB:F1}MB");
                 
                 // Минимальная пауза
                 await Task.Delay(500);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {stepName} crashed: {ex.Message}");
+                Log.Information($"   ❌ {stepName} crashed: {ex.Message}");
                 break;
             }
         }
@@ -143,7 +144,7 @@ public class ModelSwitchingTests
     /// </summary>
     public async Task TestLargeModelSwitchingAsync()
     {
-        Console.WriteLine("\n🐘 Testing large model switching...");
+        Log.Information("\n🐘 Testing large model switching...");
         _reportGenerator.StartDiagnosticSection("LARGE MODEL SWITCHING");
 
         // Сценарий аналогичный вашей таблице
@@ -174,7 +175,7 @@ public class ModelSwitchingTests
         for (int i = 0; i < scenario.Length; i++)
         {
             var step = scenario[i];
-            Console.WriteLine($"   {i + 1}. {step.Description}...");
+            Log.Information($"   {i + 1}. {step.Description}...");
             
             try
             {
@@ -198,7 +199,7 @@ public class ModelSwitchingTests
                 }
                 else
                 {
-                    Console.WriteLine($"      Memory after: {result.MemoryAfterGCMB:F1}MB");
+                    Log.Information($"      Memory after: {result.MemoryAfterGCMB:F1}MB");
                 }
                 
                 // Показываем детальную информацию для критических шагов
@@ -208,7 +209,7 @@ public class ModelSwitchingTests
                 }
                 else
                 {
-                    Console.WriteLine($"      Memory after: {result.MemoryAfterGCMB:F1}MB");
+                    Log.Information($"      Memory after: {result.MemoryAfterGCMB:F1}MB");
                 }
 
                 
@@ -220,8 +221,8 @@ public class ModelSwitchingTests
                 _reportGenerator.AddDiagnosticLog("CRASH", $"Step {i + 1} CRASHED: {ex.GetType().Name}: {ex.Message}");
                 _reportGenerator.AddDiagnosticLog("CRASH", $"Stack trace: {ex.StackTrace?.Split('\n').FirstOrDefault()?.Trim()}");
 
-                Console.WriteLine($"   ❌ CRASH at step {i + 1}: {ex.Message}");
-                Console.WriteLine($"   🔍 This matches your reported crash scenario!");
+                Log.Information($"   ❌ CRASH at step {i + 1}: {ex.Message}");
+                Log.Information($"   🔍 This matches your reported crash scenario!");
                 
                 results.Add(new ModelSwitchResult
                 {
@@ -314,22 +315,22 @@ public class ModelSwitchingTests
 
     private void AnalyzeModelSwitchingResults(List<ModelSwitchResult> results)
     {
-        Console.WriteLine("\n   📊 Model Switching Analysis:");
+        Log.Information("\n   📊 Model Switching Analysis:");
         
         if (results.Count == 0) return;
 
         var successfulResults = results.Where(r => r.Success).ToList();
         var crashes = results.Where(r => !r.Success).ToList();
 
-        Console.WriteLine($"   • Successful switches: {successfulResults.Count}/{results.Count}");
-        Console.WriteLine($"   • Crashes: {crashes.Count}");
+        Log.Information($"   • Successful switches: {successfulResults.Count}/{results.Count}");
+        Log.Information($"   • Crashes: {crashes.Count}");
 
         if (crashes.Any())
         {
-            Console.WriteLine("   🚨 CRASH PATTERNS:");
+            Log.Information("   🚨 CRASH PATTERNS:");
             foreach (var crash in crashes)
             {
-                Console.WriteLine($"     - {crash.StepName}: {crash.ErrorMessage}");
+                Log.Information($"     - {crash.StepName}: {crash.ErrorMessage}");
             }
         }
 
@@ -339,15 +340,15 @@ public class ModelSwitchingTests
             var lastMemory = successfulResults.Last().MemoryAfterGCMB;
             var memoryGrowth = lastMemory - firstMemory;
             
-            Console.WriteLine($"   • Memory growth: {firstMemory:F1}MB → {lastMemory:F1}MB ({memoryGrowth:F1}MB)");
+            Log.Information($"   • Memory growth: {firstMemory:F1}MB → {lastMemory:F1}MB ({memoryGrowth:F1}MB)");
             
             if (memoryGrowth > 50)
             {
-                Console.WriteLine("   ⚠️ Significant memory growth detected - possible leaks");
+                Log.Information("   ⚠️ Significant memory growth detected - possible leaks");
             }
             else
             {
-                Console.WriteLine("   ✅ Memory growth within acceptable limits");
+                Log.Information("   ✅ Memory growth within acceptable limits");
             }
         }
     }
@@ -356,40 +357,40 @@ public class ModelSwitchingTests
     {
         if (snapshots.Count < 3) return;
 
-        Console.WriteLine("\n   📈 Rapid Switching Trend:");
+        Log.Information("\n   📈 Rapid Switching Trend:");
         var memories = snapshots.Select(s => s.MemoryAfterGCMB).ToArray();
         
         for (int i = 0; i < memories.Length; i++)
         {
             var trend = i > 0 ? (memories[i] - memories[i - 1]) : 0;
             var trendSymbol = trend > 5 ? "📈" : trend < -5 ? "📉" : "➡️";
-            Console.WriteLine($"   {i + 1}. {memories[i]:F1}MB {trendSymbol} ({trend:+0.1;-0.1;±0.0}MB)");
+            Log.Information($"   {i + 1}. {memories[i]:F1}MB {trendSymbol} ({trend:+0.1;-0.1;±0.0}MB)");
         }
 
         var totalGrowth = memories.Last() - memories.First();
-        Console.WriteLine($"   • Total growth: {totalGrowth:F1}MB");
+        Log.Information($"   • Total growth: {totalGrowth:F1}MB");
         
         if (totalGrowth > 20)
         {
-            Console.WriteLine("   ⚠️ Memory accumulation in rapid switching");
+            Log.Information("   ⚠️ Memory accumulation in rapid switching");
         }
     }
 
     private void ShowDetailedMemoryInfo(ModelSwitchResult result)
     {
-        Console.WriteLine($"      📊 Detailed Memory Info:");
-        Console.WriteLine($"         Before: {result.MemoryBeforeMB:F1}MB");
-        Console.WriteLine($"         After init: {result.MemoryAfterInitMB:F1}MB (+{result.MemoryAfterInitMB - result.MemoryBeforeMB:F1}MB)");
-        Console.WriteLine($"         After recognition: {result.MemoryAfterRecognitionMB:F1}MB (+{result.MemoryAfterRecognitionMB - result.MemoryAfterInitMB:F1}MB)");
-        Console.WriteLine($"         After GC: {result.MemoryAfterGCMB:F1}MB (-{result.MemoryAfterRecognitionMB - result.MemoryAfterGCMB:F1}MB freed)");
+        Log.Information($"      📊 Detailed Memory Info:");
+        Log.Information($"         Before: {result.MemoryBeforeMB:F1}MB");
+        Log.Information($"         After init: {result.MemoryAfterInitMB:F1}MB (+{result.MemoryAfterInitMB - result.MemoryBeforeMB:F1}MB)");
+        Log.Information($"         After recognition: {result.MemoryAfterRecognitionMB:F1}MB (+{result.MemoryAfterRecognitionMB - result.MemoryAfterInitMB:F1}MB)");
+        Log.Information($"         After GC: {result.MemoryAfterGCMB:F1}MB (-{result.MemoryAfterRecognitionMB - result.MemoryAfterGCMB:F1}MB freed)");
     }
 
     private void GenerateMemoryUsageTable(List<ModelSwitchResult> results)
     {
-        Console.WriteLine("\n   📋 Memory Usage Table (similar to your findings):");
-        Console.WriteLine("   ┌─────────────────────────┬────────┬─────────────┬──────────────────┬─────────────────────┬────────┐");
-        Console.WriteLine("   │ Action                  │ Model  │ Idle (MB)   │ Recognition (MB) │ After Operation (MB)│ Status │");
-        Console.WriteLine("   ├─────────────────────────┼────────┼─────────────┼──────────────────┼─────────────────────┼────────┤");
+        Log.Information("\n   📋 Memory Usage Table (similar to your findings):");
+        Log.Information("   ┌─────────────────────────┬────────┬─────────────┬──────────────────┬─────────────────────┬────────┐");
+        Log.Information("   │ Action                  │ Model  │ Idle (MB)   │ Recognition (MB) │ After Operation (MB)│ Status │");
+        Log.Information("   ├─────────────────────────┼────────┼─────────────┼──────────────────┼─────────────────────┼────────┤");
         
         foreach (var result in results)
         {
@@ -398,15 +399,15 @@ public class ModelSwitchingTests
             
             if (result.Success)
             {
-                Console.WriteLine($"   │ {action,-23} │ {result.ModelSize,-6} │ {result.MemoryBeforeMB,11:F1} │ {result.MemoryAfterRecognitionMB,16:F1} │ {result.MemoryAfterGCMB,19:F1} │ {status,6} │");
+                Log.Information($"   │ {action,-23} │ {result.ModelSize,-6} │ {result.MemoryBeforeMB,11:F1} │ {result.MemoryAfterRecognitionMB,16:F1} │ {result.MemoryAfterGCMB,19:F1} │ {status,6} │");
             }
             else
             {
-                Console.WriteLine($"   │ {action,-23} │ {result.ModelSize,-6} │ {"CRASH",-11} │ {"CRASH",-16} │ {"CRASH",-19} │ {status,6} │");
+                Log.Information($"   │ {action,-23} │ {result.ModelSize,-6} │ {"CRASH",-11} │ {"CRASH",-16} │ {"CRASH",-19} │ {status,6} │");
             }
         }
         
-        Console.WriteLine("   └─────────────────────────┴────────┴─────────────┴──────────────────┴─────────────────────┴────────┘");
+        Log.Information("   └─────────────────────────┴────────┴─────────────┴──────────────────┴─────────────────────┴────────┘");
     }
 
     private double GetManagedMemoryMB()

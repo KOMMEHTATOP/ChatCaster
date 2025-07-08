@@ -21,13 +21,12 @@ public class AppConfig
 public class AudioConfig
 {
     public string? SelectedDeviceId { get; set; }
-    public int SampleRate { get; set; } = 16000; // Оптимально для большинства речевых движков
-    public int Channels { get; set; } = 1; // Моно
+    public int SampleRate { get; set; } = 16000;
+    public int Channels { get; set; } = 1; 
     public int BitsPerSample { get; set; } = 16;
-    public int RecordingTimeoutSeconds { get; set; } = 10;
     public int MaxRecordingSeconds { get; set; } = 30;
-    public int MinRecordingSeconds { get; set; } = 1;
-    public float VolumeThreshold { get; set; } = 0.01f; // Для автостопа по тишине
+    public int MinRecordingSeconds { get; set; } = 2;
+    public float VolumeThreshold { get; set; } = 0.01f; //отвечает за порог громкости захвата. Сделал для отсечения лишних тихих звуков
 }
 
 /// <summary>
@@ -38,7 +37,6 @@ public class InputConfig
     public GamepadShortcut GamepadShortcut { get; set; } = new();
     public KeyboardShortcut? KeyboardShortcut { get; set; }
     public bool EnableGamepadControl { get; set; } = true;
-    public bool EnableKeyboardControl { get; set; } = true;
     public int GamepadPollingRateMs { get; set; } = 16; // ~60 FPS
 }
 
@@ -57,9 +55,6 @@ public class GamepadShortcut
     /// </summary>
     public bool IsPressed(GamepadState state)
     {
-        if (state == null)
-            return false;
-
         bool primaryPressed = state.IsButtonPressed(PrimaryButton);
         
         if (RequireBothButtons && PrimaryButton != SecondaryButton)
@@ -67,10 +62,8 @@ public class GamepadShortcut
             bool secondaryPressed = state.IsButtonPressed(SecondaryButton);
             return primaryPressed && secondaryPressed;
         }
-        else
-        {
-            return primaryPressed;
-        }
+
+        return primaryPressed;
     }
 
     /// <summary>
@@ -116,7 +109,6 @@ public class KeyboardShortcut
 {
     public ModifierKeys Modifiers { get; set; } = ModifierKeys.Control | ModifierKeys.Shift;
     public Key Key { get; set; } = Key.V;
-    public bool IsGlobal { get; set; } = true;
 
     /// <summary>
     /// Текстовое представление комбинации для UI
@@ -170,7 +162,6 @@ public class OverlayConfig
     public OverlayPosition Position { get; set; } = OverlayPosition.TopRight;
     public int OffsetX { get; set; } = 50;
     public int OffsetY { get; set; } = 50;
-    public OverlayMode Mode { get; set; } = OverlayMode.Normal;
     public float Opacity { get; set; } = 0.9f;
 }
 
@@ -181,9 +172,7 @@ public class SpeechRecognitionConfig
 {
     public string Engine { get; set; } = "Whisper"; // Тип движка распознавания
     public string Language { get; set; } = "ru"; // Основной язык
-    public bool AutoDetectLanguage { get; set; } = false;
-    public string UnrecognizedPlaceholder { get; set; } = "ХХХХХХ";
-    public bool UseGpuAcceleration { get; set; } = false;
+    public bool UseGpuAcceleration { get; set; }
     public int MaxTokens { get; set; } = 224; // Ограничение длины для чата
     
     // Настройки специфичные для движков будут храниться в Dictionary
@@ -195,14 +184,12 @@ public class SpeechRecognitionConfig
 /// </summary>
 public class SystemConfig
 {
-    public bool StartWithSystem { get; set; } = true; // Переименовано из StartWithWindows
-    public bool StartMinimized { get; set; } = false;
+    public bool StartWithSystem { get; set; } = true; 
+    public bool StartMinimized { get; set; }
     
-    // ✅ ОСТАВЛЯЕМ: AllowCompleteExit используется с инверсией (!AllowCompleteExit = MinimizeToTray)
-    public bool AllowCompleteExit { get; set; } = false;
+    public bool AllowCompleteExit { get; set; }
     
-    public bool ShowNotifications { get; set; } = true;
-    public int ConfigSaveIntervalMs { get; set; } = 5000;
+    public bool ShowNotifications { get; set; }
 }
 
 
@@ -212,10 +199,10 @@ public class SystemConfig
 public class LoggingConfig
 {
     public LogEventLevel MinimumLevel { get; set; } = LogEventLevel.Information;
-    public bool EnableConsoleLogging { get; set; } = false;
+    public bool EnableConsoleLogging { get; set; } 
     public bool EnableDebugOutput { get; set; } = true;
     public int RetainedFileCount { get; set; } = 7;
     public long MaxFileSizeBytes { get; set; } = 10_000_000; // 10MB
     public string LogFileTemplate { get; set; } = "chatcaster-.log";
-    public string? CustomLogDirectory { get; set; } // null = использовать стандартную папку
+    public string? CustomLogDirectory { get; set; }
 }

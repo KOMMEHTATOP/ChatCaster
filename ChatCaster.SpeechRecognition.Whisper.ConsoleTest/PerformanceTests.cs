@@ -3,6 +3,7 @@ using ChatCaster.Core.Services;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.SpeechRecognition.Whisper.Services;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Diagnostics;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
@@ -31,7 +32,7 @@ public class PerformanceTests
     /// </summary>
     public async Task TestModelLoadingPerformanceAsync()
     {
-        Console.WriteLine("\n⚡ Testing model loading performance...");
+        Log.Information("\n⚡ Testing model loading performance...");
 
         var modelDirectory = Path.Combine(Directory.GetCurrentDirectory(), "models");
         var modelsToTest = new[] { WhisperConstants.ModelSizes.Tiny, WhisperConstants.ModelSizes.Base };
@@ -40,18 +41,18 @@ public class PerformanceTests
 
         foreach (var modelSize in modelsToTest)
         {
-            Console.WriteLine($"   Testing {modelSize} model...");
+            Log.Information($"   Testing {modelSize} model...");
             
             try
             {
                 var result = await MeasureModelLoadingAsync(modelSize, modelDirectory);
                 results.Add(result);
                 
-                Console.WriteLine($"   ✅ {modelSize}: {result.TotalTimeMs}ms (Download: {result.DownloadTimeMs}ms, Init: {result.InitTimeMs}ms)");
+                Log.Information($"   ✅ {modelSize}: {result.TotalTimeMs}ms (Download: {result.DownloadTimeMs}ms, Init: {result.InitTimeMs}ms)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {modelSize} failed: {ex.Message}");
+                Log.Information($"   ❌ {modelSize} failed: {ex.Message}");
                 _logger.LogError(ex, "Model loading test failed for {ModelSize}", modelSize);
             }
         }
@@ -65,7 +66,7 @@ public class PerformanceTests
     /// </summary>
     public async Task TestRecognitionSpeedAsync()
     {
-        Console.WriteLine("\n🚀 Testing recognition speed...");
+        Log.Information("\n🚀 Testing recognition speed...");
 
         // Подготавливаем движок
         await InitializeEngineAsync();
@@ -75,7 +76,7 @@ public class PerformanceTests
 
         foreach (var duration in audioDurations)
         {
-            Console.WriteLine($"   Testing {duration}s audio...");
+            Log.Information($"   Testing {duration}s audio...");
             
             try
             {
@@ -83,11 +84,11 @@ public class PerformanceTests
                 results.Add(result);
                 
                 var realtimeRatio = result.ProcessingTimeMs / (duration * 1000);
-                Console.WriteLine($"   ✅ {duration}s audio: {result.ProcessingTimeMs}ms ({realtimeRatio:F2}x realtime)");
+                Log.Information($"   ✅ {duration}s audio: {result.ProcessingTimeMs}ms ({realtimeRatio:F2}x realtime)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {duration}s audio failed: {ex.Message}");
+                Log.Information($"   ❌ {duration}s audio failed: {ex.Message}");
                 _logger.LogError(ex, "Recognition speed test failed for {Duration}s", duration);
             }
         }
@@ -101,7 +102,7 @@ public class PerformanceTests
     /// </summary>
     public async Task TestConcurrentRecognitionAsync()
     {
-        Console.WriteLine("\n🔄 Testing concurrent recognition...");
+        Log.Information("\n🔄 Testing concurrent recognition...");
 
         await InitializeEngineAsync();
 
@@ -110,7 +111,7 @@ public class PerformanceTests
         
         foreach (var concurrency in concurrencyLevels)
         {
-            Console.WriteLine($"   Testing {concurrency} concurrent requests...");
+            Log.Information($"   Testing {concurrency} concurrent requests...");
             
             try
             {
@@ -120,13 +121,13 @@ public class PerformanceTests
                 var maxTime = result.IndividualTimes.Max();
                 var minTime = result.IndividualTimes.Min();
                 
-                Console.WriteLine($"   ✅ {concurrency} requests completed in {result.TotalTimeMs}ms");
-                Console.WriteLine($"      Average: {avgTime:F0}ms, Min: {minTime:F0}ms, Max: {maxTime:F0}ms");
-                Console.WriteLine($"      Throughput: {concurrency * 1000.0 / result.TotalTimeMs:F2} requests/second");
+                Log.Information($"   ✅ {concurrency} requests completed in {result.TotalTimeMs}ms");
+                Log.Information($"      Average: {avgTime:F0}ms, Min: {minTime:F0}ms, Max: {maxTime:F0}ms");
+                Log.Information($"      Throughput: {concurrency * 1000.0 / result.TotalTimeMs:F2} requests/second");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {concurrency} concurrent requests failed: {ex.Message}");
+                Log.Information($"   ❌ {concurrency} concurrent requests failed: {ex.Message}");
                 _logger.LogError(ex, "Concurrent recognition test failed for {Concurrency}", concurrency);
             }
         }
@@ -137,7 +138,7 @@ public class PerformanceTests
     /// </summary>
     public async Task TestPerformanceWithDifferentSettingsAsync()
     {
-        Console.WriteLine("\n⚙️ Testing performance with different settings...");
+        Log.Information("\n⚙️ Testing performance with different settings...");
 
         var settings = new[]
         {
@@ -152,7 +153,7 @@ public class PerformanceTests
 
         foreach (var setting in settings)
         {
-            Console.WriteLine($"   Testing: {setting.Description}...");
+            Log.Information($"   Testing: {setting.Description}...");
             
             try
             {
@@ -166,12 +167,12 @@ public class PerformanceTests
                 var result = await _speechService.RecognizeAsync(testAudio);
                 recognitionStopwatch.Stop();
 
-                Console.WriteLine($"   ✅ Init: {initStopwatch.ElapsedMilliseconds}ms, Recognition: {recognitionStopwatch.ElapsedMilliseconds}ms");
-                Console.WriteLine($"      Success: {result.Success}, Confidence: {result.Confidence:F2}");
+                Log.Information($"   ✅ Init: {initStopwatch.ElapsedMilliseconds}ms, Recognition: {recognitionStopwatch.ElapsedMilliseconds}ms");
+                Log.Information($"      Success: {result.Success}, Confidence: {result.Confidence:F2}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   ❌ {setting.Description} failed: {ex.Message}");
+                Log.Information($"   ❌ {setting.Description} failed: {ex.Message}");
             }
         }
     }
@@ -329,28 +330,28 @@ public class PerformanceTests
     {
         if (results.Count == 0) return;
 
-        Console.WriteLine("\n   📊 Model Loading Performance Comparison:");
-        Console.WriteLine("   ┌─────────────┬──────────────┬──────────────┬──────────────┐");
-        Console.WriteLine("   │ Model       │ Download (ms)│ Init (ms)    │ Total (ms)   │");
-        Console.WriteLine("   ├─────────────┼──────────────┼──────────────┼──────────────┤");
+        Log.Information("\n   📊 Model Loading Performance Comparison:");
+        Log.Information("   ┌─────────────┬──────────────┬──────────────┬──────────────┐");
+        Log.Information("   │ Model       │ Download (ms)│ Init (ms)    │ Total (ms)   │");
+        Log.Information("   ├─────────────┼──────────────┼──────────────┼──────────────┤");
         
         foreach (var result in results)
         {
-            Console.WriteLine($"   │ {result.ModelSize,-11} │ {result.DownloadTimeMs,12} │ {result.InitTimeMs,12} │ {result.TotalTimeMs,12} │");
+            Log.Information($"   │ {result.ModelSize,-11} │ {result.DownloadTimeMs,12} │ {result.InitTimeMs,12} │ {result.TotalTimeMs,12} │");
         }
         
-        Console.WriteLine("   └─────────────┴──────────────┴──────────────┴──────────────┘");
+        Log.Information("   └─────────────┴──────────────┴──────────────┴──────────────┘");
     }
 
     private void ShowRecognitionSpeedAnalysis(List<RecognitionSpeedResult> results)
     {
         if (results.Count == 0) return;
 
-        Console.WriteLine("\n   📈 Recognition Speed Analysis:");
-        Console.WriteLine("   ┌─────────────┬──────────────┬──────────────┬──────────────┐");
-        Console.WriteLine("   │ Audio (s)   │ Processing   │ Realtime     │ Throughput   │");
-        Console.WriteLine("   │             │ Time (ms)    │ Ratio        │ (x speed)    │");
-        Console.WriteLine("   ├─────────────┼──────────────┼──────────────┼──────────────┤");
+        Log.Information("\n   📈 Recognition Speed Analysis:");
+        Log.Information("   ┌─────────────┬──────────────┬──────────────┬──────────────┐");
+        Log.Information("   │ Audio (s)   │ Processing   │ Realtime     │ Throughput   │");
+        Log.Information("   │             │ Time (ms)    │ Ratio        │ (x speed)    │");
+        Log.Information("   ├─────────────┼──────────────┼──────────────┼──────────────┤");
         
         foreach (var result in results)
         {
@@ -358,26 +359,26 @@ public class PerformanceTests
             var realtimeRatio = result.ProcessingTimeMs / result.AudioDurationMs;
             var throughput = 1.0 / realtimeRatio;
             
-            Console.WriteLine($"   │ {audioSeconds,11:F1} │ {result.ProcessingTimeMs,12} │ {realtimeRatio,12:F2} │ {throughput,12:F2} │");
+            Log.Information($"   │ {audioSeconds,11:F1} │ {result.ProcessingTimeMs,12} │ {realtimeRatio,12:F2} │ {throughput,12:F2} │");
         }
         
-        Console.WriteLine("   └─────────────┴──────────────┴──────────────┴──────────────┘");
+        Log.Information("   └─────────────┴──────────────┴──────────────┴──────────────┘");
 
         // Показываем рекомендации
         var avgRatio = results.Average(r => r.ProcessingTimeMs / r.AudioDurationMs);
-        Console.WriteLine($"\n   💡 Average realtime ratio: {avgRatio:F2}x");
+        Log.Information($"\n   💡 Average realtime ratio: {avgRatio:F2}x");
         
         if (avgRatio < 1.0)
         {
-            Console.WriteLine("   ✅ Performance is better than realtime - suitable for real-time applications");
+            Log.Information("   ✅ Performance is better than realtime - suitable for real-time applications");
         }
         else if (avgRatio < 2.0)
         {
-            Console.WriteLine("   ⚠️ Performance is close to realtime - may work for near real-time applications");
+            Log.Information("   ⚠️ Performance is close to realtime - may work for near real-time applications");
         }
         else
         {
-            Console.WriteLine("   ❌ Performance is slower than realtime - not suitable for real-time applications");
+            Log.Information("   ❌ Performance is slower than realtime - not suitable for real-time applications");
         }
     }
 

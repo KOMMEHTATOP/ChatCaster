@@ -1,4 +1,5 @@
 using ChatCaster.Core.Events;
+using ChatCaster.Core.Models;
 using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Services.GamepadService;
 
@@ -118,26 +119,28 @@ namespace ChatCaster.Windows.Managers
 
         private void SubscribeToGamepadEvents()
         {
-            _gamepadService.GamepadConnected += OnGamepadConnected;
-            _gamepadService.GamepadDisconnected += OnGamepadDisconnected;
+            _gamepadService.GamepadEvent += OnGamepadEvent;
         }
 
         private void UnsubscribeFromGamepadEvents()
         {
-            _gamepadService.GamepadConnected -= OnGamepadConnected;
-            _gamepadService.GamepadDisconnected -= OnGamepadDisconnected;
+            _gamepadService.GamepadEvent -= OnGamepadEvent;
         }
-
-        private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
+        
+        private void OnGamepadEvent(object? sender, GamepadEvent e)
         {
             if (_isDisposed) return;
-            SetConnectedStatus(e.GamepadInfo.Name);
-        }
 
-        private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
-        {
-            if (_isDisposed) return;
-            SetDisconnectedStatus();
+            switch (e.EventType)
+            {
+                case GamepadEventType.Connected:
+                    SetConnectedStatus(e.GamepadInfo.Name);
+                    break;
+        
+                case GamepadEventType.Disconnected:
+                    SetDisconnectedStatus();
+                    break;
+            }
         }
 
         private void SetConnectedStatus(string gamepadName)

@@ -1,5 +1,4 @@
 using System.Windows.Controls;
-using ChatCaster.Windows.Services;
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Windows.Views.ViewSettings;
@@ -25,7 +24,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private readonly AppConfig _currentConfig;
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
-        private readonly INotificationService _notificationService; // ✅ ЗАМЕНИЛИ TrayNotificationCoordinator
+        private readonly INotificationService _notificationService; 
 
         public string CurrentPageTag { get; private set; } = NavigationConstants.MainPage;
         public Page? CurrentPage { get; private set; }
@@ -43,7 +42,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             AppConfig currentConfig,
             IVoiceRecordingService voiceRecordingService,
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            INotificationService notificationService) // ✅ ЗАМЕНИЛИ параметр
+            INotificationService notificationService) 
         {
             _audioService = audioService;
             _speechService = speechService;
@@ -54,7 +53,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _currentConfig = currentConfig;
             _voiceRecordingService = voiceRecordingService;
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
-            _notificationService = notificationService; // ✅ ЗАМЕНИЛИ инициализацию
+            _notificationService = notificationService; 
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
@@ -141,7 +140,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             {
                 Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
 
-                var audioView = new AudioSettingsView(_audioService, _speechService);
+                var audioView = new AudioSettingsView(_audioService);
                 Log.Information("AudioSettingsView создан");
 
                 var audioViewModel = new AudioSettingsViewModel(
@@ -170,7 +169,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         {
             try
             {
-                // ✅ ИСПРАВЛЕНИЕ: Используем ConfigurationService.CurrentConfig вместо _currentConfig
                 var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _configService.CurrentConfig);
         
                 var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _configService.CurrentConfig, _overlayService);
@@ -220,7 +218,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
             try
             {
-                // ✅ ИСПРАВЛЕНИЕ: Выполняем cleanup в UI потоке
+                // Выполняем cleanup в UI потоке
                 System.Windows.Application.Current?.Dispatcher.Invoke(() =>
                 {
                     // Сначала очищаем Singleton MainPageViewModel

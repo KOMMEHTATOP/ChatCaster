@@ -3,18 +3,9 @@ using ChatCaster.Core.Models;
 namespace ChatCaster.Core.Events;
 
 /// <summary>
-/// Базовый класс для всех событий ChatCaster
-/// </summary>
-public abstract class ChatCasterEvent
-{
-    public DateTime Timestamp { get; } = DateTime.Now;
-    public string EventId { get; } = Guid.NewGuid().ToString();
-}
-
-/// <summary>
 /// Событие изменения статуса записи
 /// </summary>
-public class RecordingStatusChangedEvent : ChatCasterEvent
+public class RecordingStatusChangedEvent 
 {
     public RecordingStatus OldStatus { get; set; }
     public RecordingStatus NewStatus { get; set; }
@@ -24,7 +15,7 @@ public class RecordingStatusChangedEvent : ChatCasterEvent
 /// <summary>
 /// Событие завершения распознавания голоса
 /// </summary>
-public class VoiceRecognitionCompletedEvent : ChatCasterEvent
+public class VoiceRecognitionCompletedEvent 
 {
     public VoiceProcessingResult Result { get; set; } = new();
     public int AudioDataSize { get; set; }  
@@ -33,24 +24,11 @@ public class VoiceRecognitionCompletedEvent : ChatCasterEvent
 /// <summary>
 /// Базовый класс для событий геймпада
 /// </summary>
-public class GamepadEvent : ChatCasterEvent
+public class GamepadEvent 
 {
+    public GamepadEventType EventType { get; set; }
     public int GamepadIndex { get; set; }
     public GamepadInfo GamepadInfo { get; set; } = new();
-}
-
-/// <summary>
-/// Событие подключения геймпада
-/// </summary>
-public class GamepadConnectedEvent : GamepadEvent
-{
-}
-
-/// <summary>
-/// Событие отключения геймпада
-/// </summary>
-public class GamepadDisconnectedEvent : GamepadEvent
-{
 }
 
 /// <summary>
@@ -66,7 +44,7 @@ public class GamepadShortcutPressedEvent : GamepadEvent
 /// <summary>
 /// Событие изменения конфигурации
 /// </summary>
-public class ConfigurationChangedEvent : ChatCasterEvent
+public class ConfigurationChangedEvent 
 {
     public string? SettingName { get; set; }
     public object? OldValue { get; set; }
@@ -76,7 +54,7 @@ public class ConfigurationChangedEvent : ChatCasterEvent
 /// <summary>
 /// Событие возникновения ошибки
 /// </summary>
-public class ErrorOccurredEvent : ChatCasterEvent
+public class ErrorOccurredEvent 
 {
     public string ErrorMessage { get; set; } = string.Empty;
     public Exception? Exception { get; set; }
@@ -86,7 +64,7 @@ public class ErrorOccurredEvent : ChatCasterEvent
 /// <summary>
 /// Событие изменения позиции overlay
 /// </summary>
-public class OverlayPositionChangedEvent : ChatCasterEvent
+public class OverlayPositionChangedEvent 
 {
     public int NewX { get; set; }
     public int NewY { get; set; }
@@ -96,7 +74,7 @@ public class OverlayPositionChangedEvent : ChatCasterEvent
 /// <summary>
 /// Событие изменения громкости микрофона
 /// </summary>
-public class VolumeChangedEvent : ChatCasterEvent
+public class VolumeChangedEvent 
 {
     public float Volume { get; set; }
     public string? DeviceId { get; set; }
@@ -105,7 +83,7 @@ public class VolumeChangedEvent : ChatCasterEvent
 /// <summary>
 /// Событие нажатия глобального хоткея
 /// </summary>
-public class GlobalHotkeyPressedEvent : ChatCasterEvent
+public class GlobalHotkeyPressedEvent 
 {
     public KeyboardShortcut Shortcut { get; set; } = new();
 }
@@ -113,7 +91,7 @@ public class GlobalHotkeyPressedEvent : ChatCasterEvent
 /// <summary>
 /// Событие прогресса распознавания речи (абстрактное)
 /// </summary>
-public class SpeechRecognitionProgressEvent : ChatCasterEvent
+public class SpeechRecognitionProgressEvent 
 {
     public string Engine { get; set; } = string.Empty;
     public int ProgressPercentage { get; set; }
@@ -124,7 +102,7 @@ public class SpeechRecognitionProgressEvent : ChatCasterEvent
 /// <summary>
 /// Событие ошибки распознавания речи
 /// </summary>
-public class SpeechRecognitionErrorEvent : ChatCasterEvent
+public class SpeechRecognitionErrorEvent 
 {
     public string Engine { get; set; } = string.Empty;
     public string ErrorMessage { get; set; } = string.Empty;

@@ -3,6 +3,7 @@ using ChatCaster.Core.Services;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.SpeechRecognition.Whisper.Services;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Diagnostics;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
@@ -31,51 +32,51 @@ public class MemoryTests
     /// </summary>
     public async Task TestMemoryUsageAsync()
     {
-        Console.WriteLine("\n💾 Testing memory usage...");
+        Log.Information("\n💾 Testing memory usage...");
 
         // Замеряем базовое потребление памяти
         var baseline = MeasureMemoryUsage("Baseline");
-        Console.WriteLine($"   📊 {baseline}");
+        Log.Information($"   📊 {baseline}");
 
         try
         {
             // Инициализируем движок и замеряем память
-            Console.WriteLine("   Initializing speech engine...");
+            Log.Information("   Initializing speech engine...");
             var config = CreateTestConfig();
             await _speechService.InitializeAsync(config);
             
             var afterInit = MeasureMemoryUsage("After initialization");
-            Console.WriteLine($"   📊 {afterInit}");
+            Log.Information($"   📊 {afterInit}");
             
             var initMemoryIncrease = afterInit.WorkingSetMB - baseline.WorkingSetMB;
-            Console.WriteLine($"   📈 Memory increase after init: {initMemoryIncrease:F1} MB");
+            Log.Information($"   📈 Memory increase after init: {initMemoryIncrease:F1} MB");
 
             // Выполняем несколько распознаваний и замеряем память
-            Console.WriteLine("   Performing recognition operations...");
+            Log.Information("   Performing recognition operations...");
             await PerformMultipleRecognitionsAsync(5);
             
             var afterRecognition = MeasureMemoryUsage("After recognition");
-            Console.WriteLine($"   📊 {afterRecognition}");
+            Log.Information($"   📊 {afterRecognition}");
             
             var recognitionMemoryIncrease = afterRecognition.WorkingSetMB - afterInit.WorkingSetMB;
-            Console.WriteLine($"   📈 Memory increase during recognition: {recognitionMemoryIncrease:F1} MB");
+            Log.Information($"   📈 Memory increase during recognition: {recognitionMemoryIncrease:F1} MB");
 
             // Принудительная сборка мусора
-            Console.WriteLine("   Performing garbage collection...");
+            Log.Information("   Performing garbage collection...");
             ForceGarbageCollection();
             
             var afterGC = MeasureMemoryUsage("After GC");
-            Console.WriteLine($"   📊 {afterGC}");
+            Log.Information($"   📊 {afterGC}");
             
             var memoryRecovered = afterRecognition.ManagedMemoryMB - afterGC.ManagedMemoryMB;
-            Console.WriteLine($"   ♻️ Memory recovered by GC: {memoryRecovered:F1} MB");
+            Log.Information($"   ♻️ Memory recovered by GC: {memoryRecovered:F1} MB");
 
             // Анализ эффективности памяти
             AnalyzeMemoryEfficiency(baseline, afterInit, afterRecognition, afterGC);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Memory usage test failed: {ex.Message}");
+            Log.Information($"   ❌ Memory usage test failed: {ex.Message}");
             _logger.LogError(ex, "Memory usage test failed");
             throw;
         }
@@ -86,7 +87,7 @@ public class MemoryTests
     /// </summary>
     public async Task TestMemoryLeaksAsync()
     {
-        Console.WriteLine("\n🔍 Testing memory leaks...");
+        Log.Information("\n🔍 Testing memory leaks...");
 
         try
         {
@@ -96,7 +97,7 @@ public class MemoryTests
             var iterations = 10;
             var memorySnapshots = new List<MemorySnapshot>();
 
-            Console.WriteLine($"   Running {iterations} iterations...");
+            Log.Information($"   Running {iterations} iterations...");
 
             for (int i = 0; i < iterations; i++)
             {
@@ -111,7 +112,7 @@ public class MemoryTests
                 var snapshot = MeasureMemoryUsage($"Iteration {i + 1}");
                 memorySnapshots.Add(snapshot);
                 
-                Console.WriteLine($"Managed: {snapshot.ManagedMemoryMB:F1}MB, Working: {snapshot.WorkingSetMB:F1}MB");
+                Log.Information($"Managed: {snapshot.ManagedMemoryMB:F1}MB, Working: {snapshot.WorkingSetMB:F1}MB");
                 
                 // Небольшая пауза между итерациями
                 await Task.Delay(100);
@@ -122,7 +123,7 @@ public class MemoryTests
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Memory leak test failed: {ex.Message}");
+            Log.Information($"   ❌ Memory leak test failed: {ex.Message}");
             _logger.LogError(ex, "Memory leak test failed");
             throw;
         }
@@ -133,22 +134,22 @@ public class MemoryTests
     /// </summary>
     public async Task TestGarbageCollectionAsync()
     {
-        Console.WriteLine("\n♻️ Testing garbage collection behavior...");
+        Log.Information("\n♻️ Testing garbage collection behavior...");
 
         try
         {
             await InitializeEngineAsync();
 
             var gcBefore = GetGCInfo();
-            Console.WriteLine("   GC stats before test:");
+            Log.Information("   GC stats before test:");
             ShowGCInfo(gcBefore);
 
             // Создаем нагрузку на память
-            Console.WriteLine("   Creating memory pressure...");
+            Log.Information("   Creating memory pressure...");
             await CreateMemoryPressureAsync();
 
             var gcAfter = GetGCInfo();
-            Console.WriteLine("   GC stats after test:");
+            Log.Information("   GC stats after test:");
             ShowGCInfo(gcAfter);
 
             // Анализируем активность GC
@@ -159,7 +160,7 @@ public class MemoryTests
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ GC test failed: {ex.Message}");
+            Log.Information($"   ❌ GC test failed: {ex.Message}");
             _logger.LogError(ex, "GC test failed");
             throw;
         }
@@ -170,7 +171,7 @@ public class MemoryTests
     /// </summary>
     public async Task TestMemoryUnderStressAsync()
     {
-        Console.WriteLine("\n🔥 Testing memory under stress...");
+        Log.Information("\n🔥 Testing memory under stress...");
 
         try
         {
@@ -185,7 +186,7 @@ public class MemoryTests
 
             foreach (var test in stressTests)
             {
-                Console.WriteLine($"   Running stress test: {test.Name}...");
+                Log.Information($"   Running stress test: {test.Name}...");
                 
                 var memoryBefore = MeasureMemoryUsage("Before stress");
                 var stopwatch = Stopwatch.StartNew();
@@ -197,12 +198,12 @@ public class MemoryTests
                 var memoryAfter = MeasureMemoryUsage("After stress");
                 
                 var memoryDelta = memoryAfter.WorkingSetMB - memoryBefore.WorkingSetMB;
-                Console.WriteLine($"   ✅ {test.Name}: {stopwatch.ElapsedMilliseconds}ms, Memory delta: {memoryDelta:F1}MB");
+                Log.Information($"   ✅ {test.Name}: {stopwatch.ElapsedMilliseconds}ms, Memory delta: {memoryDelta:F1}MB");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   ❌ Stress test failed: {ex.Message}");
+            Log.Information($"   ❌ Stress test failed: {ex.Message}");
             _logger.LogError(ex, "Memory stress test failed");
             throw;
         }
@@ -265,38 +266,38 @@ public class MemoryTests
         MemorySnapshot afterRecognition, 
         MemorySnapshot afterGC)
     {
-        Console.WriteLine("\n   📈 Memory Efficiency Analysis:");
+        Log.Information("\n   📈 Memory Efficiency Analysis:");
         
         var initOverhead = afterInit.WorkingSetMB - baseline.WorkingSetMB;
         var recognitionOverhead = afterRecognition.WorkingSetMB - afterInit.WorkingSetMB;
         var gcEfficiency = (afterRecognition.ManagedMemoryMB - afterGC.ManagedMemoryMB) / afterRecognition.ManagedMemoryMB * 100;
         
-        Console.WriteLine($"   • Initialization overhead: {initOverhead:F1} MB");
-        Console.WriteLine($"   • Recognition overhead: {recognitionOverhead:F1} MB");
-        Console.WriteLine($"   • GC efficiency: {gcEfficiency:F1}% memory recovered");
+        Log.Information($"   • Initialization overhead: {initOverhead:F1} MB");
+        Log.Information($"   • Recognition overhead: {recognitionOverhead:F1} MB");
+        Log.Information($"   • GC efficiency: {gcEfficiency:F1}% memory recovered");
         
         // Оценки
         if (initOverhead < 100)
-            Console.WriteLine("   ✅ Initialization memory usage is reasonable");
+            Log.Information("   ✅ Initialization memory usage is reasonable");
         else
-            Console.WriteLine("   ⚠️ High initialization memory usage");
+            Log.Information("   ⚠️ High initialization memory usage");
             
         if (recognitionOverhead < 50)
-            Console.WriteLine("   ✅ Recognition memory usage is efficient");
+            Log.Information("   ✅ Recognition memory usage is efficient");
         else
-            Console.WriteLine("   ⚠️ High recognition memory usage");
+            Log.Information("   ⚠️ High recognition memory usage");
             
         if (gcEfficiency > 70)
-            Console.WriteLine("   ✅ Good garbage collection efficiency");
+            Log.Information("   ✅ Good garbage collection efficiency");
         else
-            Console.WriteLine("   ⚠️ Poor garbage collection efficiency - possible memory leaks");
+            Log.Information("   ⚠️ Poor garbage collection efficiency - possible memory leaks");
     }
 
     private void AnalyzeMemoryTrend(List<MemorySnapshot> snapshots)
     {
         if (snapshots.Count < 3) return;
 
-        Console.WriteLine("\n   📊 Memory Trend Analysis:");
+        Log.Information("\n   📊 Memory Trend Analysis:");
         
         var firstHalf = snapshots.Take(snapshots.Count / 2).ToList();
         var secondHalf = snapshots.Skip(snapshots.Count / 2).ToList();
@@ -305,21 +306,21 @@ public class MemoryTests
         var secondHalfAvg = secondHalf.Average(s => s.ManagedMemoryMB);
         var trend = secondHalfAvg - firstHalfAvg;
         
-        Console.WriteLine($"   • First half average: {firstHalfAvg:F1} MB");
-        Console.WriteLine($"   • Second half average: {secondHalfAvg:F1} MB");
-        Console.WriteLine($"   • Trend: {trend:F1} MB ({(trend > 0 ? "increasing" : "stable")})");
+        Log.Information($"   • First half average: {firstHalfAvg:F1} MB");
+        Log.Information($"   • Second half average: {secondHalfAvg:F1} MB");
+        Log.Information($"   • Trend: {trend:F1} MB ({(trend > 0 ? "increasing" : "stable")})");
         
         if (Math.Abs(trend) < 1.0)
         {
-            Console.WriteLine("   ✅ Memory usage is stable - no significant leaks detected");
+            Log.Information("   ✅ Memory usage is stable - no significant leaks detected");
         }
         else if (trend > 0)
         {
-            Console.WriteLine("   ⚠️ Memory usage is increasing - possible memory leak");
+            Log.Information("   ⚠️ Memory usage is increasing - possible memory leak");
         }
         else
         {
-            Console.WriteLine("   ✅ Memory usage is decreasing - good memory management");
+            Log.Information("   ✅ Memory usage is decreasing - good memory management");
         }
     }
 
@@ -337,11 +338,11 @@ public class MemoryTests
 
     private void ShowGCInfo(GCInfo info)
     {
-        Console.WriteLine($"   • Total memory: {info.TotalMemory / 1024.0 / 1024.0:F1} MB");
-        Console.WriteLine($"   • Gen 0 collections: {info.Gen0Collections}");
-        Console.WriteLine($"   • Gen 1 collections: {info.Gen1Collections}");
-        Console.WriteLine($"   • Gen 2 collections: {info.Gen2Collections}");
-        Console.WriteLine($"   • Max generation: {info.MaxGeneration}");
+        Log.Information($"   • Total memory: {info.TotalMemory / 1024.0 / 1024.0:F1} MB");
+        Log.Information($"   • Gen 0 collections: {info.Gen0Collections}");
+        Log.Information($"   • Gen 1 collections: {info.Gen1Collections}");
+        Log.Information($"   • Gen 2 collections: {info.Gen2Collections}");
+        Log.Information($"   • Max generation: {info.MaxGeneration}");
     }
 
     private void AnalyzeGCActivity(GCInfo before, GCInfo after)
@@ -350,24 +351,24 @@ public class MemoryTests
         var gen1Delta = after.Gen1Collections - before.Gen1Collections;
         var gen2Delta = after.Gen2Collections - before.Gen2Collections;
         
-        Console.WriteLine("\n   📈 GC Activity Analysis:");
-        Console.WriteLine($"   • Gen 0 collections during test: {gen0Delta}");
-        Console.WriteLine($"   • Gen 1 collections during test: {gen1Delta}");
-        Console.WriteLine($"   • Gen 2 collections during test: {gen2Delta}");
+        Log.Information("\n   📈 GC Activity Analysis:");
+        Log.Information($"   • Gen 0 collections during test: {gen0Delta}");
+        Log.Information($"   • Gen 1 collections during test: {gen1Delta}");
+        Log.Information($"   • Gen 2 collections during test: {gen2Delta}");
         
         if (gen2Delta > 5)
         {
-            Console.WriteLine("   ⚠️ High Gen 2 collection activity - may indicate memory pressure");
+            Log.Information("   ⚠️ High Gen 2 collection activity - may indicate memory pressure");
         }
         else
         {
-            Console.WriteLine("   ✅ Normal GC activity");
+            Log.Information("   ✅ Normal GC activity");
         }
     }
 
     private async Task TestLargeObjectHeapAsync()
     {
-        Console.WriteLine("   Testing Large Object Heap behavior...");
+        Log.Information("   Testing Large Object Heap behavior...");
         
         var memoryBefore = GC.GetTotalMemory(false);
         
@@ -378,7 +379,7 @@ public class MemoryTests
         var memoryAfter = GC.GetTotalMemory(false);
         var memoryDelta = (memoryAfter - memoryBefore) / 1024.0 / 1024.0;
         
-        Console.WriteLine($"   • Large object memory delta: {memoryDelta:F1} MB");
+        Log.Information($"   • Large object memory delta: {memoryDelta:F1} MB");
     }
 
     private async Task TestRapidRecognitionAsync()

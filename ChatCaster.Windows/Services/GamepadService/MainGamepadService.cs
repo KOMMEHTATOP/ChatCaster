@@ -2,6 +2,7 @@ using System.Timers;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services;
+using Serilog;
 
 namespace ChatCaster.Windows.Services.GamepadService;
 
@@ -12,8 +13,7 @@ namespace ChatCaster.Windows.Services.GamepadService;
 public class MainGamepadService : IGamepadService, IDisposable
 {
     // Интерфейсные события
-    public event EventHandler<GamepadConnectedEvent>? GamepadConnected;
-    public event EventHandler<GamepadDisconnectedEvent>? GamepadDisconnected;
+    public event EventHandler<GamepadEvent>? GamepadEvent;
     public event EventHandler<GamepadShortcutPressedEvent>? ShortcutPressed;
 
     // Компоненты
@@ -30,21 +30,17 @@ public class MainGamepadService : IGamepadService, IDisposable
     private bool _isDisposed = false;
     private GamepadShortcut? _currentShortcut;
     private int _pollingRateMs = 16; // ~60 FPS по умолчанию
-
-    public MainGamepadService() : this(new XInputProvider())
-    {
-        Console.WriteLine("🎮 [MainGamepadService] Конструктор по умолчанию вызван");
-    }
-
-    public MainGamepadService(IXInputProvider inputProvider)
+    
+    public MainGamepadService(IXInputProvider inputProvider, IConfigurationService configurationService)
     {
         _inputProvider = inputProvider ?? throw new ArgumentNullException(nameof(inputProvider));
         _monitor = new GamepadMonitor(_inputProvider);
         _detector = new ShortcutDetector();
+        _pollingRateMs = configurationService.CurrentConfig.Input.GamepadPollingRateMs;
+
         
         // Подписываемся на события компонентов
-        _monitor.GamepadConnected += OnGamepadConnected;
-        _monitor.GamepadDisconnected += OnGamepadDisconnected;
+        _monitor.GamepadEvent += OnGamepadEvent;
         _detector.ShortcutPressed += OnShortcutPressed;
         
         // Проверяем доступность XInput
@@ -59,7 +55,7 @@ public class MainGamepadService : IGamepadService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [MainGamepadService] Ошибка проверки XInput: {ex.Message}");
+            Log.Information($"❌ [MainGamepadService] Ошибка проверки XInput: {ex.Message}");
         }
     }
 
@@ -113,7 +109,7 @@ public class MainGamepadService : IGamepadService, IDisposable
                     StartButtonPolling();
 
                     _isMonitoring = true;
-                    Console.WriteLine($"[MainGamepadService] Мониторинг запущен: {shortcut.DisplayText}");
+                    Log.Information($"[MainGamepadService] Мониторинг запущен: {shortcut.DisplayText}");
                 }
                 catch (Exception ex)
                 {
@@ -167,9 +163,19 @@ public class MainGamepadService : IGamepadService, IDisposable
             return controllerIndex >= 0;
         });
     }
+    
+    #region Public Properties для доступа к компонентам
+
+    /// <summary>
+    /// Доступ к детектору комбинаций для подписки на события
+    /// </summary>
+    public ShortcutDetector ShortcutDetector => _detector;
 
     #endregion
 
+    #endregion
+
+    
     #region Private Methods
 
     /// <summary>
@@ -196,7 +202,7 @@ public class MainGamepadService : IGamepadService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MainGamepadService] Ошибка при остановке: {ex.Message}");
+            Log.Information($"[MainGamepadService] Ошибка при остановке: {ex.Message}");
         }
     }
 
@@ -264,7 +270,7 @@ public class MainGamepadService : IGamepadService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MainGamepadService] Ошибка в опросе кнопок: {ex.Message}");
+            Log.Information($"[MainGamepadService] Ошибка в опросе кнопок: {ex.Message}");
         }
     }
 
@@ -272,30 +278,29 @@ public class MainGamepadService : IGamepadService, IDisposable
 
     #region Event Handlers
 
+    
     /// <summary>
-    /// Обработчик подключения геймпада
+    /// Обработчик событий геймпада (подключение/отключение)
     /// </summary>
-    private void OnGamepadConnected(object? sender, GamepadConnectedEvent e)
+    private void OnGamepadEvent(object? sender, GamepadEvent e)
     {
         // Пробрасываем событие дальше
-        GamepadConnected?.Invoke(this, e);
+        GamepadEvent?.Invoke(this, e);
 
-        // Принудительно проверяем подключение для ускорения настройки детектора
-        _monitor.ForceConnectionCheck();
-    }
-
-    /// <summary>
-    /// Обработчик отключения геймпада
-    /// </summary>
-    private void OnGamepadDisconnected(object? sender, GamepadDisconnectedEvent e)
-    {
-        // Сбрасываем состояние детектора
-        _detector.ResetState();
+        switch (e.EventType)
+        {
+            case GamepadEventType.Connected:
+                // Принудительно проверяем подключение для ускорения настройки детектора
+                _monitor.ForceConnectionCheck();
+                break;
         
-        // Пробрасываем событие дальше
-        GamepadDisconnected?.Invoke(this, e);
+            case GamepadEventType.Disconnected:
+                // Сбрасываем состояние детектора
+                _detector.ResetState();
+                break;
+        }
     }
-
+    
     /// <summary>
     /// Обработчик срабатывания комбинации
     /// </summary>
@@ -359,8 +364,7 @@ public class MainGamepadService : IGamepadService, IDisposable
                 StopMonitoringInternal();
                 
                 // Отписываемся от событий
-                _monitor.GamepadConnected -= OnGamepadConnected;
-                _monitor.GamepadDisconnected -= OnGamepadDisconnected;
+                _monitor.GamepadEvent -= OnGamepadEvent;
                 _detector.ShortcutPressed -= OnShortcutPressed;
                 
                 // Освобождаем компоненты

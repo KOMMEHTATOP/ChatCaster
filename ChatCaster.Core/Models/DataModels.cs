@@ -8,10 +8,8 @@ public class RecordingState
     public RecordingStatus Status { get; set; } = RecordingStatus.Idle;
     public DateTime? StartTime { get; set; }
     public TimeSpan? Duration { get; set; }
-    public float CurrentVolume { get; set; }
     public string? LastRecognizedText { get; set; }
     public string? ErrorMessage { get; set; }
-    public bool IsOverlayVisible { get; set; }
 }
 
 /// <summary>

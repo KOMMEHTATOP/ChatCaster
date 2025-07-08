@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace ChatCaster.SpeechRecognition.Whisper.ConsoleTest;
 
@@ -9,7 +10,7 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        Console.WriteLine("=== ChatCaster Whisper Module Test ===\n");
+        Log.Information("=== ChatCaster Whisper Module Test ===\n");
 
         // Создаем хост с DI и логированием
         var host = CreateHost();
@@ -22,8 +23,8 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Critical error: {ex.Message}");
-            Console.WriteLine(ex.ToString());
+            Log.Information($"❌ Critical error: {ex.Message}");
+            Log.Information(ex.ToString());
         }
         finally
         {
@@ -31,7 +32,7 @@ class Program
             host.Dispose();
         }
 
-        Console.WriteLine("\nPress any key to exit...");
+        Log.Information("\nPress any key to exit...");
         Console.ReadKey();
     }
 
@@ -99,7 +100,7 @@ public class TestRunner
 
     public async Task RunAllTestsAsync()
     {
-        Console.WriteLine("🚀 Starting Whisper module tests...\n");
+        Log.Information("🚀 Starting Whisper module tests...\n");
 
         var overallStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -147,26 +148,26 @@ public class TestRunner
         catch (Exception ex)
         {
             _logger.LogError(ex, "Test execution failed");
-            Console.WriteLine($"❌ Test suite failed: {ex.Message}");
+            Log.Information($"❌ Test suite failed: {ex.Message}");
             throw;
         }
     }
 
     private async Task RunTestSection(string sectionName, Func<Task> testAction)
     {
-        Console.WriteLine($"\n{sectionName}");
-        Console.WriteLine(new string('=', sectionName.Length));
+        Log.Information($"\n{sectionName}");
+        Log.Information(new string('=', sectionName.Length));
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
         try
         {
             await testAction();
-            Console.WriteLine($"✅ {sectionName} completed in {stopwatch.ElapsedMilliseconds}ms");
+            Log.Information($"✅ {sectionName} completed in {stopwatch.ElapsedMilliseconds}ms");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ {sectionName} failed: {ex.Message}");
+            Log.Information($"❌ {sectionName} failed: {ex.Message}");
             _logger.LogError(ex, "Test section failed: {SectionName}", sectionName);
             throw;
         }
@@ -178,11 +179,11 @@ public class TestRunner
 
     private async Task ShowSummaryAsync(TimeSpan totalTime)
     {
-        Console.WriteLine("\n" + new string('=', 50));
-        Console.WriteLine("📊 TEST SUMMARY");
-        Console.WriteLine(new string('=', 50));
+        Log.Information("\n" + new string('=', 50));
+        Log.Information("📊 TEST SUMMARY");
+        Log.Information(new string('=', 50));
         
-        Console.WriteLine($"Total execution time: {totalTime.TotalSeconds:F2} seconds");
+        Log.Information($"Total execution time: {totalTime.TotalSeconds:F2} seconds");
         
         // Показываем использование памяти
         var memoryBefore = GC.GetTotalMemory(false);
@@ -191,17 +192,17 @@ public class TestRunner
         GC.Collect();
         var memoryAfter = GC.GetTotalMemory(false);
         
-        Console.WriteLine($"Memory before GC: {memoryBefore / 1024.0 / 1024.0:F2} MB");
-        Console.WriteLine($"Memory after GC: {memoryAfter / 1024.0 / 1024.0:F2} MB");
-        Console.WriteLine($"Memory difference: {(memoryBefore - memoryAfter) / 1024.0 / 1024.0:F2} MB");
+        Log.Information($"Memory before GC: {memoryBefore / 1024.0 / 1024.0:F2} MB");
+        Log.Information($"Memory after GC: {memoryAfter / 1024.0 / 1024.0:F2} MB");
+        Log.Information($"Memory difference: {(memoryBefore - memoryAfter) / 1024.0 / 1024.0:F2} MB");
         
         // Информация о сборщике мусора
         for (int i = 0; i < GC.MaxGeneration + 1; i++)
         {
-            Console.WriteLine($"Gen {i} collections: {GC.CollectionCount(i)}");
+            Log.Information($"Gen {i} collections: {GC.CollectionCount(i)}");
         }
 
-        Console.WriteLine("\n✅ All tests completed successfully!");
+        Log.Information("\n✅ All tests completed successfully!");
         
         await Task.CompletedTask;
     }

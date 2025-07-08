@@ -1,6 +1,7 @@
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Events;
+using Serilog;
 using System.Timers;
 
 namespace ChatCaster.Windows.Services;
@@ -41,7 +42,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
                 {
                     var oldStatus = _currentState.Status;
                     _currentState = value;
-                    Console.WriteLine($"🔄 Состояние записи: {oldStatus} → {value.Status}");
+                    Log.Information($"🔄 Состояние записи: {oldStatus} → {value.Status}");
 
                     StatusChanged?.Invoke(this, new RecordingStatusChangedEvent
                     {
@@ -75,11 +76,11 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
         {
             if (IsRecording)
             {
-                Console.WriteLine("📝 Запись уже идет, игнорируем");
+                Log.Information("📝 Запись уже идет, игнорируем");
                 return false;
             }
 
-            Console.WriteLine("🎤 Начинаем запись...");
+            Log.Information("🎤 Начинаем запись...");
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Recording, StartTime = DateTime.Now
@@ -103,7 +104,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
 
                 if (!captureStarted)
                 {
-                    Console.WriteLine("❌ Не удалось запустить захват аудио");
+                    Log.Information("❌ Не удалось запустить захват аудио");
                     CurrentState = new RecordingState
                     {
                         Status = RecordingStatus.Error, ErrorMessage = "Не удалось запустить захват аудио"
@@ -122,13 +123,13 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
             {
                 Status = RecordingStatus.Recording, StartTime = DateTime.Now, Duration = TimeSpan.Zero
             };
-            Console.WriteLine($"✅ Запись началась (макс. {maxSeconds} сек)");
+            Log.Information($"✅ Запись началась (макс. {maxSeconds} сек)");
 
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка начала записи: {ex.Message}");
+            Log.Information($"❌ Ошибка начала записи: {ex.Message}");
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Error, ErrorMessage = ex.Message
@@ -143,14 +144,14 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
         {
             if (!IsRecording)
             {
-                Console.WriteLine("📝 Запись не идет, возвращаем пустой результат");
+                Log.Information("📝 Запись не идет, возвращаем пустой результат");
                 return new VoiceProcessingResult
                 {
                     Success = false, RecognizedText = "", ErrorMessage = "Запись не была активна"
                 };
             }
 
-            Console.WriteLine("🛑 Останавливаем запись...");
+            Log.Information("🛑 Останавливаем запись...");
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Processing
@@ -170,11 +171,11 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
                 _recordingBuffer.Clear();
             }
 
-            Console.WriteLine($"📤 Получено {audioData.Length} байт для распознавания");
+            Log.Information($"📤 Получено {audioData.Length} байт для распознавания");
 
             if (audioData.Length == 0)
             {
-                Console.WriteLine("❌ Нет аудио данных для распознавания");
+                Log.Information("❌ Нет аудио данных для распознавания");
                 CurrentState = new RecordingState
                 {
                     Status = RecordingStatus.Idle
@@ -203,18 +204,18 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
 
             if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
             {
-                Console.WriteLine($"✅ Распознано: '{result.RecognizedText}'");
+                Log.Information($"✅ Распознано: '{result.RecognizedText}'");
             }
             else
             {
-                Console.WriteLine($"❌ Распознавание не удалось: {result.ErrorMessage}");
+                Log.Information($"❌ Распознавание не удалось: {result.ErrorMessage}");
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка остановки записи: {ex.Message}");
+            Log.Information($"❌ Ошибка остановки записи: {ex.Message}");
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Error, ErrorMessage = ex.Message
@@ -236,7 +237,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
                 return;
             }
 
-            Console.WriteLine("❌ Отменяем запись...");
+            Log.Information("❌ Отменяем запись...");
 
             // Останавливаем таймер
             _recordingTimer?.Stop();
@@ -253,11 +254,11 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
             {
                 Status = RecordingStatus.Cancelled
             };
-            Console.WriteLine("✅ Запись отменена");
+            Log.Information("✅ Запись отменена");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка отмены записи: {ex.Message}");
+            Log.Information($"❌ Ошибка отмены записи: {ex.Message}");
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Error, ErrorMessage = ex.Message
@@ -269,12 +270,12 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
     {
         try
         {
-            Console.WriteLine("🔍 Тестируем микрофон...");
+            Log.Information("🔍 Тестируем микрофон...");
             return await _audioCaptureService.TestMicrophoneAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка тестирования микрофона: {ex.Message}");
+            Log.Information($"❌ Ошибка тестирования микрофона: {ex.Message}");
             return false;
         }
     }
@@ -284,12 +285,12 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
     {
         try
         {
-            Console.WriteLine($"📤 Обрабатываем {audioData.Length} байт аудио данных");
+            Log.Information($"📤 Обрабатываем {audioData.Length} байт аудио данных");
             return await _speechRecognitionService.RecognizeAsync(audioData, cancellationToken);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка обработки аудио: {ex.Message}");
+            Log.Information($"❌ Ошибка обработки аудио: {ex.Message}");
             return new VoiceProcessingResult
             {
                 Success = false, RecognizedText = "", ErrorMessage = ex.Message
@@ -312,7 +313,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка обработки аудио данных: {ex.Message}");
+            Log.Information($"❌ Ошибка обработки аудио данных: {ex.Message}");
         }
     }
 
@@ -322,13 +323,13 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
         {
             var config = _configurationService.CurrentConfig;
             var maxSeconds = config.Audio.MaxRecordingSeconds;
-            Console.WriteLine($"⏰ Время записи ({maxSeconds} сек) истекло, автоостановка");
+            Log.Information($"⏰ Время записи ({maxSeconds} сек) истекло, автоостановка");
 
             await StopRecordingAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка автоостановки записи: {ex.Message}");
+            Log.Information($"❌ Ошибка автоостановки записи: {ex.Message}");
         }
     }
 

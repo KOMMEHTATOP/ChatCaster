@@ -123,11 +123,9 @@ public static class AppConstants
                 
                 return Path.Combine(dataDir, AppName.ToLowerInvariant(), "logs");
             }
-            else
-            {
-                // На Windows и macOS логи в поддиректории конфигурации
-                return Path.Combine(GetAppDataDirectory(), "logs");
-            }
+
+            // На Windows и macOS логи в поддиректории конфигурации
+            return Path.Combine(GetAppDataDirectory(), "logs");
         }
         
         /// <summary>

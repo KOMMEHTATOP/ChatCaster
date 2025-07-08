@@ -74,8 +74,6 @@ public class SpeechEngineCapabilities
     public bool SupportsRealTimeProcessing { get; set; }
     public bool RequiresInternetConnection { get; set; }
     public int[] SupportedSampleRates { get; set; } = [];
-    public int MinAudioDurationMs { get; set; }
-    public int MaxAudioDurationMs { get; set; }
 }
 
 /// <summary>
@@ -84,8 +82,7 @@ public class SpeechEngineCapabilities
 public interface IGamepadService
 {
     // События
-    event EventHandler<GamepadConnectedEvent>? GamepadConnected;
-    event EventHandler<GamepadDisconnectedEvent>? GamepadDisconnected;
+    event EventHandler<GamepadEvent>? GamepadEvent;
     event EventHandler<GamepadShortcutPressedEvent>? ShortcutPressed;
 
     // Управление мониторингом
@@ -163,11 +160,6 @@ public interface IWindowService
     /// Проверяет, является ли окно собственным окном приложения
     /// </summary>
     bool IsOwnWindow(string windowTitle);
-    
-    /// <summary>
-    /// Проверяет, является ли окно Steam-приложением
-    /// </summary>
-    bool IsSteamWindow(string windowTitle);
     
     /// <summary>
     /// Получает handle активного окна
@@ -435,18 +427,6 @@ public interface ILoggingService
 
     Task<string[]> GetRecentLogsAsync(int maxLines = 1000);
     Task ClearLogsAsync();
-}
-
-/// <summary>
-/// Менеджер событий для межкомпонентного взаимодействия
-/// </summary>
-public interface IEventBusService
-{
-    void Subscribe<T>(Action<T> handler) where T : ChatCasterEvent;
-    void Unsubscribe<T>(Action<T> handler) where T : ChatCasterEvent;
-    Task PublishAsync<T>(T eventData) where T : ChatCasterEvent;
-
-    void SubscribeWeak<T>(WeakEventHandler<T> handler) where T : ChatCasterEvent;
 }
 
 /// <summary>

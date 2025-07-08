@@ -1,4 +1,3 @@
-using Serilog.Events;
 
 namespace ChatCaster.Core.Models;
 
@@ -90,17 +89,6 @@ public enum OverlayPosition
 }
 
 /// <summary>
-/// Режимы отображения overlay
-/// </summary>
-public enum OverlayMode
-{
-    Normal,        // Обычный режим
-    Transparent,   // Полупрозрачный
-    AudioOnly,     // Только звуковые уведомления
-    AutoCorner     // Автоматически в углу
-}
-
-/// <summary>
 /// Типы аудио устройств
 /// </summary>
 public enum AudioDeviceType
@@ -127,15 +115,5 @@ public enum RecordingStatus
     Cancelled   // Отменено пользователем
 }
 
-/// <summary>
-/// Алиас для Serilog LogEventLevel - используем стандартные уровни
-/// </summary>
-public static class LogLevel
-{
-    public static LogEventLevel Verbose => LogEventLevel.Verbose;
-    public static LogEventLevel Debug => LogEventLevel.Debug;
-    public static LogEventLevel Information => LogEventLevel.Information;
-    public static LogEventLevel Warning => LogEventLevel.Warning;
-    public static LogEventLevel Error => LogEventLevel.Error;
-    public static LogEventLevel Fatal => LogEventLevel.Fatal;
-}
+public enum GamepadEventType { Connected, Disconnected }
+

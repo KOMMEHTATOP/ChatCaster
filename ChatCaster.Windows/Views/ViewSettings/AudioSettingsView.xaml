@@ -122,7 +122,7 @@
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center" />
 
-                            <!-- ✅ ПРИВЯЗАНО К OBSERVABLE СВОЙСТВАМ -->
+                            <!-- ПРИВЯЗАНО К OBSERVABLE СВОЙСТВАМ -->
                             <ComboBox Grid.Row="0" Grid.Column="1"
                                       x:Name="WhisperModelComboBox"
                                       Margin="0,0,10,0"
@@ -131,7 +131,7 @@
                                       SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
                                       DisplayMemberPath="DisplayName" />
 
-                            <!-- 🔥 ИСПРАВЛЕНО: Обычная кнопка с иконкой -->
+                            <!-- ИСПРАВЛЕНО: Обычная кнопка с иконкой -->
                             <ui:Button Grid.Row="0" Grid.Column="2"
                                        x:Name="DownloadModelButton"
                                        Appearance="Secondary"
@@ -182,7 +182,7 @@
                                 <Run Text="записи:" />
                             </TextBlock>
 
-                            <!-- ✅ ГЛАВНАЯ ФИЧА: ПРИВЯЗАНО К MaxRecordingSeconds -->
+                            <!-- ПРИВЯЗАНО К MaxRecordingSeconds -->
                             <Slider Grid.Row="0" Grid.Column="1"
                                     x:Name="MaxDurationSlider"
                                     Minimum="1"
@@ -192,7 +192,7 @@
                                     IsSnapToTickEnabled="True"
                                     Margin="10,0" />
 
-                            <!-- ✅ ОТОБРАЖЕНИЕ ЗНАЧЕНИЯ ЧЕРЕЗ ПРИВЯЗКУ -->
+                            <!-- ОТОБРАЖЕНИЕ ЗНАЧЕНИЯ ЧЕРЕЗ ПРИВЯЗКУ -->
                             <TextBlock Grid.Row="0" Grid.Column="2"
                                        x:Name="MaxDurationValueText"
                                        FontSize="14"

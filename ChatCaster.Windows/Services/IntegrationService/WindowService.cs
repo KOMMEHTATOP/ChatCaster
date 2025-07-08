@@ -55,16 +55,4 @@ public class WindowService : IWindowService
 
     public bool IsOwnWindow(string windowTitle) => 
         windowTitle.Contains("ChatCaster", StringComparison.OrdinalIgnoreCase);
-
-    public bool IsSteamWindow(string windowTitle)
-    {
-        bool isLibrary = windowTitle.ToLower().Contains("steam") && !windowTitle.ToLower().Contains("store");
-        bool isStore = windowTitle.ToLower().Contains("store.steampowered.com") || 
-                       windowTitle.ToLower().Contains("steam") && windowTitle.ToLower().Contains("store");
-    
-        _logger.LogDebug("Анализ окна: '{WindowTitle}' - Library: {IsLibrary}, Store: {IsStore}", 
-            windowTitle, isLibrary, isStore);
-    
-        return isLibrary || isStore;
-    }    
 }

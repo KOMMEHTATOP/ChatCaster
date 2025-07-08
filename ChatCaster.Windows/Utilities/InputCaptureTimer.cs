@@ -198,31 +198,4 @@ namespace ChatCaster.Windows.Utilities
 
         #endregion
     }
-
-    /// <summary>
-    /// Аргументы события для таймера захвата
-    /// </summary>
-    public class CaptureTimerEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Оставшееся время в секундах
-        /// </summary>
-        public int RemainingSeconds { get; }
-
-        /// <summary>
-        /// Общее время таймера
-        /// </summary>
-        public int TotalSeconds { get; }
-
-        /// <summary>
-        /// Прогресс в процентах (0-100)
-        /// </summary>
-        public double ProgressPercent => TotalSeconds > 0 ? (double)(TotalSeconds - RemainingSeconds) / TotalSeconds * 100 : 0;
-
-        public CaptureTimerEventArgs(int remainingSeconds, int totalSeconds)
-        {
-            RemainingSeconds = remainingSeconds;
-            TotalSeconds = totalSeconds;
-        }
-    }
 }

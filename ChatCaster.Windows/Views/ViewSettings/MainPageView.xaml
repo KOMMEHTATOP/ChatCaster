@@ -7,8 +7,7 @@
       mc:Ignorable="d"
       Title="MainPageView" 
       d:DesignHeight="600" d:DesignWidth="920"
-      Background="Transparent"
-      Unloaded="Page_Unloaded">
+      Background="Transparent">
 
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
         <StackPanel MaxWidth="800">

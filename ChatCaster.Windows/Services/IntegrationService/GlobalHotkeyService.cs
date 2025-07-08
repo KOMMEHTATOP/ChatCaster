@@ -1,6 +1,7 @@
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
 using NHotkey.Wpf;
+using Serilog;
 using WpfKey = System.Windows.Input.Key;
 using WpfModifierKeys = System.Windows.Input.ModifierKeys;
 
@@ -17,7 +18,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
 
     public async Task<bool> RegisterAsync(KeyboardShortcut shortcut)
     {
-        Console.WriteLine($"[GlobalHotkeyService] Регистрируем хоткей: {shortcut.Modifiers}+{shortcut.Key}");
+        Log.Information($"[GlobalHotkeyService] Регистрируем хоткей: {shortcut.Modifiers}+{shortcut.Key}");
 
         try
         {
@@ -37,7 +38,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
 
             if (key == WpfKey.None)
             {
-                Console.WriteLine($"❌ Неподдерживаемая клавиша: {shortcut.Key}");
+                Log.Information($"❌ Неподдерживаемая клавиша: {shortcut.Key}");
                 return false;
             }
 
@@ -61,17 +62,17 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                         // Регистрируем новый хоткей
                         HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key, modifiers, (sender, e) =>
                         {
-                            Console.WriteLine($"🎯 Хоткей сработал: {shortcut.Modifiers}+{shortcut.Key}");
+                            Log.Information($"🎯 Хоткей сработал: {shortcut.Modifiers}+{shortcut.Key}");
                             GlobalHotkeyPressed?.Invoke(this, shortcut);
                         });
 
                         _registeredHotkey = shortcut;
                         result = true;
-                        Console.WriteLine($"✅ Хоткей зарегистрирован успешно");
+                        Log.Information($"✅ Хоткей зарегистрирован успешно");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"❌ Ошибка регистрации: {ex.Message}");
+                        Log.Information($"❌ Ошибка регистрации: {ex.Message}");
                         result = false;
                     }
                 });
@@ -81,14 +82,14 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Критическая ошибка: {ex.Message}");
+            Log.Information($"❌ Критическая ошибка: {ex.Message}");
             return false;
         }
     }
 
     public async Task<bool> UnregisterAsync()
     {
-        Console.WriteLine($"[GlobalHotkeyService] UnregisterAsync вызван");
+        Log.Information($"[GlobalHotkeyService] UnregisterAsync вызван");
 
         try
         {
@@ -104,11 +105,11 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                         {
                             HotkeyManager.Current.Remove("ChatCasterVoiceInput");
                             result = true;
-                            Console.WriteLine($"[GlobalHotkeyService] Глобальный хоткей отменен");
+                            Log.Information($"[GlobalHotkeyService] Глобальный хоткей отменен");
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"[GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
+                            Log.Information($"[GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
                             result = false;
                         }
                     });
@@ -126,7 +127,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
+            Log.Information($"❌ [GlobalHotkeyService] Ошибка отмены хоткея: {ex.Message}");
             return false;
         }
     }
@@ -208,16 +209,16 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
             var task = UnregisterAsync();
             if (task.Wait(1000))
             {
-                Console.WriteLine("✅ Хоткей снят успешно");
+                Log.Information("✅ Хоткей снят успешно");
             }
             else
             {
-                Console.WriteLine("⚠️ Таймаут снятия хоткея");
+                Log.Information("⚠️ Таймаут снятия хоткея");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка снятия хоткея: {ex.Message}");
+            Log.Information($"❌ Ошибка снятия хоткея: {ex.Message}");
         }
     }
 }

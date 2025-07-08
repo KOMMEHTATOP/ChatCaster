@@ -1,5 +1,6 @@
 using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using Serilog;
 
 namespace ChatCaster.Windows.Services.IntegrationService;
 
@@ -24,7 +25,6 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         _notificationService = notificationService;
         _windowService = windowService;
 
-        Console.WriteLine("🔥 SystemIntegrationService создан");
     }
 
     #region События
@@ -77,11 +77,10 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
             {
                 disposableHotkey.Dispose();
             }
-            Console.WriteLine("✅ SystemIntegrationService disposed");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Ошибка при освобождении ресурсов SystemIntegrationService: {ex.Message}");
+            Log.Information($"❌ Ошибка при освобождении ресурсов SystemIntegrationService: {ex.Message}");
         }
     }
 }
