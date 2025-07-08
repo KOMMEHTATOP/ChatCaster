@@ -152,6 +152,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
             }
 
             Log.Information("🛑 Останавливаем запись...");
+            await _audioCaptureService.StopCaptureAsync();
             CurrentState = new RecordingState
             {
                 Status = RecordingStatus.Processing
@@ -238,6 +239,7 @@ public class VoiceRecordingService : IVoiceRecordingService, IDisposable
             }
 
             Log.Information("❌ Отменяем запись...");
+            await _audioCaptureService.StopCaptureAsync();
 
             // Останавливаем таймер
             _recordingTimer?.Stop();

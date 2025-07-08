@@ -11,6 +11,8 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class AudioCaptureService : IAudioCaptureService, IDisposable
 {
+    private static readonly ILogger _logger = Log.ForContext<AudioCaptureService>();
+    
     public event EventHandler<float>? VolumeChanged;
     public event EventHandler<byte[]>? AudioDataReceived;
 
@@ -23,6 +25,13 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     public float CurrentVolume { get; private set; }
     public AudioDevice? ActiveDevice { get; private set; }
 
+    public AudioCaptureService()
+    {
+        _logger.Information("🔴 AudioCaptureService СОЗДАН - {HashCode}", GetHashCode());
+    }
+
+
+    
     public async Task<IEnumerable<AudioDevice>> GetAvailableDevicesAsync()
     {
         return await Task.Run(() =>
@@ -147,7 +156,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     }
 
                     // Создаем WaveIn - принудительно устанавливаем 16kHz для Whisper
-                    Log.Information("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
+                    _logger.Information("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
 
                     _waveIn = new WaveInEvent
                     {
@@ -184,6 +193,8 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 {
                     if (_waveIn != null && IsCapturing)
                     {
+                        _waveIn.DataAvailable -= OnDataAvailable;  
+                        _waveIn.RecordingStopped -= OnRecordingStopped;  
                         _waveIn.StopRecording();
                         _waveIn.Dispose();
                         _waveIn = null;
@@ -208,10 +219,10 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             float volume = CalculateVolume(e.Buffer, e.BytesRecorded);
             CurrentVolume = volume;
             VolumeChanged?.Invoke(this, volume);
-
+            
             if (_currentConfig == null || !(volume >= _currentConfig.VolumeThreshold))
                 return;
-
+            
             // Отправляем аудио данные
             var audioData = new byte[e.BytesRecorded];
             Array.Copy(e.Buffer, audioData, e.BytesRecorded);
@@ -219,8 +230,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         }
         catch (Exception ex)
         {
-            // Логируем ошибку, но не останавливаем захват
-            System.Diagnostics.Debug.WriteLine($"Ошибка обработки аудио данных: {ex.Message}");
+            _logger.Error(ex, "Ошибка обработки аудио данных");
         }
     }
 
@@ -228,7 +238,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     {
         if (e.Exception != null)
         {
-            System.Diagnostics.Debug.WriteLine($"Запись остановлена с ошибкой: {e.Exception.Message}");
+            _logger.Error(e.Exception, "Запись остановлена с ошибкой");
         }
     }
 
@@ -273,7 +283,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         {
             if (ActiveDevice == null)
             {
-                Log.Information("Нет активного аудио устройства для тестирования");
+                _logger.Information("Нет активного аудио устройства для тестирования");
                 return false;
             }
 
@@ -293,16 +303,16 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             {
                 await Task.Delay(500); // Записываем полсекунды
                 await StopCaptureAsync();
-                Log.Information("Тест микрофона успешен");
+                _logger.Information("Тест микрофона успешен");
                 return true;
             }
 
-            Log.Information("Не удалось запустить захват для тестирования");
+            _logger.Information("Не удалось запустить захват для тестирования");
             return false;
         }
         catch (Exception ex)
         {
-            Log.Information($"Ошибка тестирования микрофона: {ex.Message}");
+            _logger.Error(ex, "Ошибка тестирования микрофона");
             return false;
         }
     }
@@ -313,20 +323,20 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         {
             try
             {
-                Log.Information("AudioCaptureService Dispose начат");
+                _logger.Information("AudioCaptureService Dispose начат");
 
                 lock (_lockObject)
                 {
                     // ✅ ИСПРАВЛЕНИЕ: Останавливаем захват синхронно
                     if (_waveIn != null && IsCapturing)
                     {
-                        Log.Information("Останавливаем WaveIn...");
+                        _logger.Information("Останавливаем WaveIn...");
                         _waveIn.StopRecording();
                         _waveIn.DataAvailable -= OnDataAvailable;
                         _waveIn.RecordingStopped -= OnRecordingStopped;
                         _waveIn.Dispose();
                         _waveIn = null;
-                        Log.Information("WaveIn остановлен");
+                        _logger.Information("WaveIn остановлен");
                     }
 
                     IsCapturing = false;
@@ -334,12 +344,12 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     ActiveDevice = null;
                     _currentConfig = null;
 
-                    Log.Information("AudioCaptureService Dispose завершен");
+                    _logger.Information("AudioCaptureService Dispose завершен");
                 }
             }
             catch (Exception ex)
             {
-                Log.Information($"Ошибка в AudioCaptureService.Dispose: {ex.Message}");
+                _logger.Error(ex, "Ошибка в AudioCaptureService.Dispose");
             }
             finally
             {
