@@ -11,8 +11,7 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class AudioCaptureService : IAudioCaptureService, IDisposable
 {
-    private static readonly ILogger _logger = Log.ForContext<AudioCaptureService>();
-    
+    private readonly static ILogger _logger = Log.ForContext<AudioCaptureService>();    
     public event EventHandler<float>? VolumeChanged;
     public event EventHandler<byte[]>? AudioDataReceived;
 
@@ -24,13 +23,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     public bool IsCapturing { get; private set; }
     public float CurrentVolume { get; private set; }
     public AudioDevice? ActiveDevice { get; private set; }
-
-    public AudioCaptureService()
-    {
-        _logger.Information("🔴 AudioCaptureService СОЗДАН - {HashCode}", GetHashCode());
-    }
-
-
     
     public async Task<IEnumerable<AudioDevice>> GetAvailableDevicesAsync()
     {
@@ -281,20 +273,36 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     {
         try
         {
-            if (ActiveDevice == null)
+            AudioDevice? activeDevice;
+            AudioConfig? currentConfig;
+        
+            // Читаем под блокировкой
+            lock (_lockObject)
+            {
+                activeDevice = ActiveDevice;
+                currentConfig = _currentConfig;
+            }
+        
+            if (activeDevice == null)
             {
                 _logger.Information("Нет активного аудио устройства для тестирования");
+                return false;
+            }
+
+            if (currentConfig == null)
+            {
+                _logger.Information("Нет конфигурации для тестирования");
                 return false;
             }
 
             // Пробуем кратковременный захват аудио
             var testConfig = new AudioConfig
             {
-                SelectedDeviceId = ActiveDevice.Id,
+                SelectedDeviceId = activeDevice.Id,
                 SampleRate = 16000,
                 Channels = 1,
                 BitsPerSample = 16,
-                MaxRecordingSeconds = _currentConfig!.MinRecordingSeconds
+                MaxRecordingSeconds = currentConfig.MinRecordingSeconds
             };
 
             bool captureStarted = await StartCaptureAsync(testConfig);
@@ -316,7 +324,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             return false;
         }
     }
-
+    
     public void Dispose()
     {
         if (!_isDisposed)
@@ -327,7 +335,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
 
                 lock (_lockObject)
                 {
-                    // ✅ ИСПРАВЛЕНИЕ: Останавливаем захват синхронно
+                    // Останавливаем захват синхронно
                     if (_waveIn != null && IsCapturing)
                     {
                         _logger.Information("Останавливаем WaveIn...");

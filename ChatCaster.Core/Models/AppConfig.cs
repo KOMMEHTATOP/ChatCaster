@@ -1,4 +1,5 @@
 using Serilog.Events;
+using ChatCaster.Core.Utilities;
 
 namespace ChatCaster.Core.Models;
 
@@ -72,33 +73,8 @@ public class GamepadShortcut
     public string DisplayText
     {
         get => RequireBothButtons && PrimaryButton != SecondaryButton
-            ? $"{GetButtonDisplayName(PrimaryButton)} + {GetButtonDisplayName(SecondaryButton)}"
-            : GetButtonDisplayName(PrimaryButton);
-    }
-
-    private string GetButtonDisplayName(GamepadButton button)
-    {
-        return button switch
-        {
-            GamepadButton.LeftBumper => "LB",
-            GamepadButton.RightBumper => "RB",
-            GamepadButton.LeftTrigger => "LT",
-            GamepadButton.RightTrigger => "RT",
-            GamepadButton.A => "A",
-            GamepadButton.B => "B",
-            GamepadButton.X => "X",
-            GamepadButton.Y => "Y",
-            GamepadButton.Start => "Start",
-            GamepadButton.Back => "Back",
-            GamepadButton.Guide => "Guide",
-            GamepadButton.LeftStick => "LS",
-            GamepadButton.RightStick => "RS",
-            GamepadButton.DPadUp => "D-Up",
-            GamepadButton.DPadDown => "D-Down",
-            GamepadButton.DPadLeft => "D-Left",
-            GamepadButton.DPadRight => "D-Right",
-            _ => button.ToString()
-        };
+            ? $"{InputDisplayHelper.GetButtonDisplayName(PrimaryButton)} + {InputDisplayHelper.GetButtonDisplayName(SecondaryButton)}"
+            : InputDisplayHelper.GetButtonDisplayName(PrimaryButton);
     }
 }
 
@@ -117,39 +93,10 @@ public class KeyboardShortcut
     {
         get
         {
-            var parts = new List<string>();
-
-            if (Modifiers.HasFlag(ModifierKeys.Control))
-                parts.Add("Ctrl");
-            if (Modifiers.HasFlag(ModifierKeys.Shift))
-                parts.Add("Shift");
-            if (Modifiers.HasFlag(ModifierKeys.Alt))
-                parts.Add("Alt");
-            if (Modifiers.HasFlag(ModifierKeys.Windows))
-                parts.Add("Win");
-
-            parts.Add(GetKeyDisplayName(Key));
-
+            var parts = InputDisplayHelper.GetModifierDisplayNames(Modifiers).ToList();
+            parts.Add(InputDisplayHelper.GetKeyDisplayName(Key));
             return string.Join(" + ", parts);
         }
-    }
-
-    private string GetKeyDisplayName(Key key)
-    {
-        return key switch
-        {
-            Key.D0 => "0", Key.D1 => "1", Key.D2 => "2", Key.D3 => "3", Key.D4 => "4",
-            Key.D5 => "5", Key.D6 => "6", Key.D7 => "7", Key.D8 => "8", Key.D9 => "9",
-            Key.NumPad0 => "NumPad0", Key.NumPad1 => "NumPad1", Key.NumPad2 => "NumPad2",
-            Key.NumPad3 => "NumPad3", Key.NumPad4 => "NumPad4", Key.NumPad5 => "NumPad5",
-            Key.NumPad6 => "NumPad6", Key.NumPad7 => "NumPad7", Key.NumPad8 => "NumPad8",
-            Key.NumPad9 => "NumPad9",
-            Key.Space => "Space",
-            Key.Enter => "Enter",
-            Key.Tab => "Tab",
-            Key.Escape => "Esc",
-            _ => key.ToString()
-        };
     }
 }
 
@@ -191,7 +138,6 @@ public class SystemConfig
     
     public bool ShowNotifications { get; set; }
 }
-
 
 /// <summary>
 /// Настройки логирования
