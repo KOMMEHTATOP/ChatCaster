@@ -1,7 +1,7 @@
-using System.Windows;
 using Serilog;
+using System.Windows;
 
-namespace ChatCaster.Windows.Utilities
+namespace ChatCaster.Windows.Managers
 {
     /// <summary>
     /// Состояния процесса захвата пользовательского ввода

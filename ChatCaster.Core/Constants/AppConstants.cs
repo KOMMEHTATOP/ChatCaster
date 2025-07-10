@@ -42,7 +42,7 @@ public static class AppConstants
     public const int MinHoldTimeMs = 50; // Минимальное время удержания кнопок
     public const int CapturePollingRateMs = 16; // Частота опроса при захвате (~60 FPS)
     public const int ComboDetectionTimeoutMs = 200; // Время ожидания дополнительных кнопок в комбинации
-    public const int CaptureTimeoutSeconds = 5; // Таймаут захвата комбинации
+    public const int CaptureTimeoutSeconds = 2; // Таймаут захвата комбинации
     
     // Распознавание речи (общие константы для любых движков)
     public const int DefaultMaxTokens = 224;
