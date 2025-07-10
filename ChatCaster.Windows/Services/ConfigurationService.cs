@@ -1,8 +1,8 @@
 using System.IO;
 using System.Text.Json;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
 using ChatCaster.Core.Events;
+using ChatCaster.Core.Services.Core;
 using Serilog;
 using System.Text.Json.Serialization;
 
@@ -110,7 +110,12 @@ public class ConfigurationService : IConfigurationService
         
             // Обновляем кеш
             CurrentConfig = config;
-        
+            
+            ConfigurationChanged?.Invoke(this, new ConfigurationChangedEvent
+            {
+                SettingName = "ConfigurationSaved"
+            });
+
             // ДИАГНОСТИКА: Проверяем кеш после обновления
             _logger.Debug("CurrentConfig.AllowCompleteExit = {AllowCompleteExit}, HashCode = {HashCode}", 
                 CurrentConfig.System?.AllowCompleteExit, CurrentConfig.GetHashCode());

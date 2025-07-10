@@ -1,8 +1,9 @@
 using ChatCaster.Core.Constants;
+using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Managers;
-using ChatCaster.Windows.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
 
@@ -15,6 +16,7 @@ namespace ChatCaster.Windows.ViewModels
     {
         private readonly ISystemIntegrationService _systemService;
         private readonly AppConfig _currentConfig;
+        private readonly IConfigurationService _configurationService;
         
         private KeyboardCaptureManager? _captureManager;
 
@@ -27,14 +29,16 @@ namespace ChatCaster.Windows.ViewModels
 
         public KeyboardCaptureComponentViewModel(
             ISystemIntegrationService systemService,
-            AppConfig currentConfig)
+            AppConfig currentConfig,
+            IConfigurationService configurationService) 
         {
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
-            
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService)); 
+    
             InitializeManagers();
         }
-
+        
         private void InitializeManagers()
         {
             try
@@ -59,7 +63,7 @@ namespace ChatCaster.Windows.ViewModels
             {
                 var shortcut = _currentConfig.Input.KeyboardShortcut;
                 ComboText = shortcut?.DisplayText ?? "Ctrl + Shift + R";
-                
+                Log.Information("🔍 LoadSettingsAsync установил ComboText: {ComboText}", ComboText);
                 _uiManager?.SetIdleState(ComboText);
                 
                 Log.Debug("Настройки клавиатуры загружены: {Combo}", ComboText);
@@ -106,6 +110,8 @@ namespace ChatCaster.Windows.ViewModels
             {
                 _uiManager.StateChanged += OnUIStateChanged;
             }
+
+            _configurationService.ConfigurationChanged += OnConfigurationChanged;
         }
 
         private void UnsubscribeFromEvents()
@@ -122,6 +128,13 @@ namespace ChatCaster.Windows.ViewModels
             {
                 _uiManager.StateChanged -= OnUIStateChanged;
             }
+            _configurationService.ConfigurationChanged -= OnConfigurationChanged;  
+        }
+        
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
+        {
+            Log.Information("🔍 KeyboardComponent получил событие конфигурации: {SettingName}", e.SettingName);
+            _ = LoadSettingsAsync();
         }
 
         // Event handlers
@@ -135,10 +148,10 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 IsWaitingForInput = false;
-                
-                // Обновляем конфиг напрямую
+        
+                // обновляем только источник истины
                 _currentConfig.Input.KeyboardShortcut = capturedShortcut;
-                await OnSettingChangedAsync();
+                await OnSettingChangedAsync(); 
 
                 // Регистрируем глобальный хоткей
                 bool registered = await _systemService.RegisterGlobalHotkeyAsync(capturedShortcut);
@@ -151,14 +164,11 @@ namespace ChatCaster.Windows.ViewModels
                     return;
                 }
 
-                ComboText = capturedShortcut.DisplayText;
-                
                 if (_uiManager != null)
                 {
                     await _uiManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
-                    _uiManager.SetIdleState(ComboText);
                 }
-                
+        
                 Log.Information("Клавиатурная комбинация сохранена: {Shortcut}", capturedShortcut.DisplayText);
             }
             catch (Exception ex)
@@ -171,7 +181,7 @@ namespace ChatCaster.Windows.ViewModels
                 }
             }
         }
-
+        
         private void OnCaptureTimeout()
         {
             _ = HandleTimeoutAsync();

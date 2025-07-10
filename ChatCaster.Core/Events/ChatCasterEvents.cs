@@ -87,24 +87,3 @@ public class GlobalHotkeyPressedEvent
 {
     public KeyboardShortcut Shortcut { get; set; } = new();
 }
-
-/// <summary>
-/// Событие прогресса распознавания речи (абстрактное)
-/// </summary>
-public class SpeechRecognitionProgressEvent 
-{
-    public string Engine { get; set; } = string.Empty;
-    public int ProgressPercentage { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public Dictionary<string, object> EngineSpecificData { get; set; } = new();
-}
-
-/// <summary>
-/// Событие ошибки распознавания речи
-/// </summary>
-public class SpeechRecognitionErrorEvent 
-{
-    public string Engine { get; set; } = string.Empty;
-    public string ErrorMessage { get; set; } = string.Empty;
-    public Exception? Exception { get; set; }
-}

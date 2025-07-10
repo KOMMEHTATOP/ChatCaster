@@ -1,7 +1,7 @@
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
-using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Audio;
 using Serilog;
 
 namespace ChatCaster.Windows.Services;

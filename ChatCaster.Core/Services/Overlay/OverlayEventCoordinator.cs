@@ -1,7 +1,6 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
-using ChatCaster.Core.Services.Overlay;
+using ChatCaster.Core.Services.Core;
 using Serilog;
 
 namespace ChatCaster.Core.Services.Overlay;

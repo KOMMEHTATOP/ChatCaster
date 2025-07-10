@@ -1,5 +1,6 @@
+using ChatCaster.Core.Services.Input;
+using ChatCaster.Core.Services.System;
 using System.Runtime.InteropServices;
-using ChatCaster.Core.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ChatCaster.Windows.Services.IntegrationService;

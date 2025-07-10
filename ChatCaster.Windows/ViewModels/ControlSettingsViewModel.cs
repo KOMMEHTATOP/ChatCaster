@@ -1,6 +1,7 @@
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
-using ChatCaster.Windows.Services;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.Input;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.ViewModels.Base;
 using CommunityToolkit.Mvvm.Input;
@@ -83,7 +84,7 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator);
-                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig);
+                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig, configurationService);
 
                 // Подписываемся на события компонентов
                 SubscribeToComponentEvents();

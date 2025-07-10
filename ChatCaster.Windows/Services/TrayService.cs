@@ -1,7 +1,8 @@
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.UI;
 using Serilog;
 
 namespace ChatCaster.Windows.Services;

@@ -130,3 +130,15 @@ public class ValidationResult
         Warnings.Add(warning);
     }
 }
+
+/// <summary>
+/// Информация о возможностях речевого движка
+/// </summary>
+public class SpeechEngineCapabilities
+{
+    public bool SupportsLanguageAutoDetection { get; set; }
+    public bool SupportsGpuAcceleration { get; set; }
+    public bool SupportsRealTimeProcessing { get; set; }
+    public bool RequiresInternetConnection { get; set; }
+    public int[] SupportedSampleRates { get; set; } = [];
+}

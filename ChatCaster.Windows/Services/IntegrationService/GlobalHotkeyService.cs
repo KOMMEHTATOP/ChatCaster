@@ -1,5 +1,5 @@
-using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Input;
 using ChatCaster.Windows.Converters;
 using NHotkey.Wpf;
 using Serilog;

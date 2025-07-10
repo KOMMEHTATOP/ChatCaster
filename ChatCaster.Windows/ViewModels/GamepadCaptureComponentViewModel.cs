@@ -1,9 +1,8 @@
 using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Input;
 using ChatCaster.Windows.Managers;
 using ChatCaster.Windows.Services.GamepadService;
-using ChatCaster.Windows.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
 

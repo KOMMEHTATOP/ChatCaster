@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Core;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Base

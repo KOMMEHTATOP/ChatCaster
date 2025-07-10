@@ -1,13 +1,11 @@
-using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Audio;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.SpeechRecognition.Whisper.Exceptions;
 using ChatCaster.SpeechRecognition.Whisper.Models;
 using ChatCaster.SpeechRecognition.Whisper.Utils;
 using Microsoft.Extensions.Logging;
 using Whisper.net;
-using Whisper.net.Ggml;
 
 namespace ChatCaster.SpeechRecognition.Whisper.Services;
 
@@ -26,10 +24,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     private WhisperFactory? _factory;
     private bool _isInitialized;
     private bool _disposed;
-
-    // События из интерфейса
-    public event EventHandler<SpeechRecognitionProgressEvent>? RecognitionProgress;
-    public event EventHandler<SpeechRecognitionErrorEvent>? RecognitionError;
 
     public WhisperSpeechRecognitionService(
         ILogger<WhisperSpeechRecognitionService> logger,
@@ -110,12 +104,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             _logger.LogError(ex, "Failed to initialize Whisper engine");
             _isInitialized = false;
 
-            // Уведомляем об ошибке
-            OnRecognitionError(new SpeechRecognitionErrorEvent
-            {
-                Engine = EngineName, ErrorMessage = ex.Message, Exception = ex
-            });
-
             return false;
         }
     }
@@ -138,28 +126,12 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         {
             _logger.LogDebug("Starting speech recognition, audio size: {Size} bytes", audioData.Length);
 
-            // Уведомляем о начале обработки
-            OnRecognitionProgress(new SpeechRecognitionProgressEvent
-            {
-                Engine = EngineName, ProgressPercentage = 10, Status = "Converting audio format"
-            });
-
             // Конвертируем аудио в формат Whisper
             var samples = await _audioConverter.ConvertToSamplesAsync(audioData, cancellationToken);
-
-            OnRecognitionProgress(new SpeechRecognitionProgressEvent
-            {
-                Engine = EngineName, ProgressPercentage = 30, Status = "Processing with Whisper"
-            });
-
+            
             // Выполняем распознавание
             var whisperResult = await ProcessWithWhisperAsync(samples, cancellationToken);
-
-            OnRecognitionProgress(new SpeechRecognitionProgressEvent
-            {
-                Engine = EngineName, ProgressPercentage = 90, Status = "Finalizing results"
-            });
-
+            
             // Добавляем метаданные
             whisperResult.AudioSizeBytes = audioData.Length;
             whisperResult.AudioDurationMs = (int)(samples.Length / (float)WhisperConstants.Audio.RequiredSampleRate * 1000);
@@ -167,11 +139,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             whisperResult.ProcessingTime = stopwatch.Elapsed;
 
             var result = whisperResult.ToVoiceProcessingResult();
-
-            OnRecognitionProgress(new SpeechRecognitionProgressEvent
-            {
-                Engine = EngineName, ProgressPercentage = 100, Status = "Completed"
-            });
 
             _logger.LogInformation("Speech recognition completed: {Text} (confidence: {Confidence:F2}, time: {Time}ms)",
                 result.RecognizedText, result.Confidence, stopwatch.ElapsedMilliseconds);
@@ -189,12 +156,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         catch (Exception ex)
         {
             _logger.LogError(ex, "Speech recognition failed");
-
-            OnRecognitionError(new SpeechRecognitionErrorEvent
-            {
-                Engine = EngineName, ErrorMessage = ex.Message, Exception = ex
-            });
-
+            
             return new VoiceProcessingResult
             {
                 Success = false, ErrorMessage = ex.Message, ProcessingTime = stopwatch.Elapsed
@@ -355,16 +317,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             return 0.0f;
 
         return segments.Average(s => s.Confidence);
-    }
-
-    private void OnRecognitionProgress(SpeechRecognitionProgressEvent eventArgs)
-    {
-        RecognitionProgress?.Invoke(this, eventArgs);
-    }
-
-    private void OnRecognitionError(SpeechRecognitionErrorEvent eventArgs)
-    {
-        RecognitionError?.Invoke(this, eventArgs);
     }
 
     private async Task DisposeProcessorAsync()

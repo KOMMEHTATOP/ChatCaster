@@ -1,4 +1,5 @@
 using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.System;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;

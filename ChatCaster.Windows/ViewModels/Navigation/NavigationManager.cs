@@ -1,6 +1,11 @@
 using System.Windows.Controls;
-using ChatCaster.Core.Services;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.Input;
+using ChatCaster.Core.Services.Overlay;
+using ChatCaster.Core.Services.System;
+using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.Views.ViewSettings;
 using ChatCaster.Windows.Services.GamepadService;
 using Serilog;

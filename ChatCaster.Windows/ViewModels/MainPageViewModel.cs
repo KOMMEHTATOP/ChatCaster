@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

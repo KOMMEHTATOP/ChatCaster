@@ -1,7 +1,8 @@
 using System.Timers;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.Input;
 using Serilog;
 
 namespace ChatCaster.Windows.Services.GamepadService;

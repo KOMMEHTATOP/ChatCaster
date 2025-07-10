@@ -1,4 +1,4 @@
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.System;
 using Serilog;
 
 namespace ChatCaster.Windows.Services.IntegrationService;

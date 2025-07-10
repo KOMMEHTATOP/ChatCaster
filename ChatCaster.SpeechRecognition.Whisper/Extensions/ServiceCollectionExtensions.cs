@@ -1,4 +1,4 @@
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Audio;
 using ChatCaster.SpeechRecognition.Whisper.Models;
 using ChatCaster.SpeechRecognition.Whisper.Services;
 using ChatCaster.SpeechRecognition.Whisper.Utils;

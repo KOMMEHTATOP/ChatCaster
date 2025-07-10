@@ -1,8 +1,9 @@
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.UI;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using ChatCaster.Core.Services;
 using ChatCaster.Windows.ViewModels;
 using System.Windows.Threading;
 using WpfKey = System.Windows.Input.Key;

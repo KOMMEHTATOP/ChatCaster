@@ -1,5 +1,6 @@
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;

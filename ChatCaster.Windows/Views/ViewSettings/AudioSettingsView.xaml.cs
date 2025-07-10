@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
-using ChatCaster.Core.Services;
+using ChatCaster.Core.Services.Audio;
 using ChatCaster.Windows.ViewModels;
 using Serilog;
 
