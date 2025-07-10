@@ -3,6 +3,7 @@ using System.Text.Json;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Constants; 
 using Serilog;
 using System.Text.Json.Serialization;
 
@@ -22,16 +23,11 @@ public class ConfigurationService : IConfigurationService
 
     public ConfigurationService()
     {
-        var configDirectory =
-            // Папка конфигурации в AppData пользователя
-            Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-            "ChatCaster");
-            
-        ConfigPath = Path.Combine(configDirectory, "config.json");
+        // кроссплатформенный метод из Core
+        ConfigPath = AppConstants.Paths.GetConfigFilePath();
         
-        // Создаем папку если её нет
-        Directory.CreateDirectory(configDirectory);
+        // Создаем все необходимые папки если их нет
+        AppConstants.Paths.EnsureDirectoriesExist();
     }
 
     /// <summary>
