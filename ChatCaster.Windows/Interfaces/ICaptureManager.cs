@@ -1,13 +1,10 @@
-using System;
-using System.Threading.Tasks;
-
 namespace ChatCaster.Windows.Interfaces
 {
     /// <summary>
     /// Базовый интерфейс для менеджеров захвата пользовательского ввода
     /// </summary>
     /// <typeparam name="T">Тип захватываемого объекта</typeparam>
-    public interface ICaptureManager<T> : IDisposable
+    public interface ICaptureManager<out T> : IDisposable
     {
         #region Events
 
