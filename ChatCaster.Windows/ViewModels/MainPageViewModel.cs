@@ -120,7 +120,7 @@ namespace ChatCaster.Windows.ViewModels
                 {
                     RecordingStatusText = "Микрофон работает";
                     
-                    // ✅ ЗАМЕНИЛИ: Отправляем уведомление об успешном тесте через новый сервис
+                    // Отправляем уведомление об успешном тесте через новый сервис
                     var deviceName = !string.IsNullOrEmpty(CurrentMicrophone) && CurrentMicrophone != "Не выбран" 
                         ? CurrentMicrophone 
                         : null;
@@ -130,7 +130,7 @@ namespace ChatCaster.Windows.ViewModels
                 {
                     RecordingStatusText = "Проблема с микрофоном";
                     
-                    // ✅ ЗАМЕНИЛИ: Отправляем уведомление об ошибке теста через новый сервис
+                    // Отправляем уведомление об ошибке теста через новый сервис
                     _notificationService.NotifyMicrophoneTest(false);
                 }
             }
@@ -139,7 +139,7 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Error(ex, "Ошибка тестирования микрофона");
                 RecordingStatusText = $"Ошибка тестирования: {ex.Message}";
                 
-                // ✅ ЗАМЕНИЛИ: Отправляем уведомление об ошибке через новый сервис
+                // Отправляем уведомление об ошибке через новый сервис
                 _notificationService.NotifyMicrophoneTest(false);
             }
         }
@@ -314,7 +314,7 @@ namespace ChatCaster.Windows.ViewModels
                 _voiceRecordingService.StatusChanged += OnRecordingStatusChanged;
                 _voiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
                 
-                // ✅ ДОБАВЛЕНО: Подписываемся на изменения конфигурации
+                // Подписываемся на изменения конфигурации
                 _configurationService.ConfigurationChanged += OnConfigurationChanged;
 
                 Log.Debug("События MainPage подписаны");
@@ -361,7 +361,7 @@ namespace ChatCaster.Windows.ViewModels
             }
         }
 
-        // ✅ ДОБАВЛЕНО: Обработчик изменений конфигурации
+        // Обработчик изменений конфигурации
         private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
         {
             try

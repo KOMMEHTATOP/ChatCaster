@@ -15,6 +15,7 @@ using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
 using ChatCaster.SpeechRecognition.Whisper.Extensions;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
+using ChatCaster.Windows.Managers.VoiceRecording;
 using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
 using Serilog;
@@ -143,12 +144,12 @@ namespace ChatCaster.Windows
             // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
             // VoiceRecordingService зависит от других сервисов
             services.AddSingleton<IVoiceRecordingService>(provider =>
-                new VoiceRecordingService(
+                new VoiceRecordingCoordinator(
                     provider.GetRequiredService<IAudioCaptureService>(),
                     provider.GetRequiredService<ISpeechRecognitionService>(),
                     provider.GetRequiredService<IConfigurationService>()
                 ));
-
+            
             // GamepadVoiceCoordinator с ITrayService
             services.AddSingleton<Services.GamepadService.GamepadVoiceCoordinator>(provider =>
                 new Services.GamepadService.GamepadVoiceCoordinator(
