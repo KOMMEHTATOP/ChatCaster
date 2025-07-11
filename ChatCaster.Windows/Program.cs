@@ -15,6 +15,7 @@ using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
 using ChatCaster.SpeechRecognition.Whisper.Extensions;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
+using ChatCaster.Windows.Managers.MainPage;
 using ChatCaster.Windows.Managers.VoiceRecording;
 using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
@@ -88,9 +89,7 @@ namespace ChatCaster.Windows
                         .AddUserSecrets<Program>(optional: true);
                 })
                 .ConfigureServices((context, services) => { ConfigureServices(services, context.Configuration); });
-
-// В Program.cs заменить ConfigureServices на:
-
+        
         private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             Log.Debug("Настройка DI контейнера...");
@@ -160,11 +159,16 @@ namespace ChatCaster.Windows
                     provider.GetRequiredService<ITrayService>()
                 ));
 
-            // === ✅ НОВЫЕ СЕРВИСЫ НАВИГАЦИИ ===
+            // === СЕРВИСЫ НАВИГАЦИИ ===
             services.AddSingleton<ApplicationInitializationService>();
             services.AddSingleton<PageFactory>();
             services.AddSingleton<PageCacheManager>();
             services.AddSingleton<ViewModelCleanupService>();
+            services.AddSingleton<ViewModels.Navigation.NavigationManager>();
+            
+            // === МЕНЕДЖЕРЫ MAINPAGE ===
+            services.AddSingleton<RecordingStatusManager>();
+            services.AddSingleton<DeviceDisplayManager>();
             services.AddSingleton<ViewModels.Navigation.NavigationManager>();
 
             // === VIEWMODELS ===

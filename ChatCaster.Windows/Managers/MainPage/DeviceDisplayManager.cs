@@ -1,0 +1,127 @@
+using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
+using Serilog;
+
+namespace ChatCaster.Windows.Managers.MainPage
+{
+    /// <summary>
+    /// Менеджер для отображения информации о текущем аудио устройстве
+    /// Только readonly отображение, БЕЗ логики изменения устройств
+    /// </summary>
+    public class DeviceDisplayManager
+    {
+        private readonly IAudioCaptureService _audioService;
+        private readonly IConfigurationService _configurationService;
+
+        public DeviceDisplayManager(
+            IAudioCaptureService audioService,
+            IConfigurationService configurationService)
+        {
+            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+        }
+
+        /// <summary>
+        /// Получает информацию о текущем устройстве для отображения
+        /// </summary>
+        public async Task<DeviceDisplayInfo> GetCurrentDeviceDisplayAsync()
+        {
+            try
+            {
+                var currentConfig = _configurationService.CurrentConfig;
+                var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
+
+                Log.Debug("DeviceDisplayManager: получаем информацию об устройстве: {DeviceId}", selectedDeviceId ?? "NULL");
+
+                if (string.IsNullOrEmpty(selectedDeviceId))
+                {
+                    Log.Warning("DeviceDisplayManager: DeviceId пустой");
+                    return new DeviceDisplayInfo("Не выбран", "Устройство: Не выбрано");
+                }
+
+                // Получаем список доступных устройств
+                var devices = await _audioService.GetAvailableDevicesAsync();
+                var selectedDevice = devices.FirstOrDefault(d => d.Id == selectedDeviceId);
+
+                if (selectedDevice != null)
+                {
+                    Log.Debug("DeviceDisplayManager: устройство найдено: {DeviceName}", selectedDevice.Name);
+                    return new DeviceDisplayInfo(selectedDevice.Name, $"Устройство: {selectedDevice.Name}");
+                }
+                else
+                {
+                    Log.Warning("DeviceDisplayManager: устройство не найдено: {DeviceId}", selectedDeviceId);
+                    return new DeviceDisplayInfo("Недоступно", $"Устройство: Недоступно ({selectedDeviceId})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "DeviceDisplayManager: ошибка получения информации об устройстве");
+                return new DeviceDisplayInfo("Ошибка", "Устройство: Ошибка получения");
+            }
+        }
+
+        /// <summary>
+        /// Проверяет доступность текущего устройства
+        /// </summary>
+        public async Task<bool> IsCurrentDeviceAvailableAsync()
+        {
+            try
+            {
+                var currentConfig = _configurationService.CurrentConfig;
+                var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
+
+                if (string.IsNullOrEmpty(selectedDeviceId))
+                    return false;
+
+                var devices = await _audioService.GetAvailableDevicesAsync();
+                var isAvailable = devices.Any(d => d.Id == selectedDeviceId);
+
+                Log.Debug("DeviceDisplayManager: доступность устройства {DeviceId}: {Available}", selectedDeviceId, isAvailable);
+                return isAvailable;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "DeviceDisplayManager: ошибка проверки доступности устройства");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Форматирует короткое имя устройства для отображения
+        /// </summary>
+        public string FormatShortDeviceName(string deviceName)
+        {
+            if (string.IsNullOrEmpty(deviceName))
+                return "Неизвестно";
+
+            // Убираем лишние префиксы и скобки для краткого отображения
+            var shortName = deviceName
+                .Replace("Microphone ", "")
+                .Replace("(", " (")
+                .Trim();
+
+            return shortName.Length > 30 ? shortName.Substring(0, 27) + "..." : shortName;
+        }
+    }
+
+    #region Helper Classes
+
+    /// <summary>
+    /// Информация об устройстве для отображения
+    /// </summary>
+    public class DeviceDisplayInfo
+    {
+        public string ShortName { get; }
+        public string FullDisplayText { get; }
+
+        public DeviceDisplayInfo(string shortName, string fullDisplayText)
+        {
+            ShortName = shortName;
+            FullDisplayText = fullDisplayText;
+        }
+    }
+
+    #endregion
+}

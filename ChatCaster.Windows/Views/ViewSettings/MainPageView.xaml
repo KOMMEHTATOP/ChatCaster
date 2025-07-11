@@ -4,10 +4,15 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:converters="clr-namespace:ChatCaster.Windows.Converters"
       mc:Ignorable="d"
       Title="MainPageView" 
       d:DesignHeight="600" d:DesignWidth="920"
       Background="Transparent">
+
+    <Page.Resources>
+        <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
+    </Page.Resources>
 
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
         <StackPanel MaxWidth="800">
@@ -48,10 +53,10 @@
                         </Grid.ColumnDefinitions>
                         
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="{Binding RecordingStatusText}"
+                            <TextBlock Text="{Binding RecordingStatusComponent.RecordingStatusText}"
                                        FontSize="22" 
                                        FontWeight="Medium"
-                                       Foreground="{Binding RecordingStatusBrush}"
+                                       Foreground="{Binding RecordingStatusComponent.StatusColor, Converter={StaticResource ColorToBrushConverter}}"
                                        Margin="0,0,0,8"/>
                             <TextBlock Text="{Binding CurrentDeviceText}"
                                        FontSize="14"
@@ -59,7 +64,7 @@
                         </StackPanel>
                         
                         <ui:Button Grid.Column="1" 
-                                   Content="{Binding RecordButtonText}"
+                                   Content="{Binding RecordingStatusComponent.RecordButtonText}"
                                    Command="{Binding ToggleRecordingCommand}"
                                    Appearance="Primary"
                                    FontSize="14"
@@ -103,21 +108,23 @@
                             Padding="20"
                             MinHeight="120"
                             Margin="0,0,0,15">
-                        <TextBlock Text="{Binding ResultText}"
+                        <!-- ✅ ИСПРАВЛЕНО: Правильные привязки к результатам -->
+                        <TextBlock Text="{Binding RecognitionResultsComponent.ResultText}"
                                    FontFamily="Consolas"
                                    FontSize="14"
-                                   Foreground="{Binding ResultTextBrush}"
-                                   FontStyle="{Binding ResultFontStyle}"
+                                   Foreground="{Binding RecognitionResultsComponent.ResultTextBrush}"
+                                   FontStyle="{Binding RecognitionResultsComponent.ResultFontStyle}"
                                    TextWrapping="Wrap"/>
                     </Border>
                     
                     <StackPanel Grid.Row="2" 
                                 Orientation="Horizontal">
-                        <TextBlock Text="{Binding ConfidenceText}"
+                        <!-- ✅ ИСПРАВЛЕНО: Правильные привязки к метрикам -->
+                        <TextBlock Text="{Binding RecognitionResultsComponent.ConfidenceText}"
                                    FontSize="12"
                                    Foreground="#999999"
                                    Margin="0,0,25,0"/>
-                        <TextBlock Text="{Binding ProcessingTimeText}"
+                        <TextBlock Text="{Binding RecognitionResultsComponent.ProcessingTimeText}"
                                    FontSize="12"
                                    Foreground="#999999"/>
                     </StackPanel>

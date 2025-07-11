@@ -147,8 +147,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             try
             {
                 // Создаем Singleton MainPageViewModel
-                _mainPageViewModel = new MainPageViewModel(
-                    _audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService);
+                _mainPageViewModel = new MainPageViewModel(_audioService, _voiceRecordingService, _configService);
 
                 // Создаем страницу через фабрику
                 var mainPage = _pageFactory.CreateMainPage(_mainPageViewModel);

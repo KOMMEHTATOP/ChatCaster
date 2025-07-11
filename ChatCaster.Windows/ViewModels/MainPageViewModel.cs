@@ -1,71 +1,76 @@
-using System.Collections.ObjectModel;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.UI;
+using ChatCaster.Windows.Managers.MainPage;
 using ChatCaster.Windows.ViewModels.Base;
+using ChatCaster.Windows.ViewModels.Components;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
+    /// <summary>
+    /// ViewModel главной страницы приложения
+    /// Ответственности: координация компонентов записи и отображения результатов
+    /// </summary>
     public partial class MainPageViewModel : ViewModelBase
     {
         #region Services
 
-        private readonly IAudioCaptureService _audioService;
         private readonly IVoiceRecordingService _voiceRecordingService;
-        private readonly AppConfig _config;
-        private readonly INotificationService _notificationService;
-        private readonly IConfigurationService _configurationService;
+        private readonly DeviceDisplayManager _deviceDisplayManager;
 
         #endregion
 
-        #region Observable Properties
+        #region Components
 
-        [ObservableProperty]
-        private string _currentMicrophone = "Не выбран";
+        public RecordingStatusComponentViewModel RecordingStatusComponent { get; }
+        public RecognitionResultsComponentViewModel RecognitionResultsComponent { get; }
 
-        [ObservableProperty]
-        private float _microphoneLevel = 0.0f;
+        #endregion
 
-        [ObservableProperty]
-        private bool _isRecording = false;
-
-        [ObservableProperty]
-        private string _recordingStatusText = "Готов к записи";
-
-        [ObservableProperty]
-        private string _lastRecognizedText = string.Empty;
-
-        [ObservableProperty]
-        private ObservableCollection<string> _recentRecognitions = new();
-
-        [ObservableProperty]
-        private string _recordButtonText = "Записать";
-
-        [ObservableProperty]
-        private string _resultText = "Здесь появится распознанный текст...";
-
-        [ObservableProperty]
-        private string _confidenceText = "";
-
-        [ObservableProperty]
-        private string _processingTimeText = "";
+        #region Observable Properties (Readonly Display)
 
         [ObservableProperty]
         private string _currentDeviceText = "Устройство не выбрано";
 
-        [ObservableProperty]
-        private System.Windows.Media.Brush _recordingStatusBrush = System.Windows.Media.Brushes.White;
+        #endregion
 
-        [ObservableProperty]
-        private System.Windows.Media.Brush _resultTextBrush = System.Windows.Media.Brushes.Gray;
+        #region Constructor
 
-        [ObservableProperty]
-        private System.Windows.FontStyle _resultFontStyle = System.Windows.FontStyles.Italic;
+        public MainPageViewModel(
+            IAudioCaptureService audioService,
+            IVoiceRecordingService voiceRecordingService,
+            IConfigurationService configurationService)
+        {
+            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
+
+            // Создаем менеджеры
+            var statusManager = new RecordingStatusManager();
+            _deviceDisplayManager = new DeviceDisplayManager(audioService, configurationService);
+
+            // Инициализируем компоненты
+            RecordingStatusComponent = new RecordingStatusComponentViewModel(statusManager, audioService);
+            RecognitionResultsComponent = new RecognitionResultsComponentViewModel();
+
+            // Подписываемся на события
+            SubscribeToEvents();
+
+            // Инициализируем отображение устройства
+            InitializeDeviceDisplayAsync(_deviceDisplayManager);
+
+            // Устанавливаем начальные состояния
+            RecordingStatusComponent.SetInitialState();
+            RecognitionResultsComponent.SetInitialState();
+
+            // Подписываемся на изменения конфигурации для обновления устройства
+            configurationService.ConfigurationChanged += OnConfigurationChanged;
+
+            Log.Debug("MainPageViewModel инициализирован с компонентами");
+        }
 
         #endregion
 
@@ -78,227 +83,22 @@ namespace ChatCaster.Windows.ViewModels
             {
                 if (_voiceRecordingService.IsRecording)
                 {
-                    Log.Debug("Останавливаем запись через главную страницу");
-                    RecordButtonText = "Обработка...";
-                    var result = await _voiceRecordingService.StopRecordingAsync();
-                    
-                    if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
-                    {
-                        LastRecognizedText = result.RecognizedText;
-                        ResultText = result.RecognizedText;
-                        AddToRecentRecognitions(result.RecognizedText);
-                    }
-                    RecordButtonText = "Записать";
+                    Log.Debug("MainPageViewModel: останавливаем запись");
+                    await _voiceRecordingService.StopRecordingAsync();
                 }
                 else
                 {
-                    Log.Debug("Начинаем запись через главную страницу");
-                    RecordButtonText = "Остановить";
+                    Log.Debug("MainPageViewModel: начинаем запись");
                     await _voiceRecordingService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка переключения записи на главной странице");
-                RecordingStatusText = $"Ошибка: {ex.Message}";
-                RecordButtonText = "Записать";
+                Log.Error(ex, "MainPageViewModel: ошибка переключения записи");
+                RecordingStatusComponent.SetErrorState($"Ошибка: {ex.Message}");
             }
         }
 
-        [RelayCommand]
-        private async Task TestMicrophone()
-        {
-            try
-            {
-                Log.Debug("Тестирование микрофона");
-                
-                RecordingStatusText = "Тестирование микрофона...";
-                
-                var result = await _audioService.TestMicrophoneAsync();
-                
-                if (result)
-                {
-                    RecordingStatusText = "Микрофон работает";
-                    
-                    // Отправляем уведомление об успешном тесте через новый сервис
-                    var deviceName = !string.IsNullOrEmpty(CurrentMicrophone) && CurrentMicrophone != "Не выбран" 
-                        ? CurrentMicrophone 
-                        : null;
-                    _notificationService.NotifyMicrophoneTest(true, deviceName);
-                }
-                else
-                {
-                    RecordingStatusText = "Проблема с микрофоном";
-                    
-                    // Отправляем уведомление об ошибке теста через новый сервис
-                    _notificationService.NotifyMicrophoneTest(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка тестирования микрофона");
-                RecordingStatusText = $"Ошибка тестирования: {ex.Message}";
-                
-                // Отправляем уведомление об ошибке через новый сервис
-                _notificationService.NotifyMicrophoneTest(false);
-            }
-        }
-
-        #endregion
-
-        #region Constructor
-
-        public MainPageViewModel(
-            IAudioCaptureService audioService,
-            IVoiceRecordingService voiceRecordingService,
-            AppConfig config,
-            INotificationService notificationService,
-            IConfigurationService configurationService)
-        {
-            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
-            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService)); // ✅ ЗАМЕНИЛИ инициализацию
-            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService)); // ✅ ДОБАВЛЕНО
-
-            // Подписываемся на события
-            SubscribeToEvents();
-
-            // Инициализируем начальные значения
-            InitializeInitialValues();
-
-            Log.Debug("MainPageViewModel инициализирован с INotificationService"); // ✅ ОБНОВИЛИ лог
-        }
-
-        #endregion
-
-        #region Initialization
-
-        private void InitializeInitialValues()
-        {
-            try
-            {
-                // Получаем человеческое имя устройства
-                SetDeviceNameFromConfig();
-                
-                // Устанавливаем начальный статус
-                RecordingStatusText = "Готов к записи";
-                RecordButtonText = "Записать";
-                ResultText = "Здесь появится распознанный текст...";
-                
-                Log.Debug("Начальные значения MainPage установлены");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка установки начальных значений MainPage");
-            }
-        }
-
-        /// <summary>
-        /// Устанавливает имя устройства из конфига, получая человеческое имя
-        /// </summary>
-        private async void SetDeviceNameFromConfig()
-        {
-            try
-            {
-                Log.Information("=== SetDeviceNameFromConfig НАЧАЛО ===");
-                Log.Information("_config.Audio.SelectedDeviceId = '{DeviceId}'", _config.Audio.SelectedDeviceId ?? "NULL");
-
-                var selectedDeviceId = _config.Audio.SelectedDeviceId;
-                if (string.IsNullOrEmpty(selectedDeviceId))
-                {
-                    Log.Warning("DeviceId пустой, устанавливаем 'Не выбрано'");
-
-                    CurrentMicrophone = "Не выбран";
-                    CurrentDeviceText = "Устройство: Не выбрано";
-                    return;
-                }
-
-                Log.Information("Получаем список устройств...");
-
-                // Получаем список доступных устройств
-                var devices = await _audioService.GetAvailableDevicesAsync();
-                Log.Information("Найдено {Count} устройств", devices?.Count() ?? 0);
-
-                var selectedDevice = devices.FirstOrDefault(d => d.Id == selectedDeviceId);
-
-                if (selectedDevice != null)
-                {
-                    // Показываем человеческое имя
-                    CurrentMicrophone = selectedDevice.Name;
-                    CurrentDeviceText = $"Устройство: {selectedDevice.Name}";
-                    Log.Debug("Устройство найдено: {DeviceName}", selectedDevice.Name);
-                }
-                else
-                {
-                    // Устройство сохранено в конфиге, но не найдено в системе
-                    CurrentMicrophone = "Недоступно";
-                    CurrentDeviceText = $"Устройство: Недоступно ({selectedDeviceId})";
-                    Log.Warning("Устройство из конфига не найдено: {DeviceId}", selectedDeviceId);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка получения имени устройства");
-                CurrentMicrophone = "Ошибка";
-                CurrentDeviceText = "Устройство: Ошибка получения";
-            }
-        }
-
-        /// <summary>
-        /// Метод для обновления информации об устройстве из конфига
-        /// </summary>
-        /// <summary>
-        /// Метод для обновления информации об устройстве из актуальной конфигурации
-        /// </summary>
-        public async void UpdateDeviceFromConfig()
-        {
-            try
-            {
-                Log.Information("=== UpdateDeviceFromConfig НАЧАЛО ===");
-        
-                // ✅ ИСПОЛЬЗУЕМ АКТУАЛЬНУЮ КОНФИГУРАЦИЮ из ConfigurationService
-                var currentConfig = _configurationService.CurrentConfig;
-                var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
-        
-                Log.Information("Актуальный SelectedDeviceId из ConfigurationService = '{DeviceId}'", selectedDeviceId ?? "NULL");
-        
-                if (string.IsNullOrEmpty(selectedDeviceId))
-                {
-                    Log.Warning("DeviceId пустой, устанавливаем 'Не выбрано'");
-                    CurrentMicrophone = "Не выбран";
-                    CurrentDeviceText = "Устройство: Не выбрано";
-                    return;
-                }
-
-                Log.Information("Получаем список устройств...");
-                var devices = await _audioService.GetAvailableDevicesAsync();
-                Log.Information("Найдено {Count} устройств", devices?.Count() ?? 0);
-        
-                var selectedDevice = devices.FirstOrDefault(d => d.Id == selectedDeviceId);
-
-                if (selectedDevice != null)
-                {
-                    Log.Information("Устройство найдено: {DeviceName}", selectedDevice.Name);
-                    CurrentMicrophone = selectedDevice.Name;
-                    CurrentDeviceText = $"Устройство: {selectedDevice.Name}";
-                }
-                else
-                {
-                    Log.Warning("Устройство из конфига не найдено: {DeviceId}", selectedDeviceId);
-                    CurrentMicrophone = "Недоступно";
-                    CurrentDeviceText = $"Устройство: Недоступно ({selectedDeviceId})";
-                }
-        
-                Log.Information("=== UpdateDeviceFromConfig РЕЗУЛЬТАТ: {DeviceText} ===", CurrentDeviceText);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка в UpdateDeviceFromConfig");
-                CurrentMicrophone = "Ошибка";
-                CurrentDeviceText = "Устройство: Ошибка получения";
-            }
-        }
         #endregion
 
         #region Event Subscription
@@ -307,21 +107,18 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                // Подписываемся на изменения уровня микрофона
-                _audioService.VolumeChanged += OnVolumeChanged;
-
                 // Подписываемся на события записи
                 _voiceRecordingService.StatusChanged += OnRecordingStatusChanged;
                 _voiceRecordingService.RecognitionCompleted += OnRecognitionCompleted;
-                
-                // Подписываемся на изменения конфигурации
-                _configurationService.ConfigurationChanged += OnConfigurationChanged;
 
-                Log.Debug("События MainPage подписаны");
+                // Подписываемся на события компонентов
+                RecognitionResultsComponent.TextRecognized += OnTextRecognized;
+
+                Log.Debug("MainPageViewModel: события подписаны");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка подписки на события MainPage");
+                Log.Error(ex, "MainPageViewModel: ошибка подписки на события");
             }
         }
 
@@ -329,19 +126,18 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                // Отписываемся от событий аудио
-                _audioService.VolumeChanged -= OnVolumeChanged;
-
                 // Отписываемся от событий записи
                 _voiceRecordingService.StatusChanged -= OnRecordingStatusChanged;
                 _voiceRecordingService.RecognitionCompleted -= OnRecognitionCompleted;
-                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
 
-                Log.Debug("События MainPage отписаны");
+                // Отписываемся от событий компонентов
+                RecognitionResultsComponent.TextRecognized -= OnTextRecognized;
+
+                Log.Debug("MainPageViewModel: события отписаны");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка отписки от событий MainPage");
+                Log.Error(ex, "MainPageViewModel: ошибка отписки от событий");
             }
         }
 
@@ -349,66 +145,16 @@ namespace ChatCaster.Windows.ViewModels
 
         #region Event Handlers
 
-        private void OnVolumeChanged(object? sender, float volume)
-        {
-            try
-            {
-                MicrophoneLevel = volume;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка обработки изменения уровня микрофона");
-            }
-        }
-
-        // Обработчик изменений конфигурации
-        private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
-        {
-            try
-            {
-                Log.Information("MainPageViewModel получил уведомление об изменении конфигурации: {SettingName}", e.SettingName);
-        
-                // Обновляем отображение устройства при загрузке И при сохранении конфигурации
-                if (e.SettingName == "ConfigurationLoaded" || e.SettingName == "ConfigurationSaved")
-                {
-                    Log.Information("Обновляем отображение микрофона после {EventType}", e.SettingName);
-                    UpdateDeviceFromConfig();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка обработки изменения конфигурации в MainPageViewModel");
-            }
-        }
-        
         private void OnRecordingStatusChanged(object? sender, RecordingStatusChangedEvent e)
         {
             try
             {
-                IsRecording = e.NewStatus == RecordingStatus.Recording;
-
-                RecordingStatusText = e.NewStatus switch
-                {
-                    RecordingStatus.Idle => "Готов к записи",
-                    RecordingStatus.Recording => "Идет запись...",
-                    RecordingStatus.Processing => "Обработка...",
-                    RecordingStatus.Error => $"Ошибка: {e.Reason}",
-                    _ => "Неизвестный статус"
-                };
-
-                // Обновляем кнопку в зависимости от статуса
-                RecordButtonText = e.NewStatus switch
-                {
-                    RecordingStatus.Recording => "Остановить",
-                    RecordingStatus.Processing => "Обработка...",
-                    _ => "Записать"
-                };
-
-                Log.Debug("Статус записи изменен на MainPage: {NewStatus}", e.NewStatus);
+                RecordingStatusComponent.UpdateRecordingStatus(e);
+                Log.Debug("MainPageViewModel: статус записи обновлен: {Status}", e.NewStatus);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка обработки изменения статуса записи");
+                Log.Error(ex, "MainPageViewModel: ошибка обработки изменения статуса записи");
             }
         }
 
@@ -416,60 +162,75 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                if (e.Result.Success && !string.IsNullOrEmpty(e.Result.RecognizedText))
+                RecognitionResultsComponent.HandleRecognitionCompleted(e);
+                Log.Information("MainPageViewModel: обработано завершение распознавания");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "MainPageViewModel: ошибка обработки завершения распознавания");
+            }
+        }
+
+        private void OnTextRecognized(string recognizedText)
+        {
+            try
+            {
+                // Дополнительная обработка распознанного текста если нужна
+                Log.Information("MainPageViewModel: распознан текст: {Text}", recognizedText);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "MainPageViewModel: ошибка обработки распознанного текста");
+            }
+        }
+
+        private async void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
+        {
+            try
+            {
+                // Обновляем отображение устройства при изменении конфигурации
+                if (e.SettingName == "ConfigurationLoaded" || e.SettingName == "ConfigurationSaved")
                 {
-                    LastRecognizedText = e.Result.RecognizedText;
-                    ResultText = e.Result.RecognizedText;
-                    ResultTextBrush = System.Windows.Media.Brushes.White;
-                    ResultFontStyle = System.Windows.FontStyles.Normal;
-                    
-                    AddToRecentRecognitions(e.Result.RecognizedText);
-                    RecordingStatusText = "Распознавание завершено";
-                    
-                    // Добавляем информацию о точности и времени
-                    ConfidenceText = "Точность: высокая";
-                    ProcessingTimeText = "Время: < 1с";
-                    
-                    Log.Information("Распознавание завершено на MainPage: {Text}", e.Result.RecognizedText);
-                }
-                else
-                {
-                    RecordingStatusText = $"Ошибка распознавания: {e.Result.ErrorMessage}";
-                    ResultText = "Не удалось распознать речь";
-                    ResultTextBrush = System.Windows.Media.Brushes.Red;
-                    ResultFontStyle = System.Windows.FontStyles.Italic;
-                    
-                    Log.Warning("Ошибка распознавания на MainPage: {Error}", e.Result.ErrorMessage);
+                    Log.Information("MainPageViewModel: обновляем отображение устройства после {EventType}", e.SettingName);
+                    await UpdateDeviceDisplayAsync();
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка обработки завершения распознавания");
+                Log.Error(ex, "MainPageViewModel: ошибка обработки изменения конфигурации");
             }
         }
 
         #endregion
 
-        #region Helper Methods
+        #region Initialization
 
-        private void AddToRecentRecognitions(string text)
+        private async void InitializeDeviceDisplayAsync(DeviceDisplayManager deviceDisplayManager)
         {
             try
             {
-                // Добавляем в начало списка
-                RecentRecognitions.Insert(0, text);
-
-                // Ограничиваем количество записей
-                while (RecentRecognitions.Count > 10)
-                {
-                    RecentRecognitions.RemoveAt(RecentRecognitions.Count - 1);
-                }
-
-                Log.Debug("Добавлен текст в недавние распознавания: {Text}", text);
+                var deviceInfo = await deviceDisplayManager.GetCurrentDeviceDisplayAsync();
+                CurrentDeviceText = deviceInfo.FullDisplayText;
+                Log.Debug("MainPageViewModel: отображение устройства инициализировано: {DeviceText}", CurrentDeviceText);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка добавления текста в недавние распознавания");
+                Log.Error(ex, "MainPageViewModel: ошибка инициализации отображения устройства");
+                CurrentDeviceText = "Устройство: Ошибка получения";
+            }
+        }
+
+        private async Task UpdateDeviceDisplayAsync()
+        {
+            try
+            {
+                var deviceInfo = await _deviceDisplayManager.GetCurrentDeviceDisplayAsync();
+                CurrentDeviceText = deviceInfo.FullDisplayText;
+                Log.Debug("MainPageViewModel: отображение устройства обновлено: {DeviceText}", CurrentDeviceText);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "MainPageViewModel: ошибка обновления отображения устройства");
             }
         }
 
@@ -481,18 +242,19 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Cleanup MainPageViewModel начат");
+                Log.Debug("MainPageViewModel: начинаем cleanup");
 
                 UnsubscribeFromEvents();
 
-                // Очищаем коллекции
-                RecentRecognitions.Clear();
+                // Очищаем компоненты
+                RecordingStatusComponent.Dispose();
+                RecognitionResultsComponent.Dispose();
 
-                Log.Information("Cleanup MainPageViewModel завершен");
+                Log.Information("MainPageViewModel: cleanup завершен");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка при cleanup MainPageViewModel");
+                Log.Error(ex, "MainPageViewModel: ошибка при cleanup");
             }
         }
 
