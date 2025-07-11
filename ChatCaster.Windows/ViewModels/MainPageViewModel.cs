@@ -72,7 +72,7 @@ namespace ChatCaster.Windows.ViewModels
         #region Commands
 
         [RelayCommand]
-        private async Task ToggleRecording()
+        public async Task ToggleRecording()
         {
             try
             {

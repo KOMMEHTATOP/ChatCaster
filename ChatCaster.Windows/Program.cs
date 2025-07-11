@@ -18,6 +18,8 @@ using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.Windows.Managers.VoiceRecording;
 using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
+using ChatCaster.Windows.Services.Navigation;
+
 using Serilog;
 
 namespace ChatCaster.Windows
@@ -41,24 +43,24 @@ namespace ChatCaster.Windows
                 // Создание и запуск WPF приложения
                 var app = new App();
                 app.InitializeComponent();
-                
+
                 // Получаем главное окно и сервисы из DI
                 var mainWindow = _serviceProvider.GetRequiredService<ChatCasterWindow>();
                 var trayService = _serviceProvider.GetRequiredService<ITrayService>();
                 var notificationService = _serviceProvider.GetRequiredService<INotificationService>();
-                
+
                 // Инициализируем TrayService
                 trayService.Initialize();
                 Log.Information("TrayService инициализирован");
-                
+
                 // Инициализируем NotificationService (заменяет TrayNotificationCoordinator)
                 notificationService.InitializeAsync().GetAwaiter().GetResult();
                 Log.Information("NotificationService инициализирован");
 
                 app.MainWindow = mainWindow;
-                
+
                 Log.Information("ChatCaster успешно инициализирован");
-                
+
                 // Запуск приложения
                 app.Run(mainWindow);
             }
@@ -66,9 +68,9 @@ namespace ChatCaster.Windows
             {
                 Log.Fatal(ex, "Критическая ошибка при запуске ChatCaster");
                 MessageBox.Show(
-                    $"Критическая ошибка при запуске приложения:\n{ex.Message}", 
-                    "ChatCaster - Ошибка", 
-                    MessageBoxButton.OK, 
+                    $"Критическая ошибка при запуске приложения:\n{ex.Message}",
+                    "ChatCaster - Ошибка",
+                    MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
             finally
@@ -83,12 +85,11 @@ namespace ChatCaster.Windows
                 .ConfigureAppConfiguration((context, config) =>
                 {
                     config.AddJsonFile("appsettings.json", optional: true)
-                          .AddUserSecrets<Program>(optional: true);
+                        .AddUserSecrets<Program>(optional: true);
                 })
-                .ConfigureServices((context, services) =>
-                {
-                    ConfigureServices(services, context.Configuration);
-                });
+                .ConfigureServices((context, services) => { ConfigureServices(services, context.Configuration); });
+
+// В Program.cs заменить ConfigureServices на:
 
         private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
@@ -96,20 +97,21 @@ namespace ChatCaster.Windows
 
             // === КОНФИГУРАЦИЯ ===
             services.AddSingleton(configuration);
-            
+
             // Загружаем AppConfig из файла
             var appConfig = LoadAppConfig();
             services.AddSingleton(appConfig);
 
             // === НОВЫЙ WHISPER МОДУЛЬ ===
             var speechConfig = appConfig.SpeechRecognition;
-            
-            services.AddWhisperAsSpeechRecognition(config => {
+
+            services.AddWhisperAsSpeechRecognition(config =>
+            {
                 config.ModelSize = GetWhisperModelSize(speechConfig);
                 config.ThreadCount = Environment.ProcessorCount / 2;
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
                 config.Language = speechConfig.Language;
-                config.ModelPath = "Models"; 
+                config.ModelPath = "Models";
                 config.UseVAD = true;
                 config.InitializationTimeoutSeconds = 30;
                 config.RecognitionTimeoutSeconds = 60;
@@ -128,29 +130,27 @@ namespace ChatCaster.Windows
                     new Services.GamepadService.XInputProvider(),
                     provider.GetRequiredService<IConfigurationService>()
                 ));
-            services.AddSingleton<IGamepadService>(provider => 
+            services.AddSingleton<IGamepadService>(provider =>
                 provider.GetRequiredService<Services.GamepadService.MainGamepadService>());
-            
+
             // === ИНТЕГРАЦИОННЫЕ СЕРВИСЫ ===
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<ITextInputService, TextInputService>();
             services.AddSingleton<IGlobalHotkeyService, GlobalHotkeyService>();
             services.AddSingleton<ISystemNotificationService, SystemNotificationService>();
-            
+
             // === TRAY СЕРВИСЫ ===
             services.AddSingleton<ITrayService, TrayService>();
             services.AddSingleton<INotificationService, NotificationService>();
-            
+
             // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
-            // VoiceRecordingService зависит от других сервисов
             services.AddSingleton<IVoiceRecordingService>(provider =>
                 new VoiceRecordingCoordinator(
                     provider.GetRequiredService<IAudioCaptureService>(),
                     provider.GetRequiredService<ISpeechRecognitionService>(),
                     provider.GetRequiredService<IConfigurationService>()
                 ));
-            
-            // GamepadVoiceCoordinator с ITrayService
+
             services.AddSingleton<Services.GamepadService.GamepadVoiceCoordinator>(provider =>
                 new Services.GamepadService.GamepadVoiceCoordinator(
                     provider.GetRequiredService<IGamepadService>(),
@@ -159,6 +159,13 @@ namespace ChatCaster.Windows
                     provider.GetRequiredService<IConfigurationService>(),
                     provider.GetRequiredService<ITrayService>()
                 ));
+
+            // === ✅ НОВЫЕ СЕРВИСЫ НАВИГАЦИИ ===
+            services.AddSingleton<ApplicationInitializationService>();
+            services.AddSingleton<PageFactory>();
+            services.AddSingleton<PageCacheManager>();
+            services.AddSingleton<ViewModelCleanupService>();
+            services.AddSingleton<ViewModels.Navigation.NavigationManager>();
 
             // === VIEWMODELS ===
             services.AddSingleton<ChatCasterWindowViewModel>();
@@ -191,15 +198,15 @@ namespace ChatCaster.Windows
             if (speechConfig.EngineSettings.TryGetValue("ModelSize", out var modelSizeObj))
             {
                 var modelSizeStr = modelSizeObj?.ToString();
-                
+
                 // Проверяем что это валидный размер
-                if (!string.IsNullOrEmpty(modelSizeStr) && 
+                if (!string.IsNullOrEmpty(modelSizeStr) &&
                     WhisperConstants.ModelSizes.All.Contains(modelSizeStr))
                 {
                     return modelSizeStr;
                 }
             }
-            
+
             return WhisperConstants.ModelSizes.Base;
         }
 

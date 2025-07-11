@@ -2,309 +2,193 @@ using System.Windows.Controls;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
-using ChatCaster.Core.Services.Input;
-using ChatCaster.Core.Services.Overlay;
-using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
-using ChatCaster.Windows.Views.ViewSettings;
-using ChatCaster.Windows.Services.GamepadService;
+using ChatCaster.Windows.Services.Navigation;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation
 {
+    /// <summary>
+    /// Менеджер навигации между страницами
+    /// Ответственности: только навигация и координация компонентов
+    /// </summary>
     public class NavigationManager
     {
-        private readonly Dictionary<string, Page> _cachedPages = new();
+        private readonly PageFactory _pageFactory;
+        private readonly PageCacheManager _pageCacheManager;
+        private readonly ViewModelCleanupService _cleanupService;
+        private readonly IAudioCaptureService _audioService;
+        private readonly IVoiceRecordingService _voiceRecordingService;
+        private readonly AppConfig _currentConfig;
+        private readonly INotificationService _notificationService;
+        private readonly IConfigurationService _configService;
 
         // Singleton ViewModel для MainPage
         private MainPageViewModel? _mainPageViewModel;
 
-        private readonly IAudioCaptureService _audioService;
-        private readonly ISpeechRecognitionService _speechService;
-        private readonly IGamepadService _gamepadService;
-        private readonly ISystemIntegrationService _systemService;
-        private readonly IOverlayService _overlayService;
-        private readonly IConfigurationService _configService;
-        private readonly AppConfig _currentConfig;
-        private readonly IVoiceRecordingService _voiceRecordingService;
-        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
-        private readonly INotificationService _notificationService; 
-
         public string CurrentPageTag { get; private set; } = NavigationConstants.MainPage;
         public Page? CurrentPage { get; private set; }
 
-        // События для уведомления ViewModel
+        // События для уведомления родительской ViewModel
         public event EventHandler<NavigationChangedEventArgs>? NavigationChanged;
 
         public NavigationManager(
+            PageFactory pageFactory,
+            PageCacheManager pageCacheManager,
+            ViewModelCleanupService cleanupService,
             IAudioCaptureService audioService,
-            ISpeechRecognitionService speechService,
-            IGamepadService gamepadService,
-            ISystemIntegrationService systemService,
-            IOverlayService overlayService,
-            IConfigurationService configService,
-            AppConfig currentConfig,
             IVoiceRecordingService voiceRecordingService,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            INotificationService notificationService) 
+            AppConfig currentConfig,
+            INotificationService notificationService,
+            IConfigurationService configService)
         {
-            _audioService = audioService;
-            _speechService = speechService;
-            _gamepadService = gamepadService;
-            _systemService = systemService;
-            _overlayService = overlayService;
-            _configService = configService;
-            _currentConfig = currentConfig;
-            _voiceRecordingService = voiceRecordingService;
-            _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
-            _notificationService = notificationService; 
+            _pageFactory = pageFactory ?? throw new ArgumentNullException(nameof(pageFactory));
+            _pageCacheManager = pageCacheManager ?? throw new ArgumentNullException(nameof(pageCacheManager));
+            _cleanupService = cleanupService ?? throw new ArgumentNullException(nameof(cleanupService));
+            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
+            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
+
+            Log.Debug("NavigationManager инициализирован с компонентами");
         }
 
+        /// <summary>
+        /// Навигация на указанную страницу
+        /// </summary>
         public void NavigateToPage(string pageTag)
         {
             if (string.IsNullOrEmpty(pageTag) || pageTag == CurrentPageTag)
                 return;
 
-            var page = GetOrCreatePage(pageTag);
-            CurrentPage = page;
-            CurrentPageTag = pageTag;
+            try
+            {
+                var page = _pageCacheManager.GetOrCreatePage(pageTag, CreatePageByTag);
+                CurrentPage = page;
+                CurrentPageTag = pageTag;
 
-            Log.Debug("Навигация на страницу: {PageTag}", pageTag);
+                Log.Debug("NavigationManager: навигация на страницу: {PageTag}", pageTag);
 
-            // Уведомляем ViewModel об изменении
-            NavigationChanged?.Invoke(this, new NavigationChangedEventArgs(pageTag, page));
+                // Уведомляем родительскую ViewModel об изменении
+                NavigationChanged?.Invoke(this, new NavigationChangedEventArgs(pageTag, page));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "NavigationManager: ошибка навигации на страницу {PageTag}", pageTag);
+            }
         }
 
+        /// <summary>
+        /// Переход к настройкам интерфейса
+        /// </summary>
         public void NavigateToSettings()
         {
             NavigateToPage(NavigationConstants.InterfacePage);
         }
 
-        private void LoadMainPage()
-        {
-            _mainPageViewModel =
-                new MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService); // ✅ ДОБАВЛЕН _configService
-
-            var mainPage = new MainPageView
-            {
-                DataContext = _mainPageViewModel
-            };
-
-            _cachedPages[NavigationConstants.MainPage] = mainPage;
-            CurrentPage = mainPage;
-            CurrentPageTag = NavigationConstants.MainPage;
-
-            Log.Debug("Главная страница загружена с Singleton ViewModel и IConfigurationService");
-        }
-
-        private Page GetOrCreatePage(string pageTag)
-        {
-            if (_cachedPages.TryGetValue(pageTag, out var cachedPage))
-            {
-                Log.Debug("Используем кешированную страницу: {PageTag}", pageTag);
-                return cachedPage;
-            }
-
-            Log.Debug("Создаем новую страницу: {PageTag}", pageTag);
-
-            Page newPage = pageTag switch
-            {
-                NavigationConstants.MainPage => CreateMainPage(),
-                NavigationConstants.AudioPage => CreateAudioSettingsPage(),
-                NavigationConstants.InterfacePage => CreateInterfaceSettingsPage(),
-                NavigationConstants.ControlPage => CreateControlSettingsPage(),
-                _ => _cachedPages[NavigationConstants.MainPage]
-            };
-
-            _cachedPages[pageTag] = newPage;
-            return newPage;
-        }
-
-        private Page CreateMainPage()
-        {
-            _mainPageViewModel ??=
-                new ViewModels.MainPageViewModel(_audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService); // ✅ ДОБАВЛЕН _configService
-
-            var mainPage = new MainPageView();
-            mainPage.DataContext = _mainPageViewModel;
-
-            Log.Debug("MainPage создана с переиспользованием ViewModel и IConfigurationService");
-            return mainPage;
-        }
-        
         /// <summary>
-        /// Создает страницу Audio без ServiceContext
+        /// Обрабатывает глобальный хоткей - передает команду в MainPageViewModel
         /// </summary>
-        private Page CreateAudioSettingsPage()
+        public async void HandleGlobalHotkey()
         {
             try
             {
-                Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
+                Log.Debug("NavigationManager: обработка глобального хоткея");
 
-                var audioView = new AudioSettingsView();
-                Log.Information("AudioSettingsView создан");
-
-                var audioViewModel = new AudioSettingsViewModel(
-                    _configService, 
-                    _configService.CurrentConfig, 
-                    _speechService,
-                    _audioService,
-                    _notificationService); 
-                Log.Information("AudioSettingsViewModel создан");
-
-                audioView.SetViewModel(audioViewModel);
-
-                Log.Information("=== AUDIO SETTINGS PAGE ГОТОВА (новый Whisper модуль) ===");
-                return audioView;
+                if (_mainPageViewModel != null)
+                {
+                    Log.Debug("NavigationManager: передаем команду записи в MainPageViewModel");
+                    await _mainPageViewModel.ToggleRecording();
+                }
+                else
+                {
+                    Log.Warning("NavigationManager: MainPageViewModel не инициализирован для обработки хоткея");
+                }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка создания AudioSettingsPage");
-                return _cachedPages[NavigationConstants.MainPage];
-            }
-        }
-        
-        /// <summary>
-        /// Создает страницу Interface Settings
-        /// </summary>
-        private Page CreateInterfaceSettingsPage()
-        {
-            try
-            {
-                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _configService.CurrentConfig);
-        
-                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _configService.CurrentConfig, _overlayService);
-        
-                interfaceView.DataContext = interfaceViewModel;
-        
-                // Инициализируем ViewModel
-                _ = interfaceViewModel.InitializeAsync();
-        
-                return interfaceView;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка создания InterfaceSettingsPage");
-                return _cachedPages[NavigationConstants.MainPage];
+                Log.Error(ex, "NavigationManager: ошибка обработки глобального хоткея");
             }
         }
 
         /// <summary>
-        /// Создает страницу Control Settings
+        /// Очистка всех ресурсов при закрытии приложения
         /// </summary>
-        private Page CreateControlSettingsPage()
-        {
-            try
-            {
-                var controlView = new ControlSettingsView(_gamepadService, _systemService, _configService, _configService.CurrentConfig, _gamepadVoiceCoordinator);
-        
-                var controlViewModel = new ControlSettingsViewModel(_configService, _configService.CurrentConfig, _gamepadService, _systemService, _gamepadVoiceCoordinator);
-
-                controlView.DataContext = controlViewModel;
-
-                // Инициализируем ViewModel
-                _ = controlViewModel.InitializeAsync();
-
-                return controlView;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка создания ControlSettingsPage");
-                return _cachedPages[NavigationConstants.MainPage];
-            }
-        }
-
         public void CleanupAllPages()
         {
-            Log.Information("Очистка всех страниц NavigationManager...");
+            Log.Information("NavigationManager: начинаем cleanup всех страниц");
 
             try
             {
-                // Выполняем cleanup в UI потоке
-                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                {
-                    // Сначала очищаем Singleton MainPageViewModel
-                    if (_mainPageViewModel != null)
-                    {
-                        Log.Debug("Вызываем Cleanup для Singleton MainPageViewModel");
-                        _mainPageViewModel.Cleanup();
-                        _mainPageViewModel = null;
-                    }
+                // Делегируем cleanup сервису
+                var allPages = _pageCacheManager.GetAllCachedPages();
+                _cleanupService.CleanupAllViewModels(allPages, _mainPageViewModel);
 
-                    foreach (var kvp in _cachedPages)
-                    {
-                        var pageTag = kvp.Key;
-                        var page = kvp.Value;
+                // Очищаем кеш
+                _pageCacheManager.ClearCache();
 
-                        try
-                        {
-                            Log.Debug("Очищаем страницу: {PageTag}", pageTag);
+                // Сбрасываем singleton
+                _mainPageViewModel = null;
 
-                            // Очищаем ViewModels страниц (кроме MainPage - уже очищен выше)
-                            switch (page)
-                            {
-                                case MainPageView:
-                                    // MainPageViewModel уже очищен выше как Singleton
-                                    Log.Debug("MainPageView - ViewModel уже очищен");
-                                    break;
-
-                                case ControlSettingsView controlPage:
-                                    if (controlPage.DataContext is ControlSettingsViewModel controlVM)
-                                    {
-                                        Log.Debug("Вызываем Cleanup для ControlSettingsViewModel");
-                                        controlVM.Cleanup();
-                                    }
-
-                                    break;
-
-                                case AudioSettingsView audioPage:
-                                    if (audioPage.DataContext is AudioSettingsViewModel audioVM)
-                                    {
-                                        Log.Debug("Вызываем Cleanup для AudioSettingsViewModel");
-                                        audioVM.Cleanup();
-                                    }
-
-                                    break;
-
-                                case InterfaceSettingsView interfacePage:
-                                    if (interfacePage.DataContext is InterfaceSettingsViewModel interfaceVM)
-                                    {
-                                        Log.Debug("Вызываем Cleanup для InterfaceSettingsViewModel");
-                                        interfaceVM.Cleanup();
-                                    }
-
-                                    break;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "Ошибка очистки страницы {PageTag}", pageTag);
-                        }
-                    }
-
-                    _cachedPages.Clear();
-                });
+                Log.Information("NavigationManager: cleanup всех страниц завершен");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Критическая ошибка при очистке NavigationManager");
-
-                // ✅ Fallback: Принудительно очищаем коллекцию
-                try
-                {
-                    _cachedPages.Clear();
-                    _mainPageViewModel = null;
-                }
-                catch (Exception fallbackEx)
-                {
-                    Log.Fatal(fallbackEx, "Не удалось выполнить fallback очистку NavigationManager");
-                }
+                Log.Error(ex, "NavigationManager: критическая ошибка при cleanup");
             }
+        }
 
-            Log.Information("Очистка всех страниц NavigationManager завершена");
+        private void LoadMainPage()
+        {
+            try
+            {
+                // Создаем Singleton MainPageViewModel
+                _mainPageViewModel = new MainPageViewModel(
+                    _audioService, _voiceRecordingService, _currentConfig, _notificationService, _configService);
+
+                // Создаем страницу через фабрику
+                var mainPage = _pageFactory.CreateMainPage(_mainPageViewModel);
+
+                // Кешируем страницу
+                _pageCacheManager.CachePage(NavigationConstants.MainPage, mainPage);
+
+                CurrentPage = mainPage;
+                CurrentPageTag = NavigationConstants.MainPage;
+
+                Log.Debug("NavigationManager: главная страница загружена");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "NavigationManager: ошибка загрузки главной страницы");
+                throw;
+            }
+        }
+
+        private Page CreatePageByTag(string pageTag)
+        {
+            return pageTag switch
+            {
+                NavigationConstants.MainPage => GetMainPageFromCache(),
+                NavigationConstants.AudioPage => _pageFactory.CreateAudioSettingsPage(),
+                NavigationConstants.InterfacePage => _pageFactory.CreateInterfaceSettingsPage(),
+                NavigationConstants.ControlPage => _pageFactory.CreateControlSettingsPage(),
+                _ => GetMainPageFromCache()
+            };
+        }
+
+        private Page GetMainPageFromCache()
+        {
+            var mainPage = _pageCacheManager.GetCachedPage(NavigationConstants.MainPage);
+            if (mainPage == null)
+            {
+                Log.Error("NavigationManager: MainPage не найдена в кеше, это критическая ошибка");
+                throw new InvalidOperationException("MainPage должна быть всегда доступна");
+            }
+            return mainPage;
         }
     }
 }

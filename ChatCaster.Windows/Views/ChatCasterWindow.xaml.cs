@@ -19,7 +19,7 @@ namespace ChatCaster.Windows.Views
         private readonly IConfigurationService _configurationService;
         
         // Флаг для принудительного закрытия из трея
-        private bool _isForceExitFromTray = false;
+        private bool _isForceExitFromTray;
 
         public ChatCasterWindow(ChatCasterWindowViewModel viewModel, ITrayService trayService,
             IConfigurationService configurationService)

@@ -4,32 +4,25 @@ using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Models;
-using ChatCaster.Core.Services;
-using ChatCaster.Core.Services.Audio;
-using ChatCaster.Core.Services.Core;
-using ChatCaster.Core.Services.Input;
-using ChatCaster.Core.Services.Overlay;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
+using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Navigation;
-using ChatCaster.Windows.Services.GamepadService;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
+    /// <summary>
+    /// ViewModel главного окна приложения
+    /// Ответственности: навигация, управление жизненным циклом, координация
+    /// </summary>
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
-
         #region Services
 
-        private readonly IAudioCaptureService _audioService;
-        private readonly ISpeechRecognitionService _speechService;
-        private readonly IOverlayService _overlayService;
+        private readonly ApplicationInitializationService _initializationService;
         private readonly ISystemIntegrationService _systemService;
-        private readonly IConfigurationService _configurationService;
-        private readonly IVoiceRecordingService _voiceRecordingService;
-        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
         private readonly NavigationManager _navigationManager;
         private readonly ITrayService _trayService;
 
@@ -109,43 +102,22 @@ namespace ChatCaster.Windows.ViewModels
             WindowState = WindowState.Minimized;
         }
 
-        [RelayCommand]
-        private async Task HandleVoiceRecording()
-        {
-            await HandleVoiceRecordingAsync();
-        }
-
         #endregion
 
         #region Constructor
 
         public ChatCasterWindowViewModel(
-            IAudioCaptureService audioService,
-            ISpeechRecognitionService speechService,
-            IGamepadService gamepadService,
+            ApplicationInitializationService initializationService,
             ISystemIntegrationService systemService,
-            IOverlayService overlayService,
-            IConfigurationService configurationService,
-            IVoiceRecordingService voiceRecordingService,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            AppConfig currentConfig,
+            NavigationManager navigationManager,
             ITrayService trayService,
-            INotificationService notificationService) 
+            AppConfig currentConfig)
         {
-            _audioService = audioService;
-            _speechService = speechService;
-            _overlayService = overlayService;
-            _systemService = systemService;
-            _configurationService = configurationService;
-            _voiceRecordingService = voiceRecordingService;
-            _gamepadVoiceCoordinator = gamepadVoiceCoordinator;
-            _currentConfig = currentConfig;
+            _initializationService = initializationService ?? throw new ArgumentNullException(nameof(initializationService));
+            _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
+            _navigationManager = navigationManager ?? throw new ArgumentNullException(nameof(navigationManager));
             _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
-
-            _navigationManager = new NavigationManager(
-                audioService, speechService, gamepadService, systemService,
-                overlayService, configurationService, configurationService.CurrentConfig,
-                voiceRecordingService, gamepadVoiceCoordinator, notificationService); 
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
@@ -154,163 +126,92 @@ namespace ChatCaster.Windows.ViewModels
             CurrentPage = _navigationManager.CurrentPage;
             CurrentPageTag = _navigationManager.CurrentPageTag;
 
-            // Подписка на события
+            // Подписка на глобальные хоткеи
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
 
-            Log.Debug("ChatCasterWindowViewModel создан с ITrayService и INotificationService из DI"); 
+            Log.Debug("ChatCasterWindowViewModel создан (очищенная версия)");
         }
 
         #endregion
 
         #region Public Methods
 
+        /// <summary>
+        /// Инициализирует приложение при запуске
+        /// </summary>
         public async Task InitializeAsync()
         {
             try
             {
-                Log.Information("Инициализация ChatCasterWindowViewModel начата");
+                Log.Information("ChatCasterWindowViewModel: начинаем инициализацию приложения");
 
-                Log.Debug("Загружаем конфигурацию...");
-                await _configurationService.LoadConfigAsync();
-                CurrentConfig = _configurationService.CurrentConfig;
-                
-                Log.Information("Конфигурация загружена");
+                // Делегируем всю инициализацию сервису
+                CurrentConfig = await _initializationService.InitializeApplicationAsync();
 
-                if (string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
-                {
-                    Log.Information("Новая установка - применяем дефолтные настройки");
-
-                    // Устанавливаем дефолтную модель в EngineSettings
-                    CurrentConfig.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
-
-                    // Сохраняем обновленный конфиг
-                    await _configurationService.SaveConfigAsync(CurrentConfig);
-                    Log.Information("Дефолтная модель Whisper установлена: tiny");
-                }
-
-                // Инициализируем новый Whisper модуль
-                Log.Information("Инициализируем Whisper модуль...");
-                var speechInitialized = await _speechService.InitializeAsync(CurrentConfig.SpeechRecognition);
-                Log.Information("Сервис распознавания речи инициализирован: {Success}", speechInitialized);
-
-                Log.Debug("Применяем аудио настройки...");
-
-                if (!string.IsNullOrEmpty(CurrentConfig.Audio.SelectedDeviceId))
-                {
-                    await _audioService.SetActiveDeviceAsync(CurrentConfig.Audio.SelectedDeviceId);
-                    Log.Information("Активное аудио устройство установлено: {DeviceId}",
-                        CurrentConfig.Audio.SelectedDeviceId);
-                }
-                else
-                {
-                    Log.Warning("В конфигурации не указано аудио устройство");
-                }
-
-                Log.Debug("Применяем конфигурацию к OverlayService...");
-                await _overlayService.ApplyConfigAsync(CurrentConfig.Overlay);
-                Log.Information("Конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
-                    CurrentConfig.Overlay.Position, CurrentConfig.Overlay.Opacity);
-                
-                if (CurrentConfig.Input.KeyboardShortcut != null)
-                {
-                    Log.Debug("Регистрируем хоткей: {Key} + {Modifiers}",
-                        CurrentConfig.Input.KeyboardShortcut.Key, CurrentConfig.Input.KeyboardShortcut.Modifiers);
-
-                    var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
-                    Log.Information("Хоткей зарегистрирован: {Registered}", registered);
-                }
-
-                // Инициализируем геймпад координатор
-                Log.Debug("GamepadVoiceCoordinator найден, начинаем инициализацию...");
-                var gamepadInitialized = await _gamepadVoiceCoordinator.InitializeAsync();
-                Log.Information("Геймпад инициализирован: {Initialized}", gamepadInitialized);
-
+                // Применяем настройки окна
                 if (CurrentConfig.System.StartMinimized)
                 {
-                    Log.Debug("Запуск в свернутом виде");
+                    Log.Debug("ChatCasterWindowViewModel: запуск в свернутом виде");
                     WindowState = WindowState.Minimized;
                 }
 
                 StatusText = NavigationConstants.StatusReady;
-                Log.Information("Инициализация ChatCasterWindowViewModel завершена");
+                Log.Information("ChatCasterWindowViewModel: инициализация завершена");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка инициализации ChatCasterWindowViewModel");
+                Log.Error(ex, "ChatCasterWindowViewModel: ошибка инициализации");
+                StatusText = "Ошибка инициализации";
+                _trayService.ShowNotification("Ошибка", "Ошибка инициализации приложения", NotificationType.Error);
             }
         }
 
+        /// <summary>
+        /// Переходит к настройкам
+        /// </summary>
         public void NavigateToSettings()
         {
             _navigationManager.NavigateToSettings();
         }
 
-        private bool _isCleanedUp;
-
+        /// <summary>
+        /// Очистка ресурсов при закрытии
+        /// </summary>
         public void Cleanup()
         {
             if (_isCleanedUp)
             {
-                Log.Debug("Cleanup уже выполнен, пропускаем");
+                Log.Debug("ChatCasterWindowViewModel: Cleanup уже выполнен, пропускаем");
                 return;
             }
 
-            Log.Information("Cleanup ChatCasterWindowViewModel начат");
+            Log.Information("ChatCasterWindowViewModel: Cleanup начат");
             _isCleanedUp = true;
 
             try
             {
-                // 1. Отписываемся от событий
+                // Отписываемся от событий
                 _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
                 _navigationManager.NavigationChanged -= OnNavigationChanged;
 
-                // 2. Очищаем страницы
+                // Очищаем страницы
                 _navigationManager.CleanupAllPages();
 
-                // 3. Останавливаем геймпад (обычно быстро)
+                // Снимаем хоткеи
                 try
                 {
-                    _gamepadVoiceCoordinator.ShutdownAsync().Wait(1000); 
+                    _systemService.UnregisterGlobalHotkeyAsync().Wait(500);
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Геймпад не остановился быстро, пропускаем");
+                    Log.Warning(ex, "ChatCasterWindowViewModel: хоткеи не сняты быстро, пропускаем");
                 }
 
-                // 4. Снимаем хоткеи (обычно быстро)
-                try
-                {
-                    _systemService.UnregisterGlobalHotkeyAsync().Wait(500); 
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Хоткеи не сняты быстро, пропускаем");
-                }
-
-                // 5. Быстрые сервисы
-                try
-                {
-                    if (_audioService is IDisposable da) da.Dispose();
-                }
-                catch
-                {
-                    // ignored
-                }
-
-                try
-                {
-                    if (_overlayService is IDisposable do_) do_.Dispose();
-                }
-                catch
-                {
-                    // ignored
-                }
-
-                Log.Information("Cleanup ChatCasterWindowViewModel завершен");
+                Log.Information("ChatCasterWindowViewModel: Cleanup завершен");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка в Cleanup, но продолжаем");
+                Log.Error(ex, "ChatCasterWindowViewModel: ошибка в Cleanup");
             }
         }
 
@@ -323,7 +224,7 @@ namespace ChatCaster.Windows.ViewModels
             CurrentPage = e.Page;
             CurrentPageTag = e.PageTag;
 
-            // Уведомляем об изменении всех button background свойств
+            // Уведомляем об изменении всех navigation button свойств
             OnPropertyChanged(nameof(MainButtonBackground));
             OnPropertyChanged(nameof(AudioButtonBackground));
             OnPropertyChanged(nameof(InterfaceButtonBackground));
@@ -334,45 +235,15 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Глобальный хоткей нажат: {Shortcut}", FormatKeyboardShortcut(shortcut));
-                await HandleVoiceRecordingAsync();
+                Log.Debug("ChatCasterWindowViewModel: глобальный хоткей нажат: {Shortcut}", FormatKeyboardShortcut(shortcut));
+                
+                // Передаем событие в NavigationManager, который знает как обработать запись
+                _navigationManager.HandleGlobalHotkey();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Ошибка обработки хоткея");
+                Log.Error(ex, "ChatCasterWindowViewModel: ошибка обработки хоткея");
                 _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея", NotificationType.Error);
-            }
-        }
-
-        #endregion
-
-        #region Voice Recording Logic
-
-        private async Task HandleVoiceRecordingAsync()
-        {
-            try
-            {
-                if (_voiceRecordingService.IsRecording)
-                {
-                    Log.Debug("Останавливаем запись через VoiceRecordingService...");
-                    StatusText = NavigationConstants.StatusProcessing;
-
-                    // Просто останавливаем запись - VoiceRecordingService уведомит всех подписчиков
-                    await _voiceRecordingService.StopRecordingAsync();
-                }
-                else
-                {
-                    Log.Debug("Начинаем запись через VoiceRecordingService...");
-
-                    // Просто начинаем запись - VoiceRecordingService уведомит всех подписчиков
-                    await _voiceRecordingService.StartRecordingAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка в HandleVoiceRecordingAsync");
-                _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи", NotificationType.Error);
-                StatusText = NavigationConstants.StatusReady;
             }
         }
 
@@ -400,5 +271,10 @@ namespace ChatCaster.Windows.ViewModels
 
         #endregion
 
+        #region Private Fields
+
+        private bool _isCleanedUp;
+
+        #endregion
     }
 }
