@@ -77,8 +77,8 @@
                                       x:Name="MicrophoneComboBox"
                                       Margin="0,0,10,0"
                                       FontSize="14"
-                                      ItemsSource="{Binding AvailableDevices}"
-                                      SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                      ItemsSource="{Binding AudioDeviceComponent.AvailableDevices}"
+                                      SelectedItem="{Binding AudioDeviceComponent.SelectedDevice, Mode=TwoWay}"
                                       DisplayMemberPath="Name" />
 
                             <ui:Button Grid.Row="0" Grid.Column="2"
@@ -87,19 +87,17 @@
                                        Appearance="Primary"
                                        Width="44" Height="32"
                                        FontSize="14"
-                                       Click="TestMicrophoneButton_Click" />
-
+                                       Command="{Binding AudioDeviceComponent.TestMicrophoneCommand}" />
+                            
                             <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
                                         Orientation="Horizontal"
                                         Margin="0,8,0,0">
                                 <Ellipse Width="10" Height="10"
-                                         x:Name="MicrophoneStatusIcon"
-                                         Fill="#4caf50"
+                                         Fill="{Binding MicrophoneStatusColor}"
                                          Margin="0,0,8,0" />
-                                <TextBlock x:Name="MicrophoneStatusText"
-                                           Text="Микрофон готов"
+                                <TextBlock Text="{Binding MicrophoneStatusText}"
                                            FontSize="12"
-                                           Foreground="#4caf50" />
+                                           Foreground="{Binding MicrophoneStatusColor}" />
                             </StackPanel>
                         </Grid>
 
@@ -127,8 +125,8 @@
                                       x:Name="WhisperModelComboBox"
                                       Margin="0,0,10,0"
                                       FontSize="14"
-                                      ItemsSource="{Binding AvailableModels}"
-                                      SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                                      ItemsSource="{Binding WhisperModelComponent.AvailableModels}"
+                                      SelectedItem="{Binding WhisperModelComponent.SelectedModel, Mode=TwoWay}"
                                       DisplayMemberPath="DisplayName" />
 
                             <!-- ИСПРАВЛЕНО: Обычная кнопка с иконкой -->
@@ -236,8 +234,8 @@
                             <ComboBox Grid.Column="1" 
                                       x:Name="LanguageComboBox"
                                       FontSize="14"
-                                      ItemsSource="{Binding AvailableLanguages}"
-                                      SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                                      ItemsSource="{Binding WhisperModelComponent.AvailableLanguages}"
+                                      SelectedValue="{Binding WhisperModelComponent.SelectedLanguage, Mode=TwoWay}"
                                       SelectedValuePath="Code"
                                       DisplayMemberPath="Name"/>
                         </Grid>

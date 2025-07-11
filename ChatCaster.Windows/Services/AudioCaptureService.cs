@@ -274,48 +274,46 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         try
         {
             AudioDevice? activeDevice;
-            AudioConfig? currentConfig;
         
             // Читаем под блокировкой
             lock (_lockObject)
             {
                 activeDevice = ActiveDevice;
-                currentConfig = _currentConfig;
             }
-        
+    
             if (activeDevice == null)
             {
                 _logger.Information("Нет активного аудио устройства для тестирования");
                 return false;
             }
 
-            if (currentConfig == null)
-            {
-                _logger.Information("Нет конфигурации для тестирования");
-                return false;
-            }
-
-            // Пробуем кратковременный захват аудио
+            // Создаем тестовую конфигурацию (не зависим от _currentConfig)
             var testConfig = new AudioConfig
             {
                 SelectedDeviceId = activeDevice.Id,
                 SampleRate = 16000,
                 Channels = 1,
                 BitsPerSample = 16,
-                MaxRecordingSeconds = currentConfig.MinRecordingSeconds
+                MaxRecordingSeconds = 1, // 1 секунда для теста
+                MinRecordingSeconds = 1,
+                VolumeThreshold = 0.01f // Низкий порог для теста
             };
 
+            _logger.Information("Тестируем микрофон с устройством: {DeviceName} ({DeviceId})", 
+                activeDevice.Name, activeDevice.Id);
+
+            // Пробуем кратковременный захват аудио
             bool captureStarted = await StartCaptureAsync(testConfig);
 
             if (captureStarted)
             {
                 await Task.Delay(500); // Записываем полсекунды
                 await StopCaptureAsync();
-                _logger.Information("Тест микрофона успешен");
+                _logger.Information("Тест микрофона успешен для устройства: {DeviceName}", activeDevice.Name);
                 return true;
             }
 
-            _logger.Information("Не удалось запустить захват для тестирования");
+            _logger.Warning("Не удалось запустить захват для тестирования устройства: {DeviceName}", activeDevice.Name);
             return false;
         }
         catch (Exception ex)

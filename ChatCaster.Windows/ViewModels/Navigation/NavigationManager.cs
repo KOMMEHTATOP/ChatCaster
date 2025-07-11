@@ -144,14 +144,15 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             {
                 Log.Information("=== СОЗДАНИЕ AUDIO SETTINGS PAGE ===");
 
-                var audioView = new AudioSettingsView(_audioService);
+                var audioView = new AudioSettingsView();
                 Log.Information("AudioSettingsView создан");
 
                 var audioViewModel = new AudioSettingsViewModel(
                     _configService, 
                     _configService.CurrentConfig, 
                     _speechService,
-                    _audioService); 
+                    _audioService,
+                    _notificationService); 
                 Log.Information("AudioSettingsViewModel создан");
 
                 audioView.SetViewModel(audioViewModel);

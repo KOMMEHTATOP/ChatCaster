@@ -52,16 +52,6 @@ public class ConfigurationChangedEvent
 }
 
 /// <summary>
-/// Событие возникновения ошибки
-/// </summary>
-public class ErrorOccurredEvent 
-{
-    public string ErrorMessage { get; set; } = string.Empty;
-    public Exception? Exception { get; set; }
-    public string? Component { get; set; }
-}
-
-/// <summary>
 /// Событие изменения позиции overlay
 /// </summary>
 public class OverlayPositionChangedEvent 
@@ -69,21 +59,4 @@ public class OverlayPositionChangedEvent
     public int NewX { get; set; }
     public int NewY { get; set; }
     public string? Source { get; set; } // "mouse", "gamepad", "config"
-}
-
-/// <summary>
-/// Событие изменения громкости микрофона
-/// </summary>
-public class VolumeChangedEvent 
-{
-    public float Volume { get; set; }
-    public string? DeviceId { get; set; }
-}
-
-/// <summary>
-/// Событие нажатия глобального хоткея
-/// </summary>
-public class GlobalHotkeyPressedEvent 
-{
-    public KeyboardShortcut Shortcut { get; set; } = new();
 }

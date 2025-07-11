@@ -15,8 +15,8 @@ public class TrayService : ITrayService, IDisposable
 {
     private NotifyIcon? _notifyIcon;
     private readonly IConfigurationService _configService;
-    private bool _hasShownFirstTimeNotification = false;
-    private bool _isDisposed = false;
+    private bool _hasShownFirstTimeNotification;
+    private bool _isDisposed;
 
     private const string NormalIconPath = "Resources/mic_normal.ico";
 
