@@ -16,9 +16,11 @@ namespace ChatCaster.Windows.Managers
     public sealed class KeyboardCaptureManager : ICaptureManager<KeyboardShortcut>
     {
         private readonly static ILogger _logger = Log.ForContext<KeyboardCaptureManager>();
+        private readonly AppConfig _currentConfig;
+
 
         private static Dictionary<string, (Key key, ModifierKeys modifiers)>? _hotkeyLookup;
-        
+
         #region Events
 
         /// <summary>
@@ -50,49 +52,44 @@ namespace ChatCaster.Windows.Managers
         private bool _isDisposed;
 
         // Ограниченный набор клавиш для захвата (вместо 100+ хоткеев)
-        private readonly static Key[] CaptureKeys = 
+        private readonly static Key[] CaptureKeys =
         {
             // Функциональные клавиши (наиболее популярные для хоткеев)
-            Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6, 
-            Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
-            
+            Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6, Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
+
             // Numpad (часто используется в играх)
-            Key.NumPad0, Key.NumPad1, Key.NumPad2, Key.NumPad3, Key.NumPad4, 
-            Key.NumPad5, Key.NumPad6, Key.NumPad7, Key.NumPad8, Key.NumPad9,
-            
+            Key.NumPad0, Key.NumPad1, Key.NumPad2, Key.NumPad3, Key.NumPad4, Key.NumPad5, Key.NumPad6, Key.NumPad7,
+            Key.NumPad8, Key.NumPad9,
+
             // Навигационные клавиши
             Key.Insert, Key.Delete, Key.Home, Key.End, Key.PageUp, Key.PageDown,
-            
+
             // Стрелки
             Key.Up, Key.Down, Key.Left, Key.Right,
-            
+
             // Специальные клавиши для удобства тестирования
             Key.Space, Key.Tab, Key.Escape,
-            
+
             // Буквы для отладки (можно убрать после тестирования)
             Key.R, Key.Q, Key.W, Key.E, Key.V
         };
 
-        private readonly static ModifierKeys[] CaptureModifiers = 
+        private readonly static ModifierKeys[] CaptureModifiers =
         {
-            ModifierKeys.Control,
-            ModifierKeys.Shift,
-            ModifierKeys.Alt,
-            ModifierKeys.Control | ModifierKeys.Shift,
-            ModifierKeys.Control | ModifierKeys.Alt,
-            ModifierKeys.Shift | ModifierKeys.Alt
+            ModifierKeys.Control, ModifierKeys.Shift, ModifierKeys.Alt, ModifierKeys.Control | ModifierKeys.Shift,
+            ModifierKeys.Control | ModifierKeys.Alt, ModifierKeys.Shift | ModifierKeys.Alt
         };
 
         #endregion
 
         #region Constructor
 
-        public KeyboardCaptureManager()
+        public KeyboardCaptureManager(AppConfig currentConfig)
         {
+            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
             _captureTimer = new InputCaptureTimer();
             _registeredHotkeys = new HashSet<string>();
-            
-            // Подписываемся на события таймера
+
             _captureTimer.TimerExpired += OnCaptureTimerExpired;
         }
 
@@ -126,12 +123,12 @@ namespace ChatCaster.Windows.Managers
             {
                 // Регистрируем ограниченный набор хоткеев
                 RegisterCaptureHotkeys();
-                
+
                 // Запускаем таймер
                 _captureTimer.Start(timeoutSeconds);
-                
+
                 StatusChanged?.Invoke("Нажмите комбинацию клавиш...");
-                
+
                 await Task.CompletedTask;
             }
             catch (Exception ex)
@@ -151,7 +148,7 @@ namespace ChatCaster.Windows.Managers
 
             _captureTimer.Stop();
             ClearRegisteredHotkeys();
-            
+
             StatusChanged?.Invoke("Захват остановлен");
         }
 
@@ -162,32 +159,49 @@ namespace ChatCaster.Windows.Managers
         private void RegisterCaptureHotkeys()
         {
             ClearRegisteredHotkeys(); // Очищаем предыдущие регистрации
-            
+
             int hotkeyIndex = 0;
             int registeredCount = 0;
 
-            // Создаем обработчик события
+            // ✅ ПОЛУЧАЕМ ТЕКУЩУЮ АКТИВНУЮ КОМБИНАЦИЮ
+            var currentShortcut = _currentConfig.Input.KeyboardShortcut;
+
             EventHandler<HotkeyEventArgs> hotkeyHandler = OnHotkeyPressed;
 
-            // Регистрируем только осмысленные комбинации
             foreach (var modifier in CaptureModifiers)
             {
                 foreach (var key in CaptureKeys)
                 {
                     try
                     {
+                        // ✅ КОНВЕРТИРУЕМ WPF Key В Core Key ДЛЯ СРАВНЕНИЯ
+                        if (currentShortcut != null)
+                        {
+                            var coreKey = WpfCoreConverter.ConvertToCore(key);
+                            var coreModifiers = WpfCoreConverter.ConvertToCore(modifier);
+
+                            if (coreKey.HasValue &&
+                                currentShortcut.Key == coreKey.Value &&
+                                currentShortcut.Modifiers == coreModifiers)
+                            {
+                                _logger.Debug("Пропускаем регистрацию текущей активной комбинации: {Key} + {Modifier}", key,
+                                    modifier);
+                                hotkeyIndex++;
+                                continue;
+                            }
+                        }
+
                         var hotkeyName = $"KeyCapture_{hotkeyIndex++}";
-                        
+
                         HotkeyManager.Current.AddOrReplace(
-                            hotkeyName, 
-                            key, 
-                            modifier, 
+                            hotkeyName,
+                            key,
+                            modifier,
                             hotkeyHandler);
-                        
+
                         _registeredHotkeys.Add(hotkeyName);
                         registeredCount++;
-                        
-                        // Отладка для первых нескольких регистраций
+
                         if (registeredCount <= 5)
                         {
                             _logger.Debug("Registered hotkey: {HotkeyName} = {Key} + {Modifier}", hotkeyName, key, modifier);
@@ -199,16 +213,15 @@ namespace ChatCaster.Windows.Managers
                     }
                 }
             }
-            
-            _logger.Debug("Total registered hotkeys: {Count}", registeredCount);
-        }
 
+            _logger.Debug("Total registered hotkeys: {Count} (исключена текущая: {CurrentShortcut})",
+                registeredCount, currentShortcut?.DisplayText ?? "нет");
+        }
         private void OnHotkeyPressed(object? sender, HotkeyEventArgs e)
         {
             _logger.Debug("OnHotkeyPressed: {Name}", e.Name);
-            _logger.Debug("IsCapturing: {IsCapturing}, _isDisposed: {IsDisposed}", IsCapturing, _isDisposed);
-            
-            if (!IsCapturing || _isDisposed) 
+
+            if (!IsCapturing || _isDisposed)
             {
                 _logger.Debug("Hotkey rejected - not capturing or disposed");
                 return;
@@ -216,22 +229,39 @@ namespace ChatCaster.Windows.Managers
 
             try
             {
-                // Получаем информацию о нажатой комбинации из имени хоткея
                 if (TryGetHotkeyInfo(e.Name, out var key, out var modifiers))
                 {
                     _logger.Debug("Detected hotkey: {Key} + {Modifiers}", key, modifiers);
-                    
+
                     var keyboardShortcut = WpfCoreConverter.CreateKeyboardShortcut(key, modifiers);
-                    
+
                     if (keyboardShortcut != null)
                     {
+                        // ✅ ОТЛАДКА ПРОВЕРКИ ДУБЛИКАТА
+                        var currentShortcut = _currentConfig.Input.KeyboardShortcut;
+                        _logger.Debug("🔍 Проверка дубликата:");
+                        _logger.Debug("🔍 Нажата комбинация: {Key} + {Modifiers}", keyboardShortcut.Key,
+                            keyboardShortcut.Modifiers);
+                        _logger.Debug("🔍 Текущая комбинация: {CurrentKey} + {CurrentModifiers}",
+                            currentShortcut?.Key, currentShortcut?.Modifiers);
+
+                        if (currentShortcut != null &&
+                            currentShortcut.Key == keyboardShortcut.Key &&
+                            currentShortcut.Modifiers == keyboardShortcut.Modifiers)
+                        {
+                            _logger.Warning("🔍 ДУБЛИКАТ ОБНАРУЖЕН! Игнорируем захват");
+                            CaptureError?.Invoke("Нажата текущая комбинация. Попробуйте другую.");
+                            return;
+                        }
+
+                        _logger.Debug("🔍 Комбинация уникальна, продолжаем захват");
+
                         _logger.Information("Captured keyboard shortcut: {Shortcut}", keyboardShortcut.DisplayText);
-                        
+
                         // Останавливаем захват
                         _captureTimer.Stop();
                         ClearRegisteredHotkeys();
-                        _logger.Debug("Capture stopped");
-                        
+
                         StatusChanged?.Invoke($"Захвачена комбинация: {keyboardShortcut.DisplayText}");
                         CaptureCompleted?.Invoke(keyboardShortcut);
                     }
@@ -246,7 +276,7 @@ namespace ChatCaster.Windows.Managers
                     _logger.Warning("Failed to parse hotkey: {Name}", e.Name);
                     CaptureError?.Invoke("Ошибка распознавания комбинации");
                 }
-                
+
                 e.Handled = true;
             }
             catch (Exception ex)
@@ -263,7 +293,7 @@ namespace ChatCaster.Windows.Managers
             {
                 _hotkeyLookup = new Dictionary<string, (Key, ModifierKeys)>();
                 int hotkeyIndex = 0;
-        
+
                 foreach (var modifier in CaptureModifiers)
                 {
                     foreach (var captureKey in CaptureKeys)
@@ -273,6 +303,7 @@ namespace ChatCaster.Windows.Managers
                     }
                 }
             }
+
             return _hotkeyLookup;
         }
 
@@ -284,12 +315,12 @@ namespace ChatCaster.Windows.Managers
                 modifiers = result.modifiers;
                 return true;
             }
-    
+
             key = Key.None;
             modifiers = ModifierKeys.None;
             return false;
         }
-        
+
         private void ClearRegisteredHotkeys()
         {
             foreach (var hotkeyName in _registeredHotkeys)
@@ -303,7 +334,7 @@ namespace ChatCaster.Windows.Managers
                     // Игнорируем ошибки при удалении
                 }
             }
-            
+
             _registeredHotkeys.Clear();
         }
 
@@ -343,5 +374,6 @@ namespace ChatCaster.Windows.Managers
         }
 
         #endregion
+
     }
 }

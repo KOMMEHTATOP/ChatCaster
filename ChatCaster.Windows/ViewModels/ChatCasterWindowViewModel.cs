@@ -4,6 +4,7 @@ using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.Services;
@@ -15,7 +16,7 @@ namespace ChatCaster.Windows.ViewModels
 {
     /// <summary>
     /// ViewModel главного окна приложения
-    /// Ответственности: навигация, управление жизненным циклом, координация
+    /// Ответственности: навигация, управление жизненным циклом, координация, обработка глобальных хоткеев
     /// </summary>
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
@@ -25,6 +26,7 @@ namespace ChatCaster.Windows.ViewModels
         private readonly ISystemIntegrationService _systemService;
         private readonly NavigationManager _navigationManager;
         private readonly ITrayService _trayService;
+        private readonly IVoiceRecordingService _voiceRecordingService;
 
         #endregion
 
@@ -111,12 +113,14 @@ namespace ChatCaster.Windows.ViewModels
             ISystemIntegrationService systemService,
             NavigationManager navigationManager,
             ITrayService trayService,
+            IVoiceRecordingService voiceRecordingService,
             AppConfig currentConfig)
         {
             _initializationService = initializationService ?? throw new ArgumentNullException(nameof(initializationService));
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
             _navigationManager = navigationManager ?? throw new ArgumentNullException(nameof(navigationManager));
             _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
+            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
 
             // Подписываемся на события навигации
@@ -129,7 +133,7 @@ namespace ChatCaster.Windows.ViewModels
             // Подписка на глобальные хоткеи
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
 
-            Log.Debug("ChatCasterWindowViewModel создан (очищенная версия)");
+            Log.Debug("ChatCasterWindowViewModel создан с поддержкой голосовой записи");
         }
 
         #endregion
@@ -147,6 +151,13 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Делегируем всю инициализацию сервису
                 CurrentConfig = await _initializationService.InitializeApplicationAsync();
+
+                // Регистрируем глобальный хоткей если настроен
+                if (CurrentConfig.Input.KeyboardShortcut != null)
+                {
+                    var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
+                    Log.Information("ChatCasterWindowViewModel: хоткей зарегистрирован: {Registered}", registered);
+                }
 
                 // Применяем настройки окна
                 if (CurrentConfig.System.StartMinimized)
@@ -237,13 +248,45 @@ namespace ChatCaster.Windows.ViewModels
             {
                 Log.Debug("ChatCasterWindowViewModel: глобальный хоткей нажат: {Shortcut}", FormatKeyboardShortcut(shortcut));
                 
-                // Передаем событие в NavigationManager, который знает как обработать запись
-                _navigationManager.HandleGlobalHotkey();
+                // Прямая обработка хоткея согласно архитектуре
+                await HandleVoiceRecordingAsync();
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "ChatCasterWindowViewModel: ошибка обработки хоткея");
                 _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея", NotificationType.Error);
+            }
+        }
+
+        #endregion
+
+        #region Voice Recording
+
+        /// <summary>
+        /// Обрабатывает toggle записи голоса при нажатии глобального хоткея
+        /// </summary>
+        private async Task HandleVoiceRecordingAsync()
+        {
+            try
+            {
+                if (_voiceRecordingService.IsRecording)
+                {
+                    Log.Debug("ChatCasterWindowViewModel: останавливаем запись голоса");
+                    StatusText = NavigationConstants.StatusProcessing;
+                    await _voiceRecordingService.StopRecordingAsync();
+                }
+                else
+                {
+                    Log.Debug("ChatCasterWindowViewModel: начинаем запись голоса");
+                    StatusText = NavigationConstants.StatusRecording;
+                    await _voiceRecordingService.StartRecordingAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "ChatCasterWindowViewModel: ошибка обработки записи голоса");
+                StatusText = "Ошибка записи";
+                _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи голоса", NotificationType.Error);
             }
         }
 

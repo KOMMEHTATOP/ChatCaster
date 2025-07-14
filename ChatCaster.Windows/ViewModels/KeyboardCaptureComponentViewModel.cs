@@ -43,7 +43,7 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                _captureManager = new KeyboardCaptureManager();
+                _captureManager = new KeyboardCaptureManager(_currentConfig);
                 _uiManager = new CaptureUIStateManager();
 
                 SubscribeToEvents();
@@ -59,6 +59,7 @@ namespace ChatCaster.Windows.ViewModels
 
         public Task LoadSettingsAsync()
         {
+            Log.Information("🔍 LoadSettingsAsync вызван, устанавливаем Idle состояние");
             try
             {
                 var shortcut = _currentConfig.Input.KeyboardShortcut;
@@ -87,11 +88,20 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 Log.Debug("Запуск захвата клавиатуры");
+
+                // Включаем capture mode - глобальные хоткеи будут игнорироваться
+                _systemService.SetHotkeyCaptureMode(true);
+                Log.Debug("KeyboardCaptureComponent: включен capture mode");
+
                 await _captureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка запуска захвата клавиатуры");
+                
+                // При ошибке отключаем capture mode
+                _systemService.SetHotkeyCaptureMode(false);
+                
                 OnStatusMessageChanged($"Ошибка захвата клавиатуры: {ex.Message}");
             }
         }
@@ -134,6 +144,8 @@ namespace ChatCaster.Windows.ViewModels
         private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
         {
             Log.Information("🔍 KeyboardComponent получил событие конфигурации: {SettingName}", e.SettingName);
+            Log.Information("🔍 Текущее состояние UI: IsWaitingForInput={IsWaiting}, ComboTextColor={Color}", 
+                IsWaitingForInput, ComboTextColor);
             _ = LoadSettingsAsync();
         }
 
@@ -148,32 +160,39 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 IsWaitingForInput = false;
-        
-                // обновляем только источник истины
-                _currentConfig.Input.KeyboardShortcut = capturedShortcut;
-                await OnSettingChangedAsync(); 
 
-                // Регистрируем глобальный хоткей
-                bool registered = await _systemService.RegisterGlobalHotkeyAsync(capturedShortcut);
-                if (!registered)
-                {
-                    if (_uiManager != null)
-                    {
-                        await _uiManager.CompleteWithErrorAsync("Ошибка регистрации хоткея");
-                    }
-                    return;
-                }
+                // Отключаем capture mode - восстанавливаем работу глобальных хоткеев
+                _systemService.SetHotkeyCaptureMode(false);
+                Log.Debug("KeyboardCaptureComponent: выключен capture mode после успешного захвата");
 
+                // ✅ СНАЧАЛА показываем SUCCESS (зеленый)
                 if (_uiManager != null)
                 {
                     await _uiManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
                 }
+
+                // ✅ ПОТОМ обновляем конфигурацию (это вызовет OnConfigurationChanged)
+                _currentConfig.Input.KeyboardShortcut = capturedShortcut;
+                await OnSettingChangedAsync(); 
+
+                // ✅ ПОТОМ регистрируем хоткей
+                await _systemService.UnregisterGlobalHotkeyAsync();
+                bool registered = await _systemService.RegisterGlobalHotkeyAsync(capturedShortcut);
         
+                if (!registered)
+                {
+                    Log.Warning("Хоткей не зарегистрирован, но комбинация сохранена");
+                }
+
                 Log.Information("Клавиатурная комбинация сохранена: {Shortcut}", capturedShortcut.DisplayText);
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка обработки захваченной клавиатурной комбинации");
+                
+                // При ошибке также отключаем capture mode
+                _systemService.SetHotkeyCaptureMode(false);
+                
                 IsWaitingForInput = false;
                 if (_uiManager != null)
                 {
@@ -189,6 +208,10 @@ namespace ChatCaster.Windows.ViewModels
 
         private async Task HandleTimeoutAsync()
         {
+            // Отключаем capture mode при таймауте
+            _systemService.SetHotkeyCaptureMode(false);
+            Log.Debug("KeyboardCaptureComponent: выключен capture mode после таймаута");
+
             IsWaitingForInput = false;
             if (_uiManager != null)
             {
@@ -216,6 +239,10 @@ namespace ChatCaster.Windows.ViewModels
 
         private async Task HandleErrorAsync(string error)
         {
+            // Отключаем capture mode при ошибке
+            _systemService.SetHotkeyCaptureMode(false);
+            Log.Debug("KeyboardCaptureComponent: выключен capture mode после ошибки");
+
             IsWaitingForInput = false;
             if (_uiManager != null)
             {
@@ -225,6 +252,16 @@ namespace ChatCaster.Windows.ViewModels
 
         public override void Dispose()
         {
+            // При Dispose также отключаем capture mode на всякий случай
+            try
+            {
+                _systemService.SetHotkeyCaptureMode(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "KeyboardCaptureComponent: ошибка отключения capture mode при Dispose");
+            }
+
             UnsubscribeFromEvents();
             
             _captureManager?.Dispose();

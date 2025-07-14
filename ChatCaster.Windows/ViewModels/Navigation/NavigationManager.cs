@@ -1,8 +1,6 @@
 using System.Windows.Controls;
-using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
-using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.Services.Navigation;
 using Serilog;
 
@@ -10,7 +8,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 {
     /// <summary>
     /// Менеджер навигации между страницами
-    /// Ответственности: только навигация и координация компонентов
+    /// Ответственности: только навигация между страницами и управление их жизненным циклом
     /// </summary>
     public class NavigationManager
     {
@@ -19,8 +17,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private readonly ViewModelCleanupService _cleanupService;
         private readonly IAudioCaptureService _audioService;
         private readonly IVoiceRecordingService _voiceRecordingService;
-        private readonly AppConfig _currentConfig;
-        private readonly INotificationService _notificationService;
         private readonly IConfigurationService _configService;
 
         // Singleton ViewModel для MainPage
@@ -38,8 +34,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             ViewModelCleanupService cleanupService,
             IAudioCaptureService audioService,
             IVoiceRecordingService voiceRecordingService,
-            AppConfig currentConfig,
-            INotificationService notificationService,
             IConfigurationService configService)
         {
             _pageFactory = pageFactory ?? throw new ArgumentNullException(nameof(pageFactory));
@@ -47,14 +41,12 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             _cleanupService = cleanupService ?? throw new ArgumentNullException(nameof(cleanupService));
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
-            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
 
-            Log.Debug("NavigationManager инициализирован с компонентами");
+            Log.Debug("NavigationManager инициализирован для навигации");
         }
 
         /// <summary>
@@ -91,31 +83,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         }
 
         /// <summary>
-        /// Обрабатывает глобальный хоткей - передает команду в MainPageViewModel
-        /// </summary>
-        public async void HandleGlobalHotkey()
-        {
-            try
-            {
-                Log.Debug("NavigationManager: обработка глобального хоткея");
-
-                if (_mainPageViewModel != null)
-                {
-                    Log.Debug("NavigationManager: передаем команду записи в MainPageViewModel");
-                    await _mainPageViewModel.ToggleRecording();
-                }
-                else
-                {
-                    Log.Warning("NavigationManager: MainPageViewModel не инициализирован для обработки хоткея");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "NavigationManager: ошибка обработки глобального хоткея");
-            }
-        }
-
-        /// <summary>
         /// Очистка всех ресурсов при закрытии приложения
         /// </summary>
         public void CleanupAllPages()
@@ -147,6 +114,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             try
             {
                 // Создаем Singleton MainPageViewModel
+                // MainPage содержит кнопку записи, поэтому нужен IVoiceRecordingService
                 _mainPageViewModel = new MainPageViewModel(_audioService, _voiceRecordingService, _configService);
 
                 // Создаем страницу через фабрику

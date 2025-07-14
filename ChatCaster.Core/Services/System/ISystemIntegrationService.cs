@@ -16,6 +16,7 @@ public interface ISystemIntegrationService
     // Горячие клавиши
     Task<bool> RegisterGlobalHotkeyAsync(KeyboardShortcut shortcut);
     Task<bool> UnregisterGlobalHotkeyAsync();
+    void SetHotkeyCaptureMode(bool isCapturing);
 
     event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
 

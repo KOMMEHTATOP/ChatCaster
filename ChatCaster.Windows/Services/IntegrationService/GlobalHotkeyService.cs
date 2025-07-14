@@ -13,9 +13,19 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
     public event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
 
     private KeyboardShortcut? _registeredHotkey;
+    private bool _isCapturingHotkey = false;
 
     public bool IsRegistered => _registeredHotkey != null;
     public KeyboardShortcut? CurrentShortcut => _registeredHotkey;
+
+    /// <summary>
+    /// Устанавливает режим захвата клавиш. В этом режиме глобальные хоткеи игнорируются.
+    /// </summary>
+    public void SetCaptureMode(bool isCapturing)
+    {
+        _logger.Debug("Устанавливаем режим захвата: {IsCapturing}", isCapturing);
+        _isCapturingHotkey = isCapturing;
+    }
 
     public async Task<bool> RegisterAsync(KeyboardShortcut shortcut)
     {
@@ -54,6 +64,13 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                         // Регистрируем новый хоткей
                         HotkeyManager.Current.AddOrReplace("ChatCasterVoiceInput", key.Value, modifiers, (sender, e) =>
                         {
+                            // Проверяем режим захвата - если активен, игнорируем хоткей
+                            if (_isCapturingHotkey)
+                            {
+                                _logger.Debug("Хоткей проигнорирован (активен режим захвата): {Modifiers}+{Key}", shortcut.Modifiers, shortcut.Key);
+                                return;
+                            }
+
                             _logger.Debug("Хоткей сработал: {Modifiers}+{Key}", shortcut.Modifiers, shortcut.Key);
                             GlobalHotkeyPressed?.Invoke(this, shortcut);
                         });

@@ -1,6 +1,7 @@
 using ChatCaster.Windows.Managers;
 using ChatCaster.Windows.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Serilog;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -46,13 +47,17 @@ namespace ChatCaster.Windows.ViewModels
 
         public abstract Task StartCaptureAsync();
         
-        protected virtual void OnUIStateChanged(CaptureUIState state)
+        protected void OnUIStateChanged(CaptureUIState state)
         {
+            Log.Debug("🎨 OnUIStateChanged: Text={Text}, Color={Color}, State={State}", 
+                state.Text, state.TextColor, state.State);
+
             ComboText = state.Text;
             ComboTextColor = state.TextColor;
             ShowTimer = state.ShowTimer;
             CaptureTimeLeft = state.TimeLeft;
-            
+            Log.Debug("🎨 ComboTextColor установлен в: {Color}", ComboTextColor);
+
             if (!string.IsNullOrEmpty(state.StatusMessage))
             {
                 OnStatusMessageChanged(state.StatusMessage);

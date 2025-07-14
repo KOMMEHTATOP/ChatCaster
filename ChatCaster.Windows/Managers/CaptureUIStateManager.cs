@@ -180,6 +180,7 @@ namespace ChatCaster.Windows.Managers
             if (_isDisposed) return;
 
             _originalText = successText;
+            _logger.Debug("🟢 CompleteSuccessAsync: устанавливаем ЗЕЛЕНЫЙ цвет");
 
             CurrentState = new CaptureUIState
             {
@@ -190,13 +191,17 @@ namespace ChatCaster.Windows.Managers
                 TimeLeft = 0,
                 State = CaptureState.Success
             };
+            _logger.Debug("🟢 StateChanged событие отправлено с зеленым цветом");
 
             _logger.Information("Захват завершен успешно: {Text}", successText);
 
             // Через 2 секунды возвращаем к исходному состоянию
-            await Task.Delay(2000);
+            _logger.Debug("🟢 Ждем 2 секунды...");
+
+            await Task.Delay(1000);
             if (!_isDisposed)
             {
+                _logger.Debug("🟢 Возвращаем к Idle (белый)");
                 ReturnToIdle();
             }
         }

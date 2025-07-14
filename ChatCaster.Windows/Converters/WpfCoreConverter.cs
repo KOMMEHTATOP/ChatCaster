@@ -94,7 +94,7 @@ public static class WpfCoreConverter
     /// </summary>
     /// <param name="wpfKey">WPF клавиша</param>
     /// <returns>Core клавиша или null если конверсия невозможна</returns>
-    private static CoreKey? ConvertToCore(WpfKey wpfKey)
+    public static CoreKey? ConvertToCore(WpfKey wpfKey)
     {
         return KeyMap.TryGetValue(wpfKey, out var coreKey) ? coreKey : null;
     }
@@ -114,7 +114,7 @@ public static class WpfCoreConverter
     /// </summary>
     /// <param name="wpfModifiers">WPF модификаторы</param>
     /// <returns>Core модификаторы</returns>
-    private static CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
+    public static CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
     {
         var coreModifiers = CoreModifierKeys.None;
 

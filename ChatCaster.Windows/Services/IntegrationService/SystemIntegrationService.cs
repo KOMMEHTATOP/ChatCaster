@@ -1,6 +1,7 @@
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Input;
 using ChatCaster.Core.Services.System;
+using ChatCaster.Windows.Services.IntegrationService;
 using Serilog;
 
 namespace ChatCaster.Windows.Services.IntegrationService;
@@ -25,7 +26,6 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
         _hotkeyService = hotkeyService;
         _notificationService = notificationService;
         _windowService = windowService;
-
     }
 
     #region События
@@ -51,6 +51,18 @@ public class SystemIntegrationService : ISystemIntegrationService, IDisposable
 
     public Task<bool> UnregisterGlobalHotkeyAsync() => 
         _hotkeyService.UnregisterAsync();
+
+    public void SetHotkeyCaptureMode(bool isCapturing)
+    {
+        if (_hotkeyService is GlobalHotkeyService globalHotkeyService)
+        {
+            globalHotkeyService.SetCaptureMode(isCapturing);
+        }
+        else
+        {
+            Log.Warning("SystemIntegrationService: Невозможно установить capture mode - сервис не поддерживает эту функцию");
+        }
+    }
     #endregion
 
     #region Системные функции
