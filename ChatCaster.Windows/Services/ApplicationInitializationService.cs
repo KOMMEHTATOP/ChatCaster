@@ -34,7 +34,8 @@ namespace ChatCaster.Windows.Services
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
-            _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
+            _gamepadVoiceCoordinator =
+                gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
         }
 
         /// <summary>
@@ -87,6 +88,7 @@ namespace ChatCaster.Windows.Services
                     Log.Information("ApplicationInitializationService: хоткей зарегистрирован: {Registered}", registered);
                     return registered;
                 }
+
                 return true;
             }
             catch (Exception ex)
@@ -98,24 +100,68 @@ namespace ChatCaster.Windows.Services
 
         private async Task EnsureDefaultConfigurationAsync(AppConfig config)
         {
+            bool configChanged = false;
+
+            // Проверяем и устанавливаем Whisper модель по умолчанию
             if (string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
             {
                 Log.Information("ApplicationInitializationService: новая установка, применяем дефолтные настройки");
 
                 // Устанавливаем дефолтную модель Whisper
                 config.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
+                configChanged = true;
 
-                // Сохраняем обновленный конфиг
-                await _configurationService.SaveConfigAsync(config);
                 Log.Information("ApplicationInitializationService: дефолтная модель Whisper установлена: tiny");
             }
+
+            // Проверяем и устанавливаем аудио устройство по умолчанию
+            if (string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
+            {
+                Log.Information(
+                    "ApplicationInitializationService: аудио устройство не выбрано, выбираем устройство по умолчанию");
+
+                try
+                {
+                    // Получаем список доступных устройств
+                    var devices = await _audioService.GetAvailableDevicesAsync();
+                    var defaultDevice = devices.FirstOrDefault(d => d.IsDefault)
+                                        ?? devices.FirstOrDefault();
+
+                    if (defaultDevice != null)
+                    {
+                        config.Audio.SelectedDeviceId = defaultDevice.Id;
+                        configChanged = true;
+
+                        Log.Information(
+                            "ApplicationInitializationService: выбрано устройство по умолчанию: {DeviceName} ({DeviceId})",
+                            defaultDevice.Name, defaultDevice.Id);
+                    }
+                    else
+                    {
+                        Log.Warning("ApplicationInitializationService: не найдено ни одного аудио устройства");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "ApplicationInitializationService: ошибка получения аудио устройств");
+                }
+            }
+
+            // Сохраняем конфигурацию только если были изменения
+            if (configChanged)
+            {
+                await _configurationService.SaveConfigAsync(config);
+                Log.Information("ApplicationInitializationService: дефолтная конфигурация сохранена");
+            }
         }
+
 
         private async Task InitializeSpeechRecognitionAsync(AppConfig config)
         {
             Log.Information("ApplicationInitializationService: инициализируем Whisper модуль");
             var speechInitialized = await _speechService.InitializeAsync(config.SpeechRecognition);
-            Log.Information("ApplicationInitializationService: сервис распознавания речи инициализирован: {Success}", speechInitialized);
+            Log.Information("ApplicationInitializationService: сервис распознавания речи инициализирован: {Success}",
+                speechInitialized);
         }
 
         private async Task InitializeAudioAsync(AppConfig config)
@@ -124,21 +170,38 @@ namespace ChatCaster.Windows.Services
 
             if (!string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
             {
-                await _audioService.SetActiveDeviceAsync(config.Audio.SelectedDeviceId);
-                Log.Information("ApplicationInitializationService: активное аудио устройство установлено: {DeviceId}",
-                    config.Audio.SelectedDeviceId);
+                try
+                {
+                    var deviceSet = await _audioService.SetActiveDeviceAsync(config.Audio.SelectedDeviceId);
+                    if (deviceSet)
+                    {
+                        Log.Information("ApplicationInitializationService: активное аудио устройство установлено: {DeviceId}", 
+                            config.Audio.SelectedDeviceId);
+                    }
+                    else
+                    {
+                        Log.Warning("ApplicationInitializationService: не удалось установить аудио устройство: {DeviceId}", 
+                            config.Audio.SelectedDeviceId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "ApplicationInitializationService: ошибка установки аудио устройства: {DeviceId}", 
+                        config.Audio.SelectedDeviceId);
+                }
             }
             else
             {
                 Log.Warning("ApplicationInitializationService: в конфигурации не указано аудио устройство");
             }
         }
-
+        
         private async Task InitializeOverlayAsync(AppConfig config)
         {
             Log.Debug("ApplicationInitializationService: применяем конфигурацию к OverlayService");
             await _overlayService.ApplyConfigAsync(config.Overlay);
-            Log.Information("ApplicationInitializationService: конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
+            Log.Information(
+                "ApplicationInitializationService: конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
                 config.Overlay.Position, config.Overlay.Opacity);
         }
 

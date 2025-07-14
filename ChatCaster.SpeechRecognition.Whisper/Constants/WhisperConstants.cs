@@ -25,15 +25,13 @@ public static class WhisperConstants
         public const string Small = "small";
         public const string Medium = "medium";
         public const string Large = "large";
-        public const string LargeV2 = "large-v2";
-        public const string LargeV3 = "large-v3";
         
         public static readonly string[] All = 
         {
-            Tiny, Base, Small, Medium, Large, LargeV2, LargeV3
+            Tiny, Base, Small, Medium, Large
         };
         
-        public static readonly string Default = Base;
+        public static readonly string Default = Tiny;
     }
     
     /// <summary>
@@ -126,23 +124,6 @@ public static class WhisperConstants
             [SettingsKeys.EnableTranslation] = false,
             [SettingsKeys.InitialPrompt] = string.Empty
         };
-    }
-    
-    /// <summary>
-    /// Сообщения об ошибках
-    /// </summary>
-    public static class ErrorMessages
-    {
-        public const string ModelNotFound = "Whisper model not found";
-        public const string ModelLoadFailed = "Failed to load Whisper model";
-        public const string InvalidAudioFormat = "Invalid audio format for Whisper";
-        public const string AudioTooShort = "Audio too short for recognition";
-        public const string AudioTooLong = "Audio too long for recognition";
-        public const string RecognitionFailed = "Speech recognition failed";
-        public const string InitializationFailed = "Whisper engine initialization failed";
-        public const string InvalidConfiguration = "Invalid Whisper configuration";
-        public const string InsufficientMemory = "Insufficient memory for Whisper model";
-        public const string GpuNotAvailable = "GPU acceleration not available";
     }
     
     /// <summary>

@@ -91,6 +91,7 @@ namespace ChatCaster.Windows.ViewModels
 
         #region BaseSettingsViewModel Implementation
 
+
         protected override async Task LoadPageSpecificSettingsAsync()
         {
             Log.Information("AudioSettingsViewModel LoadPageSpecificSettingsAsync НАЧАТ");
@@ -105,12 +106,18 @@ namespace ChatCaster.Windows.ViewModels
                 await AudioDeviceComponent.LoadDevicesAsync();
                 AudioDeviceComponent.SetSelectedDeviceFromConfig(_currentConfig.Audio.SelectedDeviceId);
 
-                // Загружаем модель из конфигурации
+                // ИСПРАВЛЕНО: Сначала загружаем модели со статусами
+                await WhisperModelComponent.LoadModelsWithStatusAsync();
+        
+                // ПОТОМ устанавливаем выбранную модель (после загрузки коллекции)
                 var modelSize = _currentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var modelObj) 
                     ? modelObj?.ToString() 
-                    : null;
-                
+                    : "tiny"; // Fallback на tiny если не найдено
+        
+                Log.Information("AudioSettingsViewModel устанавливаем модель из конфига: {ModelSize}", modelSize);
                 WhisperModelComponent.SetSelectedModelFromConfig(modelSize);
+        
+                // Устанавливаем язык
                 WhisperModelComponent.SelectedLanguage = _currentConfig.SpeechRecognition.Language;
 
                 // Проверяем статус модели
@@ -124,6 +131,7 @@ namespace ChatCaster.Windows.ViewModels
             }
         }
 
+        
         protected override async Task ApplySettingsToConfigAsync(AppConfig config)
         {
             try
@@ -137,8 +145,8 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Применяем Whisper настройки
                 config.SpeechRecognition.Language = WhisperModelComponent.SelectedLanguage;
-                config.SpeechRecognition.EngineSettings["ModelSize"] = WhisperModelComponent.SelectedModel?.ModelSize ?? "base";
-
+                config.SpeechRecognition.EngineSettings["ModelSize"] = WhisperModelComponent.SelectedModel?.ModelSize ?? "tiny";
+                
                 Log.Information("AudioSettingsViewModel настройки применены к конфигурации");
             }
             catch (Exception ex)
@@ -161,6 +169,19 @@ namespace ChatCaster.Windows.ViewModels
                     Log.Information("AudioSettingsViewModel аудио устройство применено");
                 }
 
+                // Применяем модель Whisper через существующий менеджер
+                Log.Information("🔍 [APPLY] Применяем модель Whisper к сервису");
+                var modelApplied = await WhisperModelComponent.ModelManager.ApplyCurrentConfigAsync();
+        
+                if (modelApplied)
+                {
+                    Log.Information("🔍 [APPLY] ✅ Модель Whisper успешно применена");
+                }
+                else
+                {
+                    Log.Error("🔍 [APPLY] ❌ Ошибка применения модели Whisper");
+                }
+
                 Log.Information("AudioSettingsViewModel настройки применены к сервисам");
             }
             catch (Exception ex)
@@ -169,7 +190,7 @@ namespace ChatCaster.Windows.ViewModels
                 throw;
             }
         }
-
+        
         public override void SubscribeToUIEvents()
         {
             Log.Information("AudioSettingsViewModel UI события обрабатываются через компоненты и Observable свойства");

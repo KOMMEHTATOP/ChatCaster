@@ -51,20 +51,6 @@ public class ModelDownloader
             Url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin",
             ExpectedSizeBytes = 3_094_000_000, // ~3GB
             Sha256Hash = "0f4c8e34f21cf1a914c59d8b3ce882345ad349d6"
-        },
-        [WhisperConstants.ModelSizes.LargeV2] = new ModelInfo
-        {
-            Size = WhisperConstants.ModelSizes.LargeV2,
-            Url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
-            ExpectedSizeBytes = 3_094_000_000, // ~3GB
-            Sha256Hash = "0f4c8e34f21cf1a914c59d8b3ce882345ad349d6"
-        },
-        [WhisperConstants.ModelSizes.LargeV3] = new ModelInfo
-        {
-            Size = WhisperConstants.ModelSizes.LargeV3,
-            Url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
-            ExpectedSizeBytes = 3_094_000_000, // ~3GB
-            Sha256Hash = "ad82bf6a9043ceed055076d0fd39f5f186ff8062"
         }
     };
 

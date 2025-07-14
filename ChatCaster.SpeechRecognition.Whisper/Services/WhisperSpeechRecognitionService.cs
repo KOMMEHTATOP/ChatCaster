@@ -173,7 +173,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         try
         {
             // Используем LogError чтобы точно попало в отчет
-            _logger.LogError("🔍 [RELOAD] ReloadConfigAsync started");
+            _logger.LogInformation("🔍 [RELOAD] ReloadConfigAsync started");
         
             // Сохраняем старую конфигурацию
             var oldConfig = _config.Clone();
@@ -182,7 +182,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             var newConfig = WhisperConfig.FromSpeechConfig(config);
         
             // ДИАГНОСТИКА:
-            _logger.LogError("🔍 [RELOAD] Config comparison: OldModel={OldModel}, NewModel={NewModel}", 
+            _logger.LogInformation("🔍 [RELOAD] Config comparison: OldModel={OldModel}, NewModel={NewModel}", 
                 oldConfig.ModelSize, newConfig.ModelSize);
         
             // Проверяем нужна ли полная реинициализация
@@ -191,11 +191,11 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 oldConfig.ModelPath != newConfig.ModelPath ||
                 oldConfig.EnableGpu != newConfig.EnableGpu;
 
-            _logger.LogError("🔍 [RELOAD] Needs reinitialization: {NeedsReinit}", needsReinitialization);
+            _logger.LogInformation("🔍 [RELOAD] Needs reinitialization: {NeedsReinit}", needsReinitialization);
 
             if (needsReinitialization)
             {
-                _logger.LogError("🔍 [RELOAD] PERFORMING FULL REINITIALIZATION: {OldModel} → {NewModel}", 
+                _logger.LogInformation("🔍 [RELOAD] PERFORMING FULL REINITIALIZATION: {OldModel} → {NewModel}", 
                     oldConfig.ModelSize, newConfig.ModelSize);
             
                 // Принудительно освобождаем ресурсы
@@ -206,7 +206,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
             
-                _logger.LogError("🔍 [RELOAD] Previous model disposed, starting new initialization");
+                _logger.LogInformation("🔍 [RELOAD] Previous model disposed, starting new initialization");
             
                 return await InitializeAsync(config);
             }

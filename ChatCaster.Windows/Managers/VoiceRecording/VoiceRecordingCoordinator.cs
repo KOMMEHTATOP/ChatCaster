@@ -33,7 +33,8 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
         IConfigurationService configurationService)
     {
         _audioCaptureService = audioCaptureService ?? throw new ArgumentNullException(nameof(audioCaptureService));
-        _speechRecognitionService = speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
+        _speechRecognitionService =
+            speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
 
         _stateManager = new RecordingStateManager();
@@ -43,7 +44,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
         // Подписываемся на события менеджеров
         _stateManager.StatusChanged += (s, e) => StatusChanged?.Invoke(this, e);
         _timerManager.AutoStopTriggered += OnAutoStopTriggered;
-        
+
         // Подписываемся на аудио данные
         _audioCaptureService.AudioDataReceived += OnAudioDataReceived;
     }
@@ -62,6 +63,17 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
 
             // Получаем конфигурацию
             var config = _configurationService.CurrentConfig;
+
+            if (_configurationService.CurrentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize",
+                    out var modelSize))
+            {
+                Log.Information($"модель распознавания {modelSize}");
+            }
+            else
+            {
+                Log.Information($"Модель распознавания {modelSize} не найдена в конфиге");
+            };
+
             var audioConfig = config.Audio;
             var maxSeconds = audioConfig.MaxRecordingSeconds;
 
@@ -103,9 +115,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
                 Log.Information("📝 Запись не идет, возвращаем пустой результат");
                 return new VoiceProcessingResult
                 {
-                    Success = false,
-                    RecognizedText = "",
-                    ErrorMessage = "Запись не была активна"
+                    Success = false, RecognizedText = "", ErrorMessage = "Запись не была активна"
                 };
             }
 
@@ -113,10 +123,10 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
 
             // Останавливаем захват аудио
             await _audioCaptureService.StopCaptureAsync();
-            
+
             // Переключаемся в обработку
             _stateManager.StartProcessing();
-            
+
             // Останавливаем таймер
             _timerManager.StopTimer();
 
@@ -129,9 +139,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
                 _stateManager.SetIdle();
                 return new VoiceProcessingResult
                 {
-                    Success = false,
-                    RecognizedText = "",
-                    ErrorMessage = "Нет аудио данных"
+                    Success = false, RecognizedText = "", ErrorMessage = "Нет аудио данных"
                 };
             }
 
@@ -144,8 +152,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
             // Уведомляем о завершении
             RecognitionCompleted?.Invoke(this, new VoiceRecognitionCompletedEvent
             {
-                Result = result,
-                AudioDataSize = audioData.Length
+                Result = result, AudioDataSize = audioData.Length
             });
 
             if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
@@ -166,9 +173,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
 
             return new VoiceProcessingResult
             {
-                Success = false,
-                RecognizedText = "",
-                ErrorMessage = ex.Message
+                Success = false, RecognizedText = "", ErrorMessage = ex.Message
             };
         }
     }
@@ -215,7 +220,8 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
         }
     }
 
-    public async Task<VoiceProcessingResult> ProcessAudioDataAsync(byte[] audioData, CancellationToken cancellationToken = default)
+    public async Task<VoiceProcessingResult> ProcessAudioDataAsync(byte[] audioData,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -227,9 +233,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
             Log.Information($"❌ Ошибка обработки аудио: {ex.Message}");
             return new VoiceProcessingResult
             {
-                Success = false,
-                RecognizedText = "",
-                ErrorMessage = ex.Message
+                Success = false, RecognizedText = "", ErrorMessage = ex.Message
             };
         }
     }

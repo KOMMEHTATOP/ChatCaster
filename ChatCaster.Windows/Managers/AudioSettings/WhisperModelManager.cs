@@ -2,6 +2,7 @@ using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using Serilog;
+using System.IO;
 
 namespace ChatCaster.Windows.Managers.AudioSettings
 {
@@ -23,7 +24,7 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         }
 
         /// <summary>
-        /// Инициализирует список доступных моделей Whisper
+        /// Инициализирует список доступных моделей Whisper (старый метод для совместимости)
         /// </summary>
         public List<WhisperModelItem> GetAvailableModels()
         {
@@ -35,7 +36,9 @@ namespace ChatCaster.Windows.Managers.AudioSettings
                 {
                     ModelSize = modelSize,
                     DisplayName = GetModelDisplayName(modelSize),
-                    Description = GetModelDescription(modelSize)
+                    Description = GetModelDescription(modelSize),
+                    IsDownloaded = false, // Будет обновлено асинхронно
+                    StatusIcon = "⬇️" // По умолчанию не скачана
                 });
             }
             
@@ -43,6 +46,84 @@ namespace ChatCaster.Windows.Managers.AudioSettings
             return models;
         }
 
+        /// <summary>
+        /// Инициализирует список доступных моделей со статусом загрузки
+        /// </summary>
+        public async Task<List<WhisperModelItem>> GetAvailableModelsWithStatusAsync()
+        {
+            var models = new List<WhisperModelItem>();
+            
+            foreach (var modelSize in WhisperConstants.ModelSizes.All)
+            {
+                var isDownloaded = await IsModelDownloadedAsync(modelSize);
+                
+                models.Add(new WhisperModelItem
+                {
+                    ModelSize = modelSize,
+                    DisplayName = GetModelDisplayName(modelSize),
+                    Description = GetModelDescription(modelSize),
+                    IsDownloaded = isDownloaded,
+                    StatusIcon = isDownloaded ? "✅" : "⬇️"
+                });
+            }
+            
+            Log.Information("WhisperModelManager инициализировано {Count} моделей со статусами", models.Count);
+            return models;
+        }
+
+        /// <summary>
+        /// Проверяет существует ли файл модели
+        /// </summary>
+        private async Task<bool> IsModelDownloadedAsync(string modelSize)
+        {
+            try
+            {
+                var modelPath = Path.Combine("models", $"ggml-{modelSize}.bin");
+                return await Task.Run(() => File.Exists(modelPath));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Ошибка проверки модели {ModelSize}", modelSize);
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Применяет текущую конфигурацию к речевому сервису без скачивания
+        /// </summary>
+        public async Task<bool> ApplyCurrentConfigAsync()
+        {
+            try
+            {
+                Log.Information("🔍 [MANAGER] Применяем текущую конфигурацию к речевому сервису");
+        
+                var speechConfig = _currentConfig.SpeechRecognition;
+                var modelSize = speechConfig.EngineSettings.TryGetValue("ModelSize", out var model) 
+                    ? model?.ToString() ?? "tiny" 
+                    : "tiny";
+
+                // Проверяем что модель скачана
+                var isDownloaded = await IsModelDownloadedAsync(modelSize);
+        
+                if (!isDownloaded)
+                {
+                    Log.Warning("🔍 [MANAGER] Модель {ModelSize} НЕ СКАЧАНА, переключение пропущено", modelSize);
+                    return false;
+                }
+
+                // Переключаемся только на скачанную модель
+                var result = await _speechRecognitionService.ReloadConfigAsync(speechConfig);
+        
+                Log.Information("🔍 [MANAGER] Результат применения конфигурации: {Result}", result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "🔍 [MANAGER] Ошибка применения конфигурации");
+                return false;
+            }
+        }
+        
         /// <summary>
         /// Проверяет статус выбранной модели
         /// </summary>
@@ -103,11 +184,11 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "Tiny (быстрая)",
-                WhisperConstants.ModelSizes.Base => "Base (рекомендуемая)",
-                WhisperConstants.ModelSizes.Small => "Small (хорошая)",
-                WhisperConstants.ModelSizes.Medium => "Medium (точная)",
-                WhisperConstants.ModelSizes.Large => "Large (очень точная)",
+                WhisperConstants.ModelSizes.Tiny => "Tiny ⚡ (Скоростной демон)",
+                WhisperConstants.ModelSizes.Base => "Base 🎯 (Золотая середина)",
+                WhisperConstants.ModelSizes.Small => "Small 💪 (Крепкий середнячок)",
+                WhisperConstants.ModelSizes.Medium => "Medium 🧠 (Умный парень)",
+                WhisperConstants.ModelSizes.Large => "Large 🚀 (Космический разум)",
                 _ => modelSize
             };
         }
@@ -116,11 +197,11 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "~39 MB, быстро",
-                WhisperConstants.ModelSizes.Base => "~142 MB, оптимально",
-                WhisperConstants.ModelSizes.Small => "~466 MB, хорошо",
-                WhisperConstants.ModelSizes.Medium => "~1.5 GB, точно",
-                WhisperConstants.ModelSizes.Large => "~3.0 GB, очень точно",
+                WhisperConstants.ModelSizes.Tiny => "~39 MB • Мгновенно, но иногда тупит",
+                WhisperConstants.ModelSizes.Base => "~142 MB • Оптимально для всех",
+                WhisperConstants.ModelSizes.Small => "~466 MB • Хорошо понимает акценты",
+                WhisperConstants.ModelSizes.Medium => "~1.5 GB • Почти не ошибается",
+                WhisperConstants.ModelSizes.Large => "~3.0 GB • Понимает даже мамбл-рэп",
                 _ => "Неизвестная модель"
             };
         }
@@ -161,6 +242,8 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         public string ModelSize { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string Description { get; set; } = "";
+        public bool IsDownloaded { get; set; }
+        public string StatusIcon { get; set; } = "";
     }
 
     #endregion

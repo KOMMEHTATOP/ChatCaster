@@ -4,6 +4,7 @@ using ChatCaster.Windows.Managers.AudioSettings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
+using System.Windows;
 
 namespace ChatCaster.Windows.ViewModels.Components
 {
@@ -14,6 +15,8 @@ namespace ChatCaster.Windows.ViewModels.Components
     public partial class WhisperModelComponentViewModel : ObservableObject
     {
         private readonly WhisperModelManager _whisperModelManager;
+        public WhisperModelManager ModelManager => _whisperModelManager;
+
 
         [ObservableProperty]
         private WhisperModelItem? _selectedModel;
@@ -22,13 +25,13 @@ namespace ChatCaster.Windows.ViewModels.Components
         private string _selectedLanguage = "ru";
 
         [ObservableProperty]
-        private bool _isModelReady = false;
+        private bool _isModelReady;
 
         [ObservableProperty]
         private bool _isModelNotReady = true;
 
         [ObservableProperty]
-        private bool _isModelDownloading = false;
+        private bool _isModelDownloading;
 
         [ObservableProperty]
         private string _modelStatusText = "Модель готова";
@@ -60,25 +63,46 @@ namespace ChatCaster.Windows.ViewModels.Components
         public WhisperModelComponentViewModel(WhisperModelManager whisperModelManager)
         {
             _whisperModelManager = whisperModelManager ?? throw new ArgumentNullException(nameof(whisperModelManager));
-
-            InitializeAvailableModels();
+            
             Log.Debug("WhisperModelComponentViewModel инициализирован");
         }
 
+        
         /// <summary>
         /// Устанавливает выбранную модель из конфигурации
         /// </summary>
         public void SetSelectedModelFromConfig(string? modelSize)
         {
-            var targetModelSize = modelSize ?? WhisperConstants.ModelSizes.Base;
-            
-            SelectedModel = AvailableModels.FirstOrDefault(m => m.ModelSize == targetModelSize)
-                           ?? AvailableModels.First(); // Fallback на первую модель
-
-            Log.Information("WhisperModelComponent модель из конфига: {ModelSize} -> {DisplayName}", 
-                targetModelSize, SelectedModel.DisplayName);
+            var targetModelSize = modelSize ?? WhisperConstants.ModelSizes.Tiny;
+    
+            Log.Information("WhisperModelComponent ищем модель: {ModelSize} в коллекции из {Count} элементов", 
+                targetModelSize, AvailableModels.Count);
+    
+            // Выводим все доступные модели для диагностики
+            foreach (var model in AvailableModels)
+            {
+                Log.Debug("Доступная модель: {ModelSize} ({DisplayName})", model.ModelSize, model.DisplayName);
+            }
+    
+            SelectedModel = AvailableModels.FirstOrDefault(m => m.ModelSize == targetModelSize);
+    
+            if (SelectedModel != null)
+            {
+                Log.Information("WhisperModelComponent модель установлена: {ModelSize} -> {DisplayName}", 
+                    targetModelSize, SelectedModel.DisplayName);
+            }
+            else
+            {
+                Log.Warning("WhisperModelComponent модель НЕ НАЙДЕНА: {ModelSize}, выбираем первую доступную", targetModelSize);
+                SelectedModel = AvailableModels.FirstOrDefault();
+        
+                if (SelectedModel != null)
+                {
+                    Log.Information("WhisperModelComponent выбрана первая модель: {DisplayName}", SelectedModel.DisplayName);
+                }
+            }
         }
-
+        
         /// <summary>
         /// Проверяет статус текущей модели
         /// </summary>
@@ -95,7 +119,7 @@ namespace ChatCaster.Windows.ViewModels.Components
                 UpdateModelStatus(new ModelStatusInfo("Ошибка проверки", "#f44336", ModelState.Error));
             }
         }
-
+        
         [RelayCommand]
         private async Task DownloadModel()
         {
@@ -140,17 +164,38 @@ namespace ChatCaster.Windows.ViewModels.Components
 
         private void InitializeAvailableModels()
         {
-            AvailableModels.Clear();
-            
-            var models = _whisperModelManager.GetAvailableModels();
-            foreach (var model in models)
-            {
-                AvailableModels.Add(model);
-            }
-            
-            Log.Information("WhisperModelComponent инициализировано {Count} моделей", AvailableModels.Count);
         }
 
+        /// <summary>
+        /// Загружает модели с проверкой статуса загрузки
+        /// </summary>
+        public async Task LoadModelsWithStatusAsync()
+        {
+            try
+            {
+                // Получаем модели в фоновом потоке
+                var models = await _whisperModelManager.GetAvailableModelsWithStatusAsync();
+        
+                // Обновляем коллекцию в UI потоке
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    AvailableModels.Clear();
+            
+                    foreach (var model in models)
+                    {
+                        AvailableModels.Add(model);
+                    }
+                });
+        
+                Log.Information("WhisperModelComponent загружено {Count} моделей со статусами", AvailableModels.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка загрузки моделей со статусами");
+            }
+        }
+
+        
         partial void OnSelectedModelChanged(WhisperModelItem? value)
         {
             Log.Information("WhisperModelComponent модель изменена: {Model} ({DisplayName})",

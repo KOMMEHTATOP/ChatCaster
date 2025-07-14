@@ -46,17 +46,17 @@ public class WhisperConfig
     /// <summary>
     /// Включить GPU ускорение (если доступно)
     /// </summary>
-    public bool EnableGpu { get; set; } = false;
+    public bool EnableGpu { get; set; }
 
     /// <summary>
     /// ID GPU устройства (0 - первое, -1 - любое доступное)
     /// </summary>
-    public int GpuDevice { get; set; } = 0;
+    public int GpuDevice { get; set; }
 
     /// <summary>
     /// Включить перевод на английский язык
     /// </summary>
-    public bool EnableTranslation { get; set; } = false;
+    public bool EnableTranslation { get; set; }
 
     /// <summary>
     /// Начальная подсказка для контекста
@@ -113,31 +113,31 @@ public class WhisperConfig
                 break;
 
             case WhisperConstants.SettingsKeys.Temperature:
-                Temperature = Convert.ToSingle(value ?? WhisperConstants.Performance.DefaultTemperature);
+                Temperature = Convert.ToSingle(value);
                 break;
 
             case WhisperConstants.SettingsKeys.MaxTokens:
-                MaxTokens = Convert.ToInt32(value ?? WhisperConstants.Performance.DefaultMaxTokens);
+                MaxTokens = Convert.ToInt32(value);
                 break;
 
             case WhisperConstants.SettingsKeys.ThreadCount:
-                ThreadCount = Convert.ToInt32(value ?? WhisperConstants.Performance.DefaultThreadCount);
+                ThreadCount = Convert.ToInt32(value);
                 break;
 
             case WhisperConstants.SettingsKeys.UseVAD:
-                UseVAD = Convert.ToBoolean(value ?? true);
+                UseVAD = Convert.ToBoolean(value);
                 break;
 
             case WhisperConstants.SettingsKeys.EnableGpu:
-                EnableGpu = Convert.ToBoolean(value ?? false);
+                EnableGpu = Convert.ToBoolean(value);
                 break;
 
             case WhisperConstants.SettingsKeys.GpuDevice:
-                GpuDevice = Convert.ToInt32(value ?? 0);
+                GpuDevice = Convert.ToInt32(value);
                 break;
 
             case WhisperConstants.SettingsKeys.EnableTranslation:
-                EnableTranslation = Convert.ToBoolean(value ?? false);
+                EnableTranslation = Convert.ToBoolean(value);
                 break;
 
             case WhisperConstants.SettingsKeys.InitialPrompt:
