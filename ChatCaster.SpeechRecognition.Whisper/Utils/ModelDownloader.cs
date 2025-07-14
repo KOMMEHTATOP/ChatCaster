@@ -15,6 +15,7 @@ public class ModelDownloader
     private readonly SemaphoreSlim _downloadSemaphore;
 
     // Официальные URL для загрузки моделей Whisper
+// Официальные URL для загрузки моделей Whisper (ОБНОВЛЕНО)
     private static readonly Dictionary<string, ModelInfo> ModelUrls = new()
     {
         [WhisperConstants.ModelSizes.Tiny] = new ModelInfo
@@ -45,15 +46,15 @@ public class ModelDownloader
             ExpectedSizeBytes = 1_533_000_000, // ~1.5GB
             Sha256Hash = "fd9727b6e1217c2f614f9b698455c4ffd82463b4"
         },
+        // ИСПРАВЛЕНО: обновлен URL на large-v3
         [WhisperConstants.ModelSizes.Large] = new ModelInfo
         {
             Size = WhisperConstants.ModelSizes.Large,
-            Url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin",
+            Url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
             ExpectedSizeBytes = 3_094_000_000, // ~3GB
-            Sha256Hash = "0f4c8e34f21cf1a914c59d8b3ce882345ad349d6"
+            Sha256Hash = null // Временно убираем хеш, так как он для старой модели
         }
     };
-
     public ModelDownloader(ILogger<ModelDownloader> logger, HttpClient? httpClient = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

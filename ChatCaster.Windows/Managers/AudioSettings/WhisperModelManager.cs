@@ -155,11 +155,11 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "Tiny ⚡ (Скоростной демон)",
-                WhisperConstants.ModelSizes.Base => "Base 🎯 (Золотая середина)",
-                WhisperConstants.ModelSizes.Small => "Small 💪 (Крепкий середнячок)",
-                WhisperConstants.ModelSizes.Medium => "Medium 🧠 (Умный парень)",
-                WhisperConstants.ModelSizes.Large => "Large 🚀 (Космический разум)",
+                WhisperConstants.ModelSizes.Tiny => "Tiny ⚡ (~76 MB)",
+                WhisperConstants.ModelSizes.Base => "Base 🎯 (~144 MB)",
+                WhisperConstants.ModelSizes.Small => "Small 💪 (~476 MB)",
+                WhisperConstants.ModelSizes.Medium => "Medium 🧠 (~1.5 GB)",
+                WhisperConstants.ModelSizes.Large => "Large 🚀 (~3.0 GB)",
                 _ => modelSize
             };
         }
@@ -168,11 +168,11 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "~39 MB • Мгновенно, но иногда тупит",
-                WhisperConstants.ModelSizes.Base => "~142 MB • Оптимально для всех",
-                WhisperConstants.ModelSizes.Small => "~466 MB • Хорошо понимает акценты",
-                WhisperConstants.ModelSizes.Medium => "~1.5 GB • Почти не ошибается",
-                WhisperConstants.ModelSizes.Large => "~3.0 GB • Понимает даже мамбл-рэп",
+                WhisperConstants.ModelSizes.Tiny => "Мгновенно, но тупой",
+                WhisperConstants.ModelSizes.Base => "Терпимо, как борщ с пряником",
+                WhisperConstants.ModelSizes.Small => "Уже сильно лучше, косяки редкие",
+                WhisperConstants.ModelSizes.Medium => "Почти не ошибается, как математик",
+                WhisperConstants.ModelSizes.Large => "УльтраМозг, но съест всю твою оперативку",
                 _ => "Неизвестная модель"
             };
         }
@@ -224,6 +224,15 @@ namespace ChatCaster.Windows.Managers.AudioSettings
     
         [ObservableProperty]
         private string _statusIcon = "";
+        
+        /// <summary>
+        /// Отображение в закрытом ComboBox - только иконка и название
+        /// </summary>
+        public override string ToString()
+        {
+            return $"{StatusIcon} {DisplayName}";
+        }
+
     }
 
     #endregion
