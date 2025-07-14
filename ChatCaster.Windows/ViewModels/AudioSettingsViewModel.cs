@@ -106,10 +106,10 @@ namespace ChatCaster.Windows.ViewModels
                 await AudioDeviceComponent.LoadDevicesAsync();
                 AudioDeviceComponent.SetSelectedDeviceFromConfig(_currentConfig.Audio.SelectedDeviceId);
 
-                // ИСПРАВЛЕНО: Сначала загружаем модели со статусами
+                // Сначала загружаем модели со статусами
                 await WhisperModelComponent.LoadModelsWithStatusAsync();
         
-                // ПОТОМ устанавливаем выбранную модель (после загрузки коллекции)
+                // устанавливаем выбранную модель (после загрузки коллекции)
                 var modelSize = _currentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var modelObj) 
                     ? modelObj?.ToString() 
                     : "tiny"; // Fallback на tiny если не найдено
@@ -132,7 +132,7 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         
-        protected override async Task ApplySettingsToConfigAsync(AppConfig config)
+        protected override Task ApplySettingsToConfigAsync(AppConfig config)
         {
             try
             {
@@ -148,6 +148,7 @@ namespace ChatCaster.Windows.ViewModels
                 config.SpeechRecognition.EngineSettings["ModelSize"] = WhisperModelComponent.SelectedModel?.ModelSize ?? "tiny";
                 
                 Log.Information("AudioSettingsViewModel настройки применены к конфигурации");
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {

@@ -185,7 +185,7 @@
                                        Appearance="Secondary"
                                        Width="44" Height="32"
                                        FontSize="14"
-                                       Click="DownloadModelButton_Click">
+                                       Command="{Binding WhisperModelComponent.DownloadModelCommand}">
                                 <ui:Button.Icon>
                                     <ui:SymbolIcon x:Name="DownloadButtonIcon"
                                                    Symbol="ArrowDownload24" />

@@ -1,6 +1,7 @@
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
 using System.IO;
 
@@ -22,30 +23,7 @@ namespace ChatCaster.Windows.Managers.AudioSettings
             _speechRecognitionService = speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
         }
-
-        /// <summary>
-        /// Инициализирует список доступных моделей Whisper (старый метод для совместимости)
-        /// </summary>
-        public List<WhisperModelItem> GetAvailableModels()
-        {
-            var models = new List<WhisperModelItem>();
-            
-            foreach (var modelSize in WhisperConstants.ModelSizes.All)
-            {
-                models.Add(new WhisperModelItem
-                {
-                    ModelSize = modelSize,
-                    DisplayName = GetModelDisplayName(modelSize),
-                    Description = GetModelDescription(modelSize),
-                    IsDownloaded = false, // Будет обновлено асинхронно
-                    StatusIcon = "⬇️" // По умолчанию не скачана
-                });
-            }
-            
-            Log.Information("WhisperModelManager инициализировано {Count} моделей", models.Count);
-            return models;
-        }
-
+        
         /// <summary>
         /// Инициализирует список доступных моделей со статусом загрузки
         /// </summary>
@@ -127,26 +105,19 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         /// <summary>
         /// Проверяет статус выбранной модели
         /// </summary>
-        public async Task<ModelStatusInfo> CheckModelStatusAsync()
+        public Task<ModelStatusInfo> CheckModelStatusAsync()
         {
             try
             {
-                if (_speechRecognitionService.IsInitialized)
-                {
-                    return new ModelStatusInfo("Модель готова", "#4caf50", ModelState.Ready);
-                }
-                else
-                {
-                    return new ModelStatusInfo("Модель не загружена", "#ff9800", ModelState.NotDownloaded);
-                }
+                return Task.FromResult(_speechRecognitionService.IsInitialized ? new ModelStatusInfo("Модель готова", "#4caf50", ModelState.Ready) : new ModelStatusInfo("Модель не загружена", "#ff9800", ModelState.NotDownloaded));
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка проверки статуса модели в WhisperModelManager");
-                return new ModelStatusInfo("Ошибка проверки", "#f44336", ModelState.Error);
+                return Task.FromResult(new ModelStatusInfo("Ошибка проверки", "#f44336", ModelState.Error));
             }
         }
-
+        
         /// <summary>
         /// Загружает модель Whisper
         /// </summary>
@@ -237,13 +208,22 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         Error
     }
 
-    public class WhisperModelItem
+    public partial class WhisperModelItem : ObservableObject
     {
-        public string ModelSize { get; set; } = "";
-        public string DisplayName { get; set; } = "";
-        public string Description { get; set; } = "";
-        public bool IsDownloaded { get; set; }
-        public string StatusIcon { get; set; } = "";
+        [ObservableProperty]
+        private string _modelSize = "";
+    
+        [ObservableProperty] 
+        private string _displayName = "";
+    
+        [ObservableProperty]
+        private string _description = "";
+    
+        [ObservableProperty]
+        private bool _isDownloaded;
+    
+        [ObservableProperty]
+        private string _statusIcon = "";
     }
 
     #endregion
