@@ -23,7 +23,7 @@ namespace ChatCaster.Windows.ViewModels.Components
         private AudioDevice? _selectedDevice;
 
         [ObservableProperty]
-        private bool _isTestingMicrophone = false;
+        private bool _isTestingMicrophone;
 
         // События для связи с родительской ViewModel
         public event Func<Task>? DeviceChanged;
@@ -100,7 +100,7 @@ namespace ChatCaster.Windows.ViewModels.Components
         {
             try
             {
-                _isTestingMicrophone = true;
+                IsTestingMicrophone = true;
                 TestMicrophoneCommand.NotifyCanExecuteChanged();
                 
                 StatusChanged?.Invoke("Тестируется...");
@@ -140,12 +140,12 @@ namespace ChatCaster.Windows.ViewModels.Components
             }
             finally
             {
-                _isTestingMicrophone = false;
+                IsTestingMicrophone = false;
                 TestMicrophoneCommand.NotifyCanExecuteChanged();
             }
         }
 
-        private bool CanTestMicrophone() => !_isTestingMicrophone;
+        private bool CanTestMicrophone() => !IsTestingMicrophone;
 
         partial void OnSelectedDeviceChanged(AudioDevice? value)
         {

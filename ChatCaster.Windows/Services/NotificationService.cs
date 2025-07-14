@@ -20,7 +20,7 @@ public class NotificationService : INotificationService, IDisposable
     private readonly IConfigurationService _configurationService;
     private readonly IGamepadService _gamepadService;
     private readonly IAudioCaptureService _audioService;
-    private bool _isDisposed = false;
+    private bool _isDisposed;
 
     #endregion
 
@@ -44,7 +44,7 @@ public class NotificationService : INotificationService, IDisposable
 
     #region Initialization
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
         try
         {
@@ -54,11 +54,12 @@ public class NotificationService : INotificationService, IDisposable
             SubscribeToSystemEvents();
 
             Log.Information("NotificationService успешно инициализирован");
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка инициализации NotificationService");
-            throw;
+            return Task.FromException(ex);
         }
     }
 
@@ -160,7 +161,7 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             var message = $"Микрофон изменен: {deviceName}";
-            _trayService.ShowNotification("Аудио", message, NotificationType.Info);
+            _trayService.ShowNotification("Аудио", message);
             
             Log.Information("Уведомление об изменении микрофона: {DeviceName}", deviceName);
         }
@@ -199,7 +200,7 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             var message = $"{shortcutType} изменены: {displayText}";
-            _trayService.ShowNotification("Управление", message, NotificationType.Info);
+            _trayService.ShowNotification("Управление", message);
             
             Log.Information("Уведомление об изменении настроек управления: {ShortcutType} - {DisplayText}", shortcutType, displayText);
         }
@@ -256,7 +257,7 @@ public class NotificationService : INotificationService, IDisposable
     {
         try
         {
-            _trayService.ShowNotification(title, message, NotificationType.Info);
+            _trayService.ShowNotification(title, message);
             Log.Information("Информационное уведомление: {Title} - {Message}", title, message);
         }
         catch (Exception ex)

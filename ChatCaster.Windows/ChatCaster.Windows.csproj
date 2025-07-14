@@ -56,5 +56,9 @@
   <ItemGroup>
     <Page Remove="Styles\DarkTheme.xaml" />
     <Resource Include="Styles\DarkTheme.xaml" />
+    <None Remove="Resources\free-icon-mic-7663253.png" />
+    <Resource Include="Resources\free-icon-mic-7663253.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 </Project>

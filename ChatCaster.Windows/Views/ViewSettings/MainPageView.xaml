@@ -33,19 +33,6 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <StackPanel Grid.Row="0" 
-                                Orientation="Horizontal" 
-                                Margin="0,0,0,15">
-                        <ui:SymbolIcon Symbol="Mic24" 
-                                       FontSize="20" 
-                                       Foreground="White"
-                                       Margin="0,0,12,0"/>
-                        <TextBlock Text="Статус записи" 
-                                   FontSize="18" 
-                                   FontWeight="SemiBold"
-                                   Foreground="White"/>
-                    </StackPanel>
-                    
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -64,12 +51,16 @@
                         </StackPanel>
                         
                         <ui:Button Grid.Column="1" 
-                                   Content="{Binding RecordingStatusComponent.RecordButtonText}"
                                    Command="{Binding ToggleRecordingCommand}"
                                    Appearance="Primary"
                                    FontSize="14"
                                    FontWeight="SemiBold"
-                                   Padding="32,14"/>
+                                   Padding="32,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image Source="/Resources/free-icon-mic-7663253.png" Width="26" Height="26" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding RecordingStatusComponent.RecordButtonText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ui:Button>                    
                     </Grid>
                 </Grid>
             </Border>
