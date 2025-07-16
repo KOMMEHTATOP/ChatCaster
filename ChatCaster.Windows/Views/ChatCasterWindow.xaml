@@ -134,22 +134,20 @@
                            Margin="12,0"
                            Click="ToggleMenu_Click"/>
                 
-                <!-- ✅ УПРОЩЕНО: Убран статус, остался только логотип и название -->
                 <StackPanel Grid.Column="1" 
                             Orientation="Horizontal" 
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                    <Ellipse Width="32" Height="32" 
-                             Fill="#1ba1e2"
-                             Margin="0,0,12,0"/>
+                    <Image Source="pack://application:,,,/Resources/Logo.ico"
+                           Width="52" Height="42" 
+                           Stretch="Uniform"
+                           Margin="0,0,12,0"/>
                     <TextBlock Text="ChatCaster" 
                                FontSize="16" 
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"
                                Foreground="#1ba1e2"/>
-                    <!-- ❌ УДАЛЕНО: StatusText больше не отображается -->
                 </StackPanel>
-                
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <ui:Button Icon="{ui:SymbolIcon Subtract24}" 
                                Appearance="Transparent" 

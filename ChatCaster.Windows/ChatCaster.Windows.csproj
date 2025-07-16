@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>  
+    <OutputType>Exe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>  
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+
+    <!-- Информация о приложении -->
     <AssemblyTitle>ChatCaster for Windows</AssemblyTitle>
     <AssemblyDescription>Voice input application for Steam Input with gamepad control</AssemblyDescription>
     <AssemblyVersion>1.0.0</AssemblyVersion>
@@ -13,9 +15,11 @@
     <Company>ChatCaster</Company>
     <Product>ChatCaster</Product>
     <Copyright>Copyright © 2025</Copyright>
-    <ApplicationIcon>Resources\app.ico</ApplicationIcon>  
+
+    <!-- Иконка приложения -->
+    <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
@@ -31,34 +35,16 @@
     <PackageReference Include="ChatCaster.SpeechRecognition.Whisper" Version="1.0.0" />
     <PackageReference Include="WPF-UI" Version="4.0.3" />
   </ItemGroup>
-  
-  <!-- Остальное без изменений -->
+
   <ItemGroup>
     <ProjectReference Include="..\ChatCaster.Core\ChatCaster.Core.csproj" />
     <ProjectReference Include="..\ChatCaster.SpeechRecognition.Whisper\ChatCaster.SpeechRecognition.Whisper.csproj" />
   </ItemGroup>
-  
+
+  <!-- Ресурсы -->
   <ItemGroup>
-  <Content Include="Resources\*.ico">
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-  </Content>
-  </ItemGroup>
-    <Target Name="CopyResourcesToPublishDirectory" AfterTargets="Publish">
-    <ItemGroup>
-      <ResourceFiles Include="Resources\**\*.*" />
-    </ItemGroup>
-    <Copy
-      SourceFiles="@(ResourceFiles)"
-      DestinationFolder="$(PublishDir)Resources\%(RecursiveDir)"
-      SkipUnchangedFiles="true" />
-  </Target>
-  <ItemGroup>
-    <Page Remove="Styles\DarkTheme.xaml" />
+    <Resource Include="Resources\Logo.ico" />
+    <Resource Include="Resources\free-icon-mic-7663253.png" />
     <Resource Include="Styles\DarkTheme.xaml" />
-    <None Remove="Resources\free-icon-mic-7663253.png" />
-    <Resource Include="Resources\free-icon-mic-7663253.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
   </ItemGroup>
 </Project>

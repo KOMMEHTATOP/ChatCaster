@@ -17,9 +17,7 @@ public class TrayService : ITrayService, IDisposable
     private readonly IConfigurationService _configService;
     private bool _hasShownFirstTimeNotification;
     private bool _isDisposed;
-
-    private const string NormalIconPath = "Resources/mic_normal.ico";
-
+    
     #region Properties
 
     public bool IsVisible => _notifyIcon?.Visible == true;
@@ -151,15 +149,21 @@ public class TrayService : ITrayService, IDisposable
     {
         try
         {
-            if (File.Exists(NormalIconPath))
+            // Попытка загрузки из ресурсов приложения
+            var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Resources/Logo.ico"));
+            if (iconStream != null)
             {
-                return new Icon(NormalIconPath);
+                return new Icon(iconStream.Stream);
             }
-            else
+        
+            // Fallback: попытка загрузки как файл
+            if (File.Exists("Resources/Logo.ico"))
             {
-                Log.Warning("Файл иконки не найден: {IconPath}, используем системную", NormalIconPath);
-                return SystemIcons.Application;
+                return new Icon("Resources/Logo.ico");
             }
+        
+            Log.Warning("Файл иконки не найден, используем системную");
+            return SystemIcons.Application;
         }
         catch (Exception ex)
         {
@@ -167,7 +171,7 @@ public class TrayService : ITrayService, IDisposable
             return SystemIcons.Application;
         }
     }
-
+    
     private void CreateContextMenu()
     {
         if (_notifyIcon == null) 
@@ -217,7 +221,6 @@ public class TrayService : ITrayService, IDisposable
             System.Windows.MessageBox.Show(
                 "ChatCaster v1.0.0\n\n" +
                 "Голосовой ввод для игр с поддержкой геймпада\n\n" +
-                "Технологии: WPF, NAudio, Whisper.net, XInput\n\n" +
                 "Управление:\n" +
                 "• Геймпад: LB + RB (настраивается)\n" +
                 "• Клавиатура: Ctrl+Shift+R",
