@@ -47,9 +47,11 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         try
         {
             _logger.LogInformation("Initializing Whisper speech recognition engine");
+            _logger.LogInformation("🔍 [LANG] Initializing Whisper with language: {Language}", config.Language);
 
             // Конвертируем конфигурацию
             _config = WhisperConfig.FromSpeechConfig(config);
+            _logger.LogInformation("🔍 [LANG] WhisperConfig language: {Language}", _config.Language);
 
             // Валидируем конфигурацию
             var validation = _config.Validate();
@@ -79,8 +81,15 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             // Применяем язык только если он не Auto
             if (_config.Language != WhisperConstants.Languages.Auto)
             {
+                _logger.LogInformation("🔍 [LANG] Setting explicit language: {Language}", _config.Language);
+
                 processorBuilder = processorBuilder.WithLanguage(_config.Language);
             }
+            else
+            {
+                _logger.LogInformation("🔍 [LANG] Using auto-detection (no explicit language)");
+            }
+
 
             // Применяем дополнительные настройки
             if (_config.EnableTranslation)
@@ -191,7 +200,8 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             bool needsReinitialization =
                 oldConfig.ModelSize != newConfig.ModelSize ||
                 oldConfig.ModelPath != newConfig.ModelPath ||
-                oldConfig.EnableGpu != newConfig.EnableGpu;
+                oldConfig.EnableGpu != newConfig.EnableGpu ||
+                oldConfig.Language != newConfig.Language;
 
             _logger.LogInformation("🔍 [RELOAD] Needs reinitialization: {NeedsReinit}", needsReinitialization);
 

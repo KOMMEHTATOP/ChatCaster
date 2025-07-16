@@ -185,7 +185,6 @@ public class TrayService : ITrayService, IDisposable
             var contextMenu = new ContextMenuStrip();
             
             contextMenu.Items.Add("📋 Показать окно", null, (s, e) => ShowMainWindowRequested?.Invoke(this, EventArgs.Empty));
-            contextMenu.Items.Add("⚙️ Настройки", null, (s, e) => ShowSettingsRequested?.Invoke(this, EventArgs.Empty));
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add("ℹ️ О программе", null, (s, e) => ShowAboutDialog());
             contextMenu.Items.Add("❌ Выход", null, (s, e) => ExitApplicationRequested?.Invoke(this, EventArgs.Empty));
@@ -213,7 +212,7 @@ public class TrayService : ITrayService, IDisposable
         }
     }
 
-    // Единственная "бизнес-логика" которая остается
+    // Единственная "бизнес-логика" оставил для удобства.
     private void ShowAboutDialog()
     {
         try
