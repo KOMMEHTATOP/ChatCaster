@@ -6,16 +6,15 @@
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  mc:Ignorable="d"
                  Title="ChatCaster" 
-                 Height="700" 
-                 Width="1200"
+                 Height="650" 
+                 Width="980"
                  WindowStartupLocation="CenterScreen"
                  WindowBackdropType="Mica"
                  ExtendsContentIntoTitleBar="True"
                  WindowState="{Binding WindowState, Mode=TwoWay}">
     <DockPanel>
-        <!-- Боковое меню как Border с анимацией -->
-        <Border x:Name="SidebarBorder" 
-                DockPanel.Dock="Left" 
+        <!-- Постоянное боковое меню -->
+        <Border DockPanel.Dock="Left" 
                 Width="280"
                 ClipToBounds="True">
             <Border.Background>
@@ -114,7 +113,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <!-- Title bar с градиентом -->
+            <!-- Title bar без бургер-кнопки -->
             <Grid Grid.Row="0" Height="48" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -123,18 +122,11 @@
                     </LinearGradientBrush>
                 </Grid.Background>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <ui:Button Grid.Column="0" 
-                           Icon="{ui:SymbolIcon Navigation24}"
-                           Appearance="Transparent"
-                           Margin="12,0"
-                           Click="ToggleMenu_Click"/>
-                
-                <StackPanel Grid.Column="1" 
+                <StackPanel Grid.Column="0" 
                             Orientation="Horizontal" 
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
@@ -148,7 +140,8 @@
                                VerticalAlignment="Center"
                                Foreground="#1ba1e2"/>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <ui:Button Icon="{ui:SymbolIcon Subtract24}" 
                                Appearance="Transparent" 
                                Width="46" Height="32"
@@ -165,7 +158,6 @@
                    Grid.Row="1" 
                    NavigationUIVisibility="Hidden"
                    Background="Transparent"/>
-            
         </Grid>
     </DockPanel>
 </ui:FluentWindow>

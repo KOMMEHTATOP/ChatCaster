@@ -334,23 +334,6 @@ namespace ChatCaster.Windows.Views
             ContentFrame.BeginAnimation(OpacityProperty, fadeIn);
         }
 
-        private void ToggleMenu_Click(object sender, RoutedEventArgs e)
-        {
-            _viewModel.ToggleMenuCommand.Execute(null);
-
-            var animation = new DoubleAnimation
-            {
-                To = _viewModel.IsSidebarVisible ? 280 : 0,
-                Duration = TimeSpan.FromMilliseconds(300),
-                EasingFunction = new CubicEase
-                {
-                    EasingMode = EasingMode.EaseOut
-                }
-            };
-
-            SidebarBorder.BeginAnimation(WidthProperty, animation);
-        }
-
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.MinimizeWindowCommand.Execute(null);
@@ -388,9 +371,6 @@ namespace ChatCaster.Windows.Views
                         break;
                     case WpfKey.F4:
                         await NavigateToPageWithAnimation("Control");
-                        break;
-                    case WpfKey.Tab when Keyboard.Modifiers == WpfModifierKeys.Control:
-                        _viewModel.ToggleMenuCommand.Execute(null);
                         break;
                 }
             }
