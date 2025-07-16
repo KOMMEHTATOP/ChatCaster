@@ -20,7 +20,7 @@ using ChatCaster.Windows.Managers.VoiceRecording;
 using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
 using ChatCaster.Windows.Services.Navigation;
-
+using ChatCaster.Core.Services; // Добавлено для ILocalizationService и LocalizationService
 using Serilog;
 
 namespace ChatCaster.Windows
@@ -122,6 +122,7 @@ namespace ChatCaster.Windows
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
             services.AddSingleton<IOverlayService, WindowsOverlayService>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
+            services.AddSingleton<ILocalizationService, LocalizationService>(); // Добавлена регистрация
 
             // === ГЕЙМПАД СЕРВИСЫ ===
             services.AddSingleton<Services.GamepadService.MainGamepadService>(provider =>

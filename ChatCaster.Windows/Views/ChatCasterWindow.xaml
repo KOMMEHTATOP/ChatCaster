@@ -5,8 +5,8 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  mc:Ignorable="d"
-                 Title="ChatCaster" 
-                 Height="650" 
+                 Title="ChatCaster"
+                 Height="650"
                  Width="980"
                  WindowStartupLocation="CenterScreen"
                  WindowBackdropType="Mica"
@@ -14,31 +14,31 @@
                  WindowState="{Binding WindowState, Mode=TwoWay}">
     <DockPanel>
         <!-- Постоянное боковое меню -->
-        <Border DockPanel.Dock="Left" 
+        <Border DockPanel.Dock="Left"
                 Width="280"
                 ClipToBounds="True">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#2d2d30" Offset="0"/>
-                    <GradientStop Color="#383838" Offset="1"/>
+                    <GradientStop Color="#2d2d30" Offset="0" />
+                    <GradientStop Color="#383838" Offset="1" />
                 </LinearGradientBrush>
             </Border.Background>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                
-                <TextBlock Grid.Row="0" 
-                           Text="Навигация" 
+
+                <TextBlock Grid.Row="0"
+                           Text="Навигация"
                            Margin="20,20,20,15"
                            FontSize="16"
                            FontWeight="SemiBold"
-                           Foreground="#cccccc"/>
-                
+                           Foreground="#cccccc" />
+
                 <StackPanel Grid.Row="1" Margin="0,10">
                     <ui:Button x:Name="MainPageButton"
-                               Margin="10,5" 
+                               Margin="10,5"
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
@@ -47,13 +47,13 @@
                                Click="NavigationButton_Click"
                                Tag="Main">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Home24" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Главное" FontSize="14"/>
+                            <ui:SymbolIcon Symbol="Home24" FontSize="16" Margin="0,0,12,0" />
+                            <TextBlock Text="Главное" FontSize="14" />
                         </StackPanel>
                     </ui:Button>
-                    
+
                     <ui:Button x:Name="AudioPageButton"
-                               Margin="10,5" 
+                               Margin="10,5"
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
@@ -62,13 +62,13 @@
                                Click="NavigationButton_Click"
                                Tag="Audio">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Mic24" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Аудио и распознавание" FontSize="14"/>
+                            <ui:SymbolIcon Symbol="Mic24" FontSize="16" Margin="0,0,12,0" />
+                            <TextBlock Text="Аудио и распознавание" FontSize="14" />
                         </StackPanel>
                     </ui:Button>
-                    
+
                     <ui:Button x:Name="InterfacePageButton"
-                               Margin="10,5" 
+                               Margin="10,5"
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
@@ -77,13 +77,13 @@
                                Click="NavigationButton_Click"
                                Tag="Interface">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Desktop24" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Интерфейс" FontSize="14"/>
+                            <ui:SymbolIcon Symbol="Desktop24" FontSize="16" Margin="0,0,12,0" />
+                            <TextBlock Text="Интерфейс" FontSize="14" />
                         </StackPanel>
                     </ui:Button>
-                    
+
                     <ui:Button x:Name="ControlPageButton"
-                               Margin="10,5" 
+                               Margin="10,5"
                                HorizontalAlignment="Stretch"
                                HorizontalContentAlignment="Left"
                                Appearance="Transparent"
@@ -92,72 +92,92 @@
                                Click="NavigationButton_Click"
                                Tag="Control">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Settings24" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Управление" FontSize="14"/>
+                            <ui:SymbolIcon Symbol="Settings24" FontSize="16" Margin="0,0,12,0" />
+                            <TextBlock Text="Управление" FontSize="14" />
                         </StackPanel>
                     </ui:Button>
+
+                    <!-- Добавление ComboBox для выбора языка -->
+                    <ComboBox Margin="10,15,10,10"
+                              VerticalAlignment="Bottom"
+                              ItemsSource="{Binding AvailableLanguages}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Culture"
+                              SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                              Height="30"
+                              Background="#3a3a3c"
+                              Foreground="White">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Width="20" Height="15" Margin="0,0,5,0" Source="{Binding FlagImage}" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
             </Grid>
         </Border>
-        
+
         <!-- Основная область -->
         <Grid>
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#191919" Offset="0"/>
-                    <GradientStop Color="#2a2a2e" Offset="1"/>
+                    <GradientStop Color="#191919" Offset="0" />
+                    <GradientStop Color="#2a2a2e" Offset="1" />
                 </LinearGradientBrush>
             </Grid.Background>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            
+
             <!-- Title bar без бургер-кнопки -->
             <Grid Grid.Row="0" Height="48" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2d2d30" Offset="0"/>
-                        <GradientStop Color="#383838" Offset="1"/>
+                        <GradientStop Color="#2d2d30" Offset="0" />
+                        <GradientStop Color="#383838" Offset="1" />
                     </LinearGradientBrush>
                 </Grid.Background>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                
-                <StackPanel Grid.Column="0" 
-                            Orientation="Horizontal" 
+
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
                     <Image Source="pack://application:,,,/Resources/Logo.ico"
-                           Width="52" Height="42" 
+                           Width="52" Height="42"
                            Stretch="Uniform"
-                           Margin="0,0,12,0"/>
-                    <TextBlock Text="ChatCaster" 
-                               FontSize="16" 
+                           Margin="0,0,12,0" />
+                    <TextBlock Text="ChatCaster"
+                               FontSize="16"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"
-                               Foreground="#1ba1e2"/>
+                               Foreground="#1ba1e2" />
                 </StackPanel>
-                
+
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <ui:Button Icon="{ui:SymbolIcon Subtract24}" 
-                               Appearance="Transparent" 
+                    <ui:Button Icon="{ui:SymbolIcon Subtract24}"
+                               Appearance="Transparent"
                                Width="46" Height="32"
-                               Click="MinimizeButton_Click"/>
-                    <ui:Button Icon="{ui:SymbolIcon Dismiss24}" 
-                               Appearance="Transparent" 
+                               Click="MinimizeButton_Click" />
+                    <ui:Button Icon="{ui:SymbolIcon Dismiss24}"
+                               Appearance="Transparent"
                                Width="46" Height="32"
-                               Click="CloseButton_Click"/>
+                               Click="CloseButton_Click" />
                 </StackPanel>
             </Grid>
-            
+
             <!-- Content Frame для переключения между страницами -->
-            <Frame x:Name="ContentFrame" 
-                   Grid.Row="1" 
+            <Frame x:Name="ContentFrame"
+                   Grid.Row="1"
                    NavigationUIVisibility="Hidden"
-                   Background="Transparent"/>
+                   Background="Transparent" />
         </Grid>
     </DockPanel>
 </ui:FluentWindow>

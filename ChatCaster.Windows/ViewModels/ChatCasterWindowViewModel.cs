@@ -1,3 +1,6 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,6 +14,8 @@ using ChatCaster.Windows.Services;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Navigation;
 using Serilog;
+using ChatCaster.Core.Services;
+using System.Windows.Media.Imaging;
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -27,6 +32,7 @@ namespace ChatCaster.Windows.ViewModels
         private readonly NavigationManager _navigationManager;
         private readonly ITrayService _trayService;
         private readonly IVoiceRecordingService _voiceRecordingService;
+        private readonly ILocalizationService _localizationService;
 
         #endregion
 
@@ -45,10 +51,16 @@ namespace ChatCaster.Windows.ViewModels
         private WindowState _windowState = WindowState.Normal;
 
         [ObservableProperty]
-        private string _statusText = NavigationConstants.StatusReady;
+        private string _statusText;
 
         [ObservableProperty]
         private string _currentPageTag = NavigationConstants.MainPage;
+
+        [ObservableProperty]
+        private ObservableCollection<LanguageItem> _availableLanguages;
+
+        [ObservableProperty]
+        private string _selectedLanguage;
 
         #endregion
 
@@ -114,6 +126,7 @@ namespace ChatCaster.Windows.ViewModels
             NavigationManager navigationManager,
             ITrayService trayService,
             IVoiceRecordingService voiceRecordingService,
+            ILocalizationService localizationService,
             AppConfig currentConfig)
         {
             _initializationService = initializationService ?? throw new ArgumentNullException(nameof(initializationService));
@@ -121,10 +134,14 @@ namespace ChatCaster.Windows.ViewModels
             _navigationManager = navigationManager ?? throw new ArgumentNullException(nameof(navigationManager));
             _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
             _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
 
             // Подписываемся на события навигации
             _navigationManager.NavigationChanged += OnNavigationChanged;
+
+            // Подписываемся на изменение языка
+            _localizationService.LanguageChanged += OnLanguageChanged;
 
             // Устанавливаем начальную страницу
             CurrentPage = _navigationManager.CurrentPage;
@@ -133,7 +150,10 @@ namespace ChatCaster.Windows.ViewModels
             // Подписка на глобальные хоткеи
             _systemService.GlobalHotkeyPressed += OnGlobalHotkeyPressed;
 
-            Log.Debug("ChatCasterWindowViewModel создан с поддержкой голосовой записи");
+            // Инициализация языков
+            InitializeLanguages();
+
+            Log.Debug("ChatCasterWindowViewModel создан с поддержкой голосовой записи и локализации");
         }
 
         #endregion
@@ -152,6 +172,9 @@ namespace ChatCaster.Windows.ViewModels
                 // Делегируем всю инициализацию сервису
                 CurrentConfig = await _initializationService.InitializeApplicationAsync();
 
+                // Устанавливаем язык из конфигурации
+                SelectedLanguage = CurrentConfig.System.SelectedLanguage;
+
                 // Регистрируем глобальный хоткей если настроен
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
@@ -166,14 +189,16 @@ namespace ChatCaster.Windows.ViewModels
                     WindowState = WindowState.Minimized;
                 }
 
-                StatusText = NavigationConstants.StatusReady;
+                // Устанавливаем локализованный статус
+                UpdateLocalizedStatus();
+
                 Log.Information("ChatCasterWindowViewModel: инициализация завершена");
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "ChatCasterWindowViewModel: ошибка инициализации");
-                StatusText = "Ошибка инициализации";
-                _trayService.ShowNotification("Ошибка", "Ошибка инициализации приложения", NotificationType.Error);
+                StatusText = _localizationService.GetString("ErrorInitialization") ?? "Ошибка инициализации";
+                _trayService.ShowNotification("Ошибка", _localizationService.GetString("ErrorInitialization") ?? "Ошибка инициализации приложения", NotificationType.Error);
             }
         }
 
@@ -204,6 +229,7 @@ namespace ChatCaster.Windows.ViewModels
                 // Отписываемся от событий
                 _systemService.GlobalHotkeyPressed -= OnGlobalHotkeyPressed;
                 _navigationManager.NavigationChanged -= OnNavigationChanged;
+                _localizationService.LanguageChanged -= OnLanguageChanged;
 
                 // Очищаем страницы
                 _navigationManager.CleanupAllPages();
@@ -242,6 +268,12 @@ namespace ChatCaster.Windows.ViewModels
             OnPropertyChanged(nameof(ControlButtonBackground));
         }
 
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            // Обновляем локализованные строки при смене языка
+            UpdateLocalizedStatus();
+        }
+
         private async void OnGlobalHotkeyPressed(object? sender, KeyboardShortcut shortcut)
         {
             try
@@ -254,7 +286,7 @@ namespace ChatCaster.Windows.ViewModels
             catch (Exception ex)
             {
                 Log.Error(ex, "ChatCasterWindowViewModel: ошибка обработки хоткея");
-                _trayService.ShowNotification("Ошибка", "Произошла ошибка при обработке хоткея", NotificationType.Error);
+                _trayService.ShowNotification(_localizationService.GetString("Error") ?? "Ошибка", _localizationService.GetString("HotkeyError") ?? "Произошла ошибка при обработке хоткея", NotificationType.Error);
             }
         }
 
@@ -272,27 +304,42 @@ namespace ChatCaster.Windows.ViewModels
                 if (_voiceRecordingService.IsRecording)
                 {
                     Log.Debug("ChatCasterWindowViewModel: останавливаем запись голоса");
-                    StatusText = NavigationConstants.StatusProcessing;
+                    StatusText = _localizationService.GetString("StatusProcessing") ?? NavigationConstants.StatusProcessing;
                     await _voiceRecordingService.StopRecordingAsync();
                 }
                 else
                 {
                     Log.Debug("ChatCasterWindowViewModel: начинаем запись голоса");
-                    StatusText = NavigationConstants.StatusRecording;
+                    StatusText = _localizationService.GetString("StatusRecording") ?? NavigationConstants.StatusRecording;
                     await _voiceRecordingService.StartRecordingAsync();
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "ChatCasterWindowViewModel: ошибка обработки записи голоса");
-                StatusText = "Ошибка записи";
-                _trayService.ShowNotification("Ошибка", "Произошла ошибка при записи голоса", NotificationType.Error);
+                StatusText = _localizationService.GetString("ErrorRecording") ?? "Ошибка записи";
+                _trayService.ShowNotification(_localizationService.GetString("Error") ?? "Ошибка", _localizationService.GetString("RecordingError") ?? "Произошла ошибка при записи голоса", NotificationType.Error);
             }
         }
 
         #endregion
 
         #region Helper Methods
+
+        private void UpdateLocalizedStatus()
+        {
+            StatusText = _localizationService.GetString("StatusReady") ?? NavigationConstants.StatusReady;
+        }
+
+        private void InitializeLanguages()
+        {
+            AvailableLanguages = new ObservableCollection<LanguageItem>
+            {
+                new LanguageItem { Culture = "ru-RU", DisplayName = _localizationService.GetString("LanguageName_ru-RU") ?? "Русский", FlagImage = new BitmapImage(new Uri("pack://application:,,,/Resources/russia-flag.png")) },
+                new LanguageItem { Culture = "en", DisplayName = _localizationService.GetString("LanguageName_en-US") ?? "English", FlagImage = new BitmapImage(new Uri("pack://application:,,,/Resources/usa-flag.png")) }
+            };
+            SelectedLanguage = _localizationService.GetString("LanguageName_ru-RU") ?? "ru-RU"; // Значение по умолчанию
+        }
 
         private static string FormatKeyboardShortcut(KeyboardShortcut shortcut)
         {
@@ -319,5 +366,13 @@ namespace ChatCaster.Windows.ViewModels
         private bool _isCleanedUp;
 
         #endregion
+    }
+
+    // Класс для представления элемента языка в ComboBox
+    public class LanguageItem
+    {
+        public string Culture { get; set; }
+        public string DisplayName { get; set; }
+        public BitmapImage FlagImage { get; set; }
     }
 }

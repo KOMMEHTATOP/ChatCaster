@@ -92,18 +92,17 @@ public class ConfigurationService : IConfigurationService
         try
         {
             _logger.Debug("Сохраняем конфигурацию в: {ConfigPath}", ConfigPath);
-        
-            // ДИАГНОСТИКА: Логируем что сохраняем
-            _logger.Debug("Сохранение - AllowCompleteExit = {AllowCompleteExit}, Config HashCode = {HashCode}", 
-                config.System?.AllowCompleteExit, config.GetHashCode());
-        
+            
+            // Сохраняем старое значение языка для сравнения
+            var oldLanguage = CurrentConfig.System?.SelectedLanguage;
+            
             var jsonText = JsonSerializer.Serialize(config, GetJsonOptions());
             await File.WriteAllTextAsync(ConfigPath, jsonText);
         
             // ДИАГНОСТИКА: Проверяем что записалось в файл
             var savedText = await File.ReadAllTextAsync(ConfigPath);
-            _logger.Debug("В файле сохранено allowCompleteExit: {HasField}", savedText.Contains("allowCompleteExit"));
-        
+            _logger.Debug("В файле сохранено selectedLanguage: {HasField}", savedText.Contains("selectedLanguage"));
+
             // Обновляем кеш
             CurrentConfig = config;
             
@@ -111,11 +110,22 @@ public class ConfigurationService : IConfigurationService
             {
                 SettingName = "ConfigurationSaved"
             });
+            
+            // Отправляем специфичное событие, если язык изменился
+            if (oldLanguage != config.System?.SelectedLanguage)
+            {
+                ConfigurationChanged?.Invoke(this, new ConfigurationChangedEvent
+                {
+                    SettingName = "System.SelectedLanguage",
+                    OldValue = oldLanguage,
+                    NewValue = config.System?.SelectedLanguage
+                });
+            }
 
             // ДИАГНОСТИКА: Проверяем кеш после обновления
-            _logger.Debug("CurrentConfig.AllowCompleteExit = {AllowCompleteExit}, HashCode = {HashCode}", 
-                CurrentConfig.System?.AllowCompleteExit, CurrentConfig.GetHashCode());
-        
+            _logger.Debug("CurrentConfig.AllowCompleteExit = {AllowCompleteExit}, SelectedLanguage = {SelectedLanguage}, HashCode = {HashCode}",
+                CurrentConfig.System?.AllowCompleteExit, CurrentConfig.System?.SelectedLanguage, CurrentConfig.GetHashCode());        
+            
             _logger.Debug("Конфигурация успешно сохранена");
         }
         catch (Exception ex)

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Greeting" xml:space="preserve">
+    <value>Привет</value>
+    <comment>Приветствие в главном окне</comment>
+  </data>
+  <data name="Button_OK" xml:space="preserve">
+    <value>ОК</value>
+    <comment>Текст кнопки подтверждения</comment>
+  </data>
+  <data name="LanguageName_ru-RU" xml:space="preserve">
+    <value>Русский</value>
+    <comment>Отображаемое имя русского языка</comment>
+  </data>
+  <data name="LanguageName_en-US" xml:space="preserve">
+    <value>Английский</value>
+    <comment>Отображаемое имя английского языка</comment>
+  </data>
+  <data name="StatusReady" xml:space="preserve">
+    <value>Готов</value>
+    <comment>Статус готовности приложения</comment>
+  </data>
+  <data name="StatusRecording" xml:space="preserve">
+    <value>Запись</value>
+    <comment>Статус во время записи голоса</comment>
+  </data>
+  <data name="StatusProcessing" xml:space="preserve">
+    <value>Обработка</value>
+    <comment>Статус во время обработки записи</comment>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Ошибка</value>
+    <comment>Общее сообщение об ошибке</comment>
+  </data>
+  <data name="ErrorInitialization" xml:space="preserve">
+    <value>Ошибка инициализации</value>
+    <comment>Сообщение об ошибке при инициализации приложения</comment>
+  </data>
+  <data name="HotkeyError" xml:space="preserve">
+    <value>Произошла ошибка при обработке хоткея</value>
+    <comment>Сообщение об ошибке при обработке глобального хоткея</comment>
+  </data>
+  <data name="ErrorRecording" xml:space="preserve">
+    <value>Ошибка записи</value>
+    <comment>Сообщение об ошибке при записи голоса</comment>
+  </data>
+</root>

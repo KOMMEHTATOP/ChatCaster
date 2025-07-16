@@ -137,6 +137,7 @@ public class SystemConfig
     public bool AllowCompleteExit { get; set; }
     
     public bool ShowNotifications { get; set; }
+    public string SelectedLanguage { get; set; } = "ru-RU"; // По умолчанию русский
 }
 
 /// <summary>
