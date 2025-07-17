@@ -92,6 +92,12 @@ namespace ChatCaster.Windows
         private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             Log.Debug("Настройка DI контейнера...");
+            services.AddSingleton<IConfigurationService, ConfigurationService>();
+            services.AddSingleton<AppConfig>(provider =>
+            {
+                var configService = provider.GetRequiredService<IConfigurationService>();
+                return configService.LoadConfigAsync().GetAwaiter().GetResult();
+            });
 
             // === КОНФИГУРАЦИЯ ===
             services.AddSingleton(configuration);
@@ -180,15 +186,13 @@ namespace ChatCaster.Windows
             services.AddSingleton<ChatCasterWindowViewModel>();
 
             // Страничные ViewModels как Scoped (новый экземпляр для каждой навигации)
-            services.AddScoped<AudioSettingsViewModel>();
-            services.AddScoped<InterfaceSettingsViewModel>();
-            services.AddScoped<ControlSettingsViewModel>();
-            services.AddScoped<MainPageViewModel>();
+            services.AddSingleton<AudioSettingsViewModel>();
+            services.AddSingleton<InterfaceSettingsViewModel>();
+            services.AddSingleton<ControlSettingsViewModel>();
+            services.AddSingleton<MainPageViewModel>();
 
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
-            
-            Log.Information("DI контейнер настроен успешно - убраны дубликаты");
         }
 
         private static AppConfig LoadAppConfig()

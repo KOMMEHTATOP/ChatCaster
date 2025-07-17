@@ -54,9 +54,7 @@ public class WhisperModelManager : IDisposable
         {
             throw WhisperConfigurationException.InvalidModelSize(modelSize);
         }
-
-        _logger.LogInformation("Preparing Whisper model: {ModelSize}", modelSize);
-
+        
         await _initializationSemaphore.WaitAsync(cancellationToken);
         try
         {
@@ -67,7 +65,6 @@ public class WhisperModelManager : IDisposable
                 cachedEntry.IsValid && 
                 File.Exists(cachedEntry.FilePath))
             {
-                _logger.LogDebug("Using cached model: {ModelSize} from {Path}", modelSize, cachedEntry.FilePath);
                 OnPreparationProgress(new ModelPreparationProgressEventArgs
                 {
                     ModelSize = modelSize,
@@ -97,7 +94,6 @@ public class WhisperModelManager : IDisposable
             
             if (localModelInfo.IsValid)
             {
-                _logger.LogInformation("Found valid local model: {ModelSize} at {Path}", modelSize, modelFilePath);
                 var cacheEntry = new ModelCacheEntry
                 {
                     ModelSize = modelSize,
@@ -168,7 +164,6 @@ public class WhisperModelManager : IDisposable
                 Message = "Model ready"
             });
 
-            _logger.LogInformation("Model {ModelSize} prepared successfully: {Path}", modelSize, downloadedPath);
             return downloadedPath;
         }
         finally
@@ -236,8 +231,6 @@ public class WhisperModelManager : IDisposable
         {
             _modelCache.TryRemove(key, out _);
         }
-
-        _logger.LogDebug("Cleared {Count} entries from model cache", keysToRemove.Count);
     }
 
     /// <summary>
@@ -321,7 +314,6 @@ public class WhisperModelManager : IDisposable
         if (!Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
-            _logger.LogDebug("Created model directory: {Directory}", directory);
         }
     }
 

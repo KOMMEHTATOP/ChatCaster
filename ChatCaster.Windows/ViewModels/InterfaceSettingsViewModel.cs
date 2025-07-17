@@ -196,7 +196,6 @@ namespace ChatCaster.Windows.ViewModels
             {
                 // Fallback только если позиция из конфигурации не найдена
                 SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == OverlayPosition.TopRight);
-                Log.Warning("Позиция из конфигурации {ConfigPosition} не найдена, используем TopRight", _currentConfig.Overlay.Position);
             }
             
             OverlayOpacity = _currentConfig.Overlay.Opacity * 100; // Конвертируем 0.0-1.0 в 0-100
@@ -204,13 +203,10 @@ namespace ChatCaster.Windows.ViewModels
 
             // Загружаем системные настройки
             ShowNotifications = _currentConfig.System.ShowNotifications;
-            MinimizeToTray = !_currentConfig.System.AllowCompleteExit; // Инвертируем логику
-            StartWithWindows = _currentConfig.System.StartWithSystem; // Исправлено имя свойства
+            MinimizeToTray = !_currentConfig.System.AllowCompleteExit; 
+            StartWithWindows = _currentConfig.System.StartWithSystem; 
             StartMinimized = _currentConfig.System.StartMinimized;
             
-            Log.Information("Настройки интерфейса загружены: Overlay={IsEnabled}, Position={Position}, Notifications={ShowNotifications}", 
-                _currentConfig.Overlay.IsEnabled, SelectedPosition?.DisplayName, _currentConfig.System.ShowNotifications);
-                
             return Task.CompletedTask;
         }
 
@@ -229,8 +225,6 @@ namespace ChatCaster.Windows.ViewModels
 
             config.System.SelectedLanguage = _currentConfig.System.SelectedLanguage;
             
-            Log.Debug("Настройки интерфейса применены к конфигурации, язык сохранен: {Language}", 
-                config.System.SelectedLanguage);
             return Task.CompletedTask;
         }
 
@@ -238,7 +232,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             // Применяем к overlay сервису
             await _overlayService.ApplyConfigAsync(_currentConfig.Overlay);
-            Log.Debug("Настройки применены к OverlayService");
         }
 
         protected override Task InitializePageSpecificDataAsync()
@@ -253,13 +246,11 @@ namespace ChatCaster.Windows.ViewModels
         {
             // Подписываемся на изменения свойств
             PropertyChanged += OnPropertyChanged;
-            Log.Debug("События UI подписаны для InterfaceSettingsViewModel");
         }
 
         protected override void UnsubscribeFromUIEvents()
         {
             PropertyChanged -= OnPropertyChanged;
-            Log.Debug("События UI отписаны для InterfaceSettingsViewModel");
         }
 
         protected override void CleanupPageSpecific()
@@ -272,16 +263,12 @@ namespace ChatCaster.Windows.ViewModels
                     await _overlayService.HideAsync();
                     _localizationService.LanguageChanged -= OnLanguageChanged;
                     base.CleanupPageSpecific();
-
-                    Log.Debug("Overlay скрыт при cleanup InterfaceSettingsViewModel");
                 }
                 catch (Exception ex)
                 {
                     Log.Error(ex, "Ошибка скрытия overlay при cleanup");
                 }
             });
-            
-            Log.Debug("Cleanup InterfaceSettingsViewModel завершен");
         }
 
         #endregion
@@ -324,7 +311,6 @@ namespace ChatCaster.Windows.ViewModels
             PositionBottomCenter = _localizationService.GetString("Interface_Position_BottomCenter");
             PositionBottomRight = _localizationService.GetString("Interface_Position_BottomRight");
             UpdateOverlayPositions();
-
         }
 
         
@@ -344,10 +330,6 @@ namespace ChatCaster.Windows.ViewModels
             AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomLeft, PositionBottomLeft));
             AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomCenter, PositionBottomCenter));
             AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomRight, PositionBottomRight));
-
-            // SelectedPosition будет установлен в LoadPageSpecificSettingsAsync()
-            Log.Debug("Статические данные для InterfaceSettings инициализированы: {Count} позиций", 
-                AvailablePositions.Count);
         }
         
         private void UpdateOverlayPositions()
@@ -374,15 +356,12 @@ namespace ChatCaster.Windows.ViewModels
             {
                 SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == currentPosition.Value);
             }
-    
-            Log.Debug("Позиции overlay обновлены для нового языка");
         }
 
         private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (IsLoadingUI) return;
 
-            // Безопасный fire-and-forget
             _ = HandlePropertyChangedAsync(e);
         }
 

@@ -46,12 +46,8 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     {
         try
         {
-            _logger.LogInformation("Initializing Whisper speech recognition engine");
-            _logger.LogInformation("🔍 [LANG] Initializing Whisper with language: {Language}", config.Language);
-
             // Конвертируем конфигурацию
             _config = WhisperConfig.FromSpeechConfig(config);
-            _logger.LogInformation("🔍 [LANG] WhisperConfig language: {Language}", _config.Language);
 
             // Валидируем конфигурацию
             var validation = _config.Validate();
@@ -60,12 +56,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             {
                 var errors = string.Join(", ", validation.Errors);
                 throw WhisperConfigurationException.InvalidConfiguration(errors);
-            }
-
-            // Логируем предупреждения
-            foreach (var warning in validation.Warnings)
-            {
-                _logger.LogWarning("Configuration warning: {Warning}", warning);
             }
 
             // Подготавливаем модель
@@ -81,8 +71,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             // Применяем язык только если он не Auto
             if (_config.Language != WhisperConstants.Languages.Auto)
             {
-                _logger.LogInformation("🔍 [LANG] Setting explicit language: {Language}", _config.Language);
-
                 processorBuilder = processorBuilder.WithLanguage(_config.Language);
             }
             else
@@ -106,7 +94,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             _processor = processorBuilder.Build();
 
             _isInitialized = true;
-            _logger.LogInformation("Whisper engine initialized successfully with model: {ModelSize}", _config.ModelSize);
 
             return true;
         }
@@ -135,8 +122,6 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
         try
         {
-            _logger.LogDebug("Starting speech recognition, audio size: {Size} bytes", audioData.Length);
-
             // Конвертируем аудио в формат Whisper
             var samples = await _audioConverter.ConvertToSamplesAsync(audioData, cancellationToken);
 
@@ -150,15 +135,11 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             whisperResult.ProcessingTime = stopwatch.Elapsed;
 
             var result = whisperResult.ToVoiceProcessingResult();
-
-            _logger.LogInformation("Speech recognition completed: {Text} (confidence: {Confidence:F2}, time: {Time}ms)",
-                result.RecognizedText, result.Confidence, stopwatch.ElapsedMilliseconds);
-
+            
             return result;
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("Speech recognition was cancelled");
             return new VoiceProcessingResult
             {
                 Success = false, ErrorMessage = "Recognition was cancelled", ProcessingTime = stopwatch.Elapsed
@@ -183,18 +164,11 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     {
         try
         {
-            // Используем LogError чтобы точно попало в отчет
-            _logger.LogInformation("🔍 [RELOAD] ReloadConfigAsync started");
-
             // Сохраняем старую конфигурацию
             var oldConfig = _config.Clone();
 
             // Применяем новую
             var newConfig = WhisperConfig.FromSpeechConfig(config);
-
-            // ДИАГНОСТИКА:
-            _logger.LogInformation("🔍 [RELOAD] Config comparison: OldModel={OldModel}, NewModel={NewModel}",
-                oldConfig.ModelSize, newConfig.ModelSize);
 
             // Проверяем нужна ли полная реинициализация
             bool needsReinitialization =
@@ -202,14 +176,9 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 oldConfig.ModelPath != newConfig.ModelPath ||
                 oldConfig.EnableGpu != newConfig.EnableGpu ||
                 oldConfig.Language != newConfig.Language;
-
-            _logger.LogInformation("🔍 [RELOAD] Needs reinitialization: {NeedsReinit}", needsReinitialization);
-
+            
             if (needsReinitialization)
             {
-                _logger.LogInformation("🔍 [RELOAD] PERFORMING FULL REINITIALIZATION: {OldModel} → {NewModel}",
-                    oldConfig.ModelSize, newConfig.ModelSize);
-
                 // Принудительно освобождаем ресурсы
                 await DisposeProcessorAsync();
 
@@ -217,13 +186,10 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
-
-                _logger.LogInformation("🔍 [RELOAD] Previous model disposed, starting new initialization");
-
+                
                 return await InitializeAsync(config);
             }
 
-            _logger.LogError("🔍 [RELOAD] NO REINITIALIZATION - just updating config");
             _config = newConfig;
             return true;
         }
@@ -331,30 +297,23 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
     private async Task DisposeProcessorAsync()
     {
-        _logger.LogError("🔍 [DISPOSE] Starting disposal of Whisper processor and factory");
-
         if (_processor != null)
         {
-            _logger.LogError("🔍 [DISPOSE] Disposing processor...");
             _processor.Dispose();
             _processor = null;
-            _logger.LogError("🔍 [DISPOSE] Processor disposed");
         }
 
         if (_factory != null)
         {
-            _logger.LogError("🔍 [DISPOSE] Disposing factory...");
             _factory.Dispose();
             _factory = null;
-            _logger.LogError("🔍 [DISPOSE] Factory disposed");
         }
 
-        _logger.LogError("🔍 [DISPOSE] Completed, waiting 100ms for native cleanup");
         await Task.Delay(100);
     }
 
 
-    // ДОПОЛНИТЕЛЬНО: Метод для принудительной очистки памяти
+    // Метод для принудительной очистки памяти
     public async Task ForceMemoryCleanupAsync()
     {
         _logger.LogInformation("Forcing memory cleanup");

@@ -91,7 +91,9 @@ namespace ChatCaster.Windows.ViewModels
 
 
             Log.Debug("Инициализация ControlSettingsViewModel начата");
-            
+            Log.Information("🔍 AudioSettingsViewModel создан с AppConfig HashCode: {HashCode}, SelectedLanguage: {Language}", 
+                currentConfig.GetHashCode(), currentConfig.System.SelectedLanguage);
+
             try
             {
                 GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator);
@@ -117,12 +119,8 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Загружаем настройки компонентов...");
-                
                 await GamepadComponent.LoadSettingsAsync();
                 await KeyboardComponent.LoadSettingsAsync();
-                
-                Log.Information("Настройки управления загружены успешно");
             }
             catch (Exception ex)
             {
@@ -132,8 +130,7 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override Task ApplySettingsToConfigAsync(AppConfig config)
         {
-            // Настройки уже сохранены в компонентах при их изменении
-            Log.Debug("Применение настроек к конфигурации (выполнено компонентами)");
+            config.System.SelectedLanguage = _currentConfig.System.SelectedLanguage;
             return Task.CompletedTask;
         }
 
@@ -141,12 +138,7 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Применяем настройки к сервисам...");
-                
-                // Применяем настройки геймпада к сервисам
                 await GamepadComponent.ApplySettingsAsync();
-                
-                Log.Information("Настройки управления применены к сервисам");
             }
             catch (Exception ex)
             {
@@ -156,19 +148,15 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override async Task InitializePageSpecificDataAsync()
         {
-            Log.Debug("Специальная инициализация ControlSettings начата");
             await LoadPageSpecificSettingsAsync();
         }
 
         public override void SubscribeToUIEvents()
         {
-            // События обрабатываются компонентами автоматически
-            Log.Debug("UI события подписаны через компоненты");
         }
 
         protected override void UnsubscribeFromUIEvents()
         {
-            Log.Debug("Отписываемся от событий компонентов");
             UnsubscribeFromComponentEvents();
         }
 
@@ -176,8 +164,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Cleanup ControlSettings начат");
-                
                 // Отписываемся от событий
                 UnsubscribeFromComponentEvents();
                 _localizationService.LanguageChanged -= OnLanguageChanged;
@@ -186,8 +172,6 @@ namespace ChatCaster.Windows.ViewModels
                 // Освобождаем компоненты
                 GamepadComponent?.Dispose();
                 KeyboardComponent?.Dispose();
-                
-                Log.Information("Cleanup ControlSettings завершен успешно");
             }
             catch (Exception ex)
             {
@@ -210,8 +194,6 @@ namespace ChatCaster.Windows.ViewModels
                 // Подписываемся на изменения настроек
                 GamepadComponent.SettingChanged += OnComponentSettingChangedAsync;
                 KeyboardComponent.SettingChanged += OnComponentSettingChangedAsync;
-                
-                Log.Debug("События компонентов подписаны");
             }
             catch (Exception ex)
             {
@@ -230,8 +212,6 @@ namespace ChatCaster.Windows.ViewModels
                 // Отписываемся от изменений настроек
                 GamepadComponent.SettingChanged -= OnComponentSettingChangedAsync;
                 KeyboardComponent.SettingChanged -= OnComponentSettingChangedAsync;
-                
-                Log.Debug("События компонентов отписаны");
             }
             catch (Exception ex)
             {
@@ -263,7 +243,6 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 StatusMessage = message;
-                Log.Debug("Статусное сообщение от компонента: {Message}", message);
             }
             catch (Exception ex)
             {
@@ -275,7 +254,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("Настройка изменена в компоненте, уведомляем базовый класс");
                 await OnUISettingChangedAsync();
             }
             catch (Exception ex)

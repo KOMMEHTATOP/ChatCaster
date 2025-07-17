@@ -1,5 +1,4 @@
 using ChatCaster.Core.Events;
-using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Managers.MainPage;
@@ -77,8 +76,6 @@ namespace ChatCaster.Windows.ViewModels
 
             // Подписываемся на изменения конфигурации для обновления устройства
             configurationService.ConfigurationChanged += OnConfigurationChanged;
-
-            Log.Debug("MainPageViewModel инициализирован с компонентами");
         }
 
         #endregion
@@ -92,12 +89,10 @@ namespace ChatCaster.Windows.ViewModels
             {
                 if (_voiceRecordingService.IsRecording)
                 {
-                    Log.Debug("MainPageViewModel: останавливаем запись");
                     await _voiceRecordingService.StopRecordingAsync();
                 }
                 else
                 {
-                    Log.Debug("MainPageViewModel: начинаем запись");
                     await _voiceRecordingService.StartRecordingAsync();
                 }
             }
@@ -122,8 +117,6 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Подписываемся на события компонентов
                 RecognitionResultsComponent.TextRecognized += OnTextRecognized;
-
-                Log.Debug("MainPageViewModel: события подписаны");
             }
             catch (Exception ex)
             {
@@ -144,8 +137,6 @@ namespace ChatCaster.Windows.ViewModels
 
                 _localizationService.LanguageChanged -= OnLanguageChanged;
                 _configurationService.ConfigurationChanged -= OnConfigurationChanged;
-                
-                Log.Debug("MainPageViewModel: события отписаны");
             }
             catch (Exception ex)
             {
@@ -162,7 +153,6 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 RecordingStatusComponent.UpdateRecordingStatus(e);
-                Log.Debug("MainPageViewModel: статус записи обновлен: {Status}", e.NewStatus);
             }
             catch (Exception ex)
             {
@@ -175,7 +165,6 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 RecognitionResultsComponent.HandleRecognitionCompleted(e);
-                Log.Information("MainPageViewModel: обработано завершение распознавания");
             }
             catch (Exception ex)
             {
@@ -188,7 +177,6 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 // Дополнительная обработка распознанного текста если нужна
-                Log.Information("MainPageViewModel: распознан текст: {Text}", recognizedText);
             }
             catch (Exception ex)
             {
@@ -203,7 +191,6 @@ namespace ChatCaster.Windows.ViewModels
                 // Обновляем отображение устройства при изменении конфигурации
                 if (e.SettingName == "ConfigurationLoaded" || e.SettingName == "ConfigurationSaved")
                 {
-                    Log.Information("MainPageViewModel: обновляем отображение устройства после {EventType}", e.SettingName);
                     await UpdateDeviceDisplayAsync();
                 }
             }
@@ -228,7 +215,6 @@ namespace ChatCaster.Windows.ViewModels
             {
                 var deviceInfo = await deviceDisplayManager.GetCurrentDeviceDisplayAsync();
                 CurrentDeviceText = deviceInfo.FullDisplayText;
-                Log.Debug("MainPageViewModel: отображение устройства инициализировано: {DeviceText}", CurrentDeviceText);
             }
             catch (Exception ex)
             {
@@ -265,15 +251,11 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("MainPageViewModel: начинаем cleanup");
-
                 UnsubscribeFromEvents();
 
                 // Очищаем компоненты
                 RecordingStatusComponent.Dispose();
                 RecognitionResultsComponent.Dispose();
-
-                Log.Information("MainPageViewModel: cleanup завершен");
             }
             catch (Exception ex)
             {

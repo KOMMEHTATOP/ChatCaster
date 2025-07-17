@@ -100,6 +100,9 @@ namespace ChatCaster.Windows.Services
 
         private async Task EnsureDefaultConfigurationAsync(AppConfig config)
         {
+            Log.Information("🔍 ДИАГНОСТИКА: SelectedLanguage в начале EnsureDefault = {Lang}", 
+                config?.System?.SelectedLanguage);
+
             bool configChanged = false;
 
             // Проверяем и устанавливаем Whisper модель по умолчанию
@@ -150,6 +153,9 @@ namespace ChatCaster.Windows.Services
             // Сохраняем конфигурацию только если были изменения
             if (configChanged)
             {
+                Log.Information("🔍 ДИАГНОСТИКА: SelectedLanguage перед сохранением = {Lang}", 
+                    config.System?.SelectedLanguage);
+
                 await _configurationService.SaveConfigAsync(config);
                 Log.Information("ApplicationInitializationService: дефолтная конфигурация сохранена");
             }

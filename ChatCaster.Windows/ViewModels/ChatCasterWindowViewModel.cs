@@ -22,7 +22,7 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
-        private bool _isUpdatingLanguage = false;
+        private bool _isUpdatingLanguage;
 
         #region Services
 
@@ -171,8 +171,6 @@ namespace ChatCaster.Windows.ViewModels
 
             // Инициализация языков
             InitializeLanguages();
-
-            Log.Debug("ChatCasterWindowViewModel создан с поддержкой голосовой записи и локализации");
         }
 
         #endregion
@@ -190,9 +188,15 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Делегируем всю инициализацию сервису
                 CurrentConfig = await _initializationService.InitializeApplicationAsync();
+                
+                Log.Information("🔍 ДИАГНОСТИКА: После InitializeApplicationAsync, SelectedLanguage = {Lang}", 
+                    CurrentConfig?.System?.SelectedLanguage);
 
                 // Устанавливаем язык из конфигурации
                 SelectedLanguage = CurrentConfig.System.SelectedLanguage;
+                
+                Log.Information("🔍 ДИАГНОСТИКА: После установки SelectedLanguage в UI = {Lang}", 
+                    SelectedLanguage);
 
                 UpdateLocalizedStrings();
 
@@ -200,13 +204,11 @@ namespace ChatCaster.Windows.ViewModels
                 if (CurrentConfig.Input.KeyboardShortcut != null)
                 {
                     var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
-                    Log.Information("ChatCasterWindowViewModel: хоткей зарегистрирован: {Registered}", registered);
                 }
 
                 // Применяем настройки окна
                 if (CurrentConfig.System.StartMinimized)
                 {
-                    Log.Debug("ChatCasterWindowViewModel: запуск в свернутом виде");
                     WindowState = WindowState.Minimized;
                 }
 
@@ -238,11 +240,9 @@ namespace ChatCaster.Windows.ViewModels
         {
             if (_isCleanedUp)
             {
-                Log.Debug("ChatCasterWindowViewModel: Cleanup уже выполнен, пропускаем");
                 return;
             }
 
-            Log.Information("ChatCasterWindowViewModel: Cleanup начат");
             _isCleanedUp = true;
 
             try
@@ -264,8 +264,6 @@ namespace ChatCaster.Windows.ViewModels
                 {
                     Log.Warning(ex, "ChatCasterWindowViewModel: хоткеи не сняты быстро, пропускаем");
                 }
-
-                Log.Information("ChatCasterWindowViewModel: Cleanup завершен");
             }
             catch (Exception ex)
             {
@@ -300,8 +298,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Debug("ChatCasterWindowViewModel: глобальный хоткей нажат: {Shortcut}", FormatKeyboardShortcut(shortcut));
-                
                 // Прямая обработка хоткея согласно архитектуре
                 await HandleVoiceRecordingAsync();
             }
@@ -317,15 +313,19 @@ namespace ChatCaster.Windows.ViewModels
         partial void OnSelectedLanguageChanged(string value)
         {
             if (_isUpdatingLanguage) return;
-    
+
             _isUpdatingLanguage = true;
             try
             {
                 Log.Information("🔄 OnSelectedLanguageChanged вызван: {Value}", value);
-        
+                Log.Information("🔍 ДИАГНОСТИКА: CurrentConfig.System.SelectedLanguage ДО изменения = {Before}", 
+                    CurrentConfig?.System?.SelectedLanguage);
+
                 if (!string.IsNullOrEmpty(value) && CurrentConfig?.System != null)
                 {
                     CurrentConfig.System.SelectedLanguage = value;
+                    Log.Information("🔍 ДИАГНОСТИКА: CurrentConfig.System.SelectedLanguage ПОСЛЕ изменения = {After}", 
+                        CurrentConfig.System.SelectedLanguage);
                     _localizationService.SetLanguage(value);
                     _ = SaveConfigurationAsync();
                 }
@@ -335,7 +335,7 @@ namespace ChatCaster.Windows.ViewModels
                 _isUpdatingLanguage = false;
             }
         }
-
+        
         private async Task SaveConfigurationAsync()
         {
             try
@@ -362,13 +362,11 @@ namespace ChatCaster.Windows.ViewModels
             {
                 if (_voiceRecordingService.IsRecording)
                 {
-                    Log.Debug("ChatCasterWindowViewModel: останавливаем запись голоса");
                     StatusText = _localizationService.GetString("StatusProcessing");
                     await _voiceRecordingService.StopRecordingAsync();
                 }
                 else
                 {
-                    Log.Debug("ChatCasterWindowViewModel: начинаем запись голоса");
                     StatusText = _localizationService.GetString("StatusRecording");
                     await _voiceRecordingService.StartRecordingAsync();
                 }

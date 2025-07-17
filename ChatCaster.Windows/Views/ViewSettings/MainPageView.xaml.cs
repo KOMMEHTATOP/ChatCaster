@@ -7,7 +7,6 @@ namespace ChatCaster.Windows.Views.ViewSettings
         public MainPageView()
         {
             InitializeComponent();
-            Log.Debug("MainPageView создан (ViewModel будет установлен извне)");
         }
     }
 }

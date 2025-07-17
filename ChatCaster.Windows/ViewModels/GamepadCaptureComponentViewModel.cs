@@ -43,7 +43,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                // ✅ ИСПРАВЛЕНО: Если менеджеры ожидают конкретный класс, нужно cast
                 if (_gamepadService is MainGamepadService mainGamepadService)
                 {
                     _statusManager = new GamepadStatusManager(mainGamepadService);
@@ -57,8 +56,6 @@ namespace ChatCaster.Windows.ViewModels
                 _uiManager = new CaptureUIStateManager();
 
                 SubscribeToEvents();
-                
-                Log.Debug("GamepadCaptureComponent инициализирован");
             }
             catch (Exception ex)
             {
@@ -80,8 +77,6 @@ namespace ChatCaster.Windows.ViewModels
                 {
                     await _statusManager.RefreshStatusAsync();
                 }
-                
-                Log.Debug("Настройки геймпада загружены: {Combo}", ComboText);
             }
             catch (Exception ex)
             {
@@ -93,13 +88,11 @@ namespace ChatCaster.Windows.ViewModels
         {
             if (IsWaitingForInput || _captureManager == null)
             {
-                Log.Debug("Захват геймпада уже активен или менеджер недоступен");
                 return;
             }
 
             try
             {
-                Log.Debug("Запуск захвата геймпада");
                 await _captureManager.StartCaptureAsync(AppConstants.CaptureTimeoutSeconds);
             }
             catch (Exception ex)
@@ -114,13 +107,9 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 var shortcut = _currentConfig.Input.GamepadShortcut;
-
                 await _gamepadService.StopMonitoringAsync();
                 await _gamepadService.StartMonitoringAsync(shortcut);
-
                 await _gamepadVoiceCoordinator.UpdateGamepadSettingsAsync(shortcut);
-                
-                Log.Debug("Настройки геймпада применены");
             }
             catch (Exception ex)
             {
@@ -188,7 +177,6 @@ namespace ChatCaster.Windows.ViewModels
             {
                 IsWaitingForInput = false;
                 
-                // Обновляем конфиг напрямую
                 _currentConfig.Input.GamepadShortcut = capturedShortcut;
                 await OnSettingChangedAsync();
 
@@ -199,8 +187,6 @@ namespace ChatCaster.Windows.ViewModels
                     await _uiManager.CompleteSuccessAsync(capturedShortcut.DisplayText);
                     _uiManager.SetIdleState(ComboText);
                 }
-                
-                Log.Information("Геймпад комбинация сохранена: {Shortcut}", capturedShortcut.DisplayText);
             }
             catch (Exception ex)
             {

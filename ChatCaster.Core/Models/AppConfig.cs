@@ -1,5 +1,6 @@
 using Serilog.Events;
 using ChatCaster.Core.Utilities;
+using Serilog;
 
 namespace ChatCaster.Core.Models;
 
@@ -138,6 +139,12 @@ public class SystemConfig
     
     public bool ShowNotifications { get; set; }
     public string SelectedLanguage { get; set; } = "ru-RU"; // По умолчанию русский
+    public SystemConfig()
+    {
+        Log.Information("🔍 ДИАГНОСТИКА: Создается новый SystemConfig с SelectedLanguage = {Lang}", SelectedLanguage);
+        Log.Information("🔍 ДИАГНОСТИКА: StackTrace = {Stack}", Environment.StackTrace);
+    }
+
 }
 
 /// <summary>

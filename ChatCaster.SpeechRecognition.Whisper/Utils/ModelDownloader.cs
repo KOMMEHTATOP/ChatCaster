@@ -14,8 +14,6 @@ public class ModelDownloader
     private readonly HttpClient _httpClient;
     private readonly SemaphoreSlim _downloadSemaphore;
 
-    // Официальные URL для загрузки моделей Whisper
-// Официальные URL для загрузки моделей Whisper (ОБНОВЛЕНО)
     private static readonly Dictionary<string, ModelInfo> ModelUrls = new()
     {
         [WhisperConstants.ModelSizes.Tiny] = new ModelInfo
@@ -95,13 +93,8 @@ public class ModelDownloader
         // Проверяем существует ли файл и валиден ли он
         if (await IsModelValidAsync(filePath, modelInfo, cancellationToken))
         {
-            _logger.LogDebug("Model {ModelSize} already exists and is valid: {Path}", modelSize, filePath);
             return filePath;
         }
-
-        // Загружаем модель
-        _logger.LogInformation("Downloading Whisper model: {ModelSize} ({Size:F1}MB)", 
-            modelSize, modelInfo.ExpectedSizeBytes / 1024.0 / 1024.0);
 
         await _downloadSemaphore.WaitAsync(cancellationToken);
         try
@@ -178,7 +171,6 @@ public class ModelDownloader
             if (File.Exists(filePath))
             {
                 await Task.Run(() => File.Delete(filePath));
-                _logger.LogInformation("Deleted model: {ModelSize} from {Path}", modelSize, filePath);
                 return true;
             }
 
@@ -210,9 +202,6 @@ public class ModelDownloader
             
             if (sizeDifference > sizeToleranceBytes)
             {
-                _logger.LogWarning("Model file size mismatch: expected ~{Expected}MB, got {Actual}MB", 
-                    modelInfo.ExpectedSizeBytes / 1024.0 / 1024.0,
-                    fileInfo.Length / 1024.0 / 1024.0);
                 return false;
             }
 
@@ -222,8 +211,6 @@ public class ModelDownloader
                 var computedHash = await ComputeFileHashAsync(filePath, cancellationToken);
                 if (!string.Equals(computedHash, modelInfo.Sha256Hash, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning("Model file hash mismatch: expected {Expected}, got {Actual}", 
-                        modelInfo.Sha256Hash, computedHash);
                     return false;
                 }
             }
@@ -284,7 +271,7 @@ public class ModelDownloader
                 }
             }
 
-            // ВАЖНО: Закрываем файловый поток перед переименованием
+            // Закрываем файловый поток перед переименованием
             fileStream.Close();
 
             // Переименовываем временный файл
@@ -312,9 +299,6 @@ public class ModelDownloader
                 }
             }
 
-            _logger.LogInformation("Successfully downloaded model {ModelSize}: {Path} ({Size:F1}MB)", 
-                modelInfo.Size, destinationPath, totalBytesRead / 1024.0 / 1024.0);
-
             // Финальное уведомление о прогрессе
             OnDownloadProgress(new DownloadProgressEventArgs
             {
@@ -330,10 +314,13 @@ public class ModelDownloader
             // Удаляем временный файл при ошибке
             if (File.Exists(tempPath))
             {
-                try { File.Delete(tempPath); } catch { }
+                try { File.Delete(tempPath); }
+                catch
+                {
+                    // ignored
+                }
             }
-
-            _logger.LogError(ex, "Failed to download model {ModelSize}", modelInfo.Size);
+            
             throw new WhisperInitializationException($"Failed to download model {modelInfo.Size}", ex);
         }
     }

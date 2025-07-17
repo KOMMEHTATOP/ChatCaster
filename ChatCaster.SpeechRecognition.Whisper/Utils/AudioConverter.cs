@@ -37,9 +37,6 @@ public class AudioConverter
             throw WhisperAudioException.EmptyData();
         }
 
-        _logger.LogDebug("Converting audio: {Size} bytes, {SampleRate}Hz, {Channels}ch, {Bits}bit", 
-            audioData.Length, sampleRate, channels, bitsPerSample);
-
         try
         {
             // Проверяем длительность аудио
@@ -77,12 +74,10 @@ public class AudioConverter
             // Нормализуем громкость
             samples = await NormalizeVolumeAsync(samples, cancellationToken);
 
-            _logger.LogDebug("Audio converted successfully: {OutputSamples} samples", samples.Length);
             return samples;
         }
         catch (Exception ex) when (!(ex is WhisperAudioException))
         {
-            _logger.LogError(ex, "Failed to convert audio data");
             throw new WhisperAudioException("Audio conversion failed", ex);
         }
     }
@@ -227,9 +222,7 @@ public class AudioConverter
     private async Task<float[]> ResampleAsync(float[] samples, int fromRate, int toRate, CancellationToken cancellationToken)
     {
         if (fromRate == toRate) return samples;
-
-        _logger.LogDebug("Resampling from {FromRate}Hz to {ToRate}Hz", fromRate, toRate);
-
+        
         // Простой линейный ресэмплинг (для продакшена лучше использовать более качественные алгоритмы)
         var ratio = (double)toRate / fromRate;
         var newLength = (int)(samples.Length * ratio);
@@ -275,8 +268,6 @@ public class AudioConverter
                 {
                     samples[i] *= normalizationFactor;
                 }
-                
-                _logger.LogDebug("Audio normalized with factor: {Factor:F3}", normalizationFactor);
             }
         }, cancellationToken);
 

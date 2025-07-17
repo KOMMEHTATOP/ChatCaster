@@ -39,8 +39,6 @@ namespace ChatCaster.Windows.Views
             
             // Подписка на события трея
             SubscribeToTrayEvents();
-
-            Log.Information("ChatCaster окно создано через DI с ITrayService");
         }
 
         #region Tray Events Subscription
@@ -52,8 +50,6 @@ namespace ChatCaster.Windows.Views
                 _trayService.ShowMainWindowRequested += OnShowMainWindowRequested;
                 _trayService.ShowSettingsRequested += OnShowSettingsRequested;
                 _trayService.ExitApplicationRequested += OnExitApplicationRequested;
-                
-                Log.Debug("Подписка на события ITrayService выполнена");
             }
             catch (Exception ex)
             {
@@ -68,8 +64,6 @@ namespace ChatCaster.Windows.Views
                 _trayService.ShowMainWindowRequested -= OnShowMainWindowRequested;
                 _trayService.ShowSettingsRequested -= OnShowSettingsRequested;
                 _trayService.ExitApplicationRequested -= OnExitApplicationRequested;
-                
-                Log.Debug("Отписка от событий ITrayService выполнена");
             }
             catch (Exception ex)
             {
@@ -93,8 +87,6 @@ namespace ChatCaster.Windows.Views
                     Activate();
                     Focus();
                 });
-                
-                Log.Debug("Главное окно показано по запросу из трея");
             }
             catch (Exception ex)
             {
@@ -117,8 +109,6 @@ namespace ChatCaster.Windows.Views
                     // Потом переходим к настройкам
                     NavigateToSettings();
                 });
-                
-                Log.Debug("Окно настроек показано по запросу из трея");
             }
             catch (Exception ex)
             {
@@ -130,8 +120,6 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
-                Log.Information("Получен запрос на принудительный выход из системного трея");
-                
                 // Устанавливаем флаг принудительного закрытия
                 _isForceExitFromTray = true;
                 
@@ -155,8 +143,6 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
-                Log.Debug("Загрузка главного окна");
-
                 if (_viewModel.CurrentPage != null)
                 {
                     ContentFrame.Navigate(_viewModel.CurrentPage);
@@ -170,8 +156,6 @@ namespace ChatCaster.Windows.Views
                     Focus();
                     Keyboard.Focus(this);
                 }));
-
-                Log.Information("Главное окно загружено и готово к работе");
             }
             catch (Exception ex)
             {
@@ -181,17 +165,11 @@ namespace ChatCaster.Windows.Views
 
         private void ChatCasterWindow_Closing(object? sender, CancelEventArgs e)
         {
-            Log.Debug("Попытка закрытия окна");
-
             var currentConfig = _configurationService.CurrentConfig;
-
-            Log.Debug("[CLOSE] ConfigService HashCode: {HashCode}, AllowCompleteExit: {AllowCompleteExit}, ForceExitFromTray: {ForceExitFromTray}",
-                currentConfig?.GetHashCode(), currentConfig?.System?.AllowCompleteExit, _isForceExitFromTray);
 
             // Если это принудительное закрытие из трея - всегда закрываем полностью
             if (_isForceExitFromTray)
             {
-                Log.Information("Принудительное полное завершение работы ChatCaster (запрос из системного трея)");
                 PerformCompleteExit();
                 return;
             }
@@ -205,20 +183,15 @@ namespace ChatCaster.Windows.Views
                 ShowInTaskbar = false;
 
                 _trayService.ShowFirstTimeNotification();
-                Log.Information("Окно скрыто в трей (настройка сворачивания включена)");
             }
             else
             {
-                // AllowCompleteExit = true --> полное закрытие
-                Log.Information("Полное завершение работы ChatCaster (настройка полного закрытия включена)");
                 PerformCompleteExit();
             }
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            Log.Information("Окно ChatCaster закрыто");
-
             // Отписка от событий трея
             UnsubscribeFromTrayEvents();
 
@@ -236,8 +209,6 @@ namespace ChatCaster.Windows.Views
         {
             try
             {
-                Log.Information("Начало процедуры полного закрытия приложения");
-
                 // Отписка от событий трея
                 UnsubscribeFromTrayEvents();
 
@@ -246,14 +217,12 @@ namespace ChatCaster.Windows.Views
 
                 // Освобождаем TrayService синхронно (быстрая операция)
                 _trayService.Dispose();
-                Log.Debug("TrayService освобожден при закрытии");
 
                 // Принудительное завершение через 200ms для гарантии
                 _ = Task.Delay(200).ContinueWith(_ =>
                 {
                     try
                     {
-                        Log.Information("Принудительное завершение процесса (Whisper cleanup timeout)");
                         Environment.Exit(0);
                     }
                     catch (Exception ex)
@@ -261,8 +230,6 @@ namespace ChatCaster.Windows.Views
                         Log.Error(ex, "Ошибка принудительного завершения");
                     }
                 });
-
-                Log.Information("Процедура полного закрытия настроена успешно");
             }
             catch (Exception ex)
             {
@@ -298,8 +265,6 @@ namespace ChatCaster.Windows.Views
 
         private async Task NavigateToPageWithAnimation(string pageTag)
         {
-            Log.Debug("Навигация на страницу: {PageTag}", pageTag);
-
             var fadeOut = new DoubleAnimation
             {
                 To = 0,
