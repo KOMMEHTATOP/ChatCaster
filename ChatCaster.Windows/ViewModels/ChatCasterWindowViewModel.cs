@@ -22,6 +22,8 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class ChatCasterWindowViewModel : ViewModelBase
     {
+        private bool _isUpdatingLanguage = false;
+
         #region Services
 
         private readonly ApplicationInitializationService _initializationService;
@@ -314,18 +316,23 @@ namespace ChatCaster.Windows.ViewModels
             
         partial void OnSelectedLanguageChanged(string value)
         {
-            if (!string.IsNullOrEmpty(value) && CurrentConfig?.System != null)
+            if (_isUpdatingLanguage) return;
+    
+            _isUpdatingLanguage = true;
+            try
             {
-                Log.Information("ChatCasterWindowViewModel: изменен язык интерфейса на {Language}", value);
+                Log.Information("🔄 OnSelectedLanguageChanged вызван: {Value}", value);
         
-                // Обновляем конфигурацию
-                CurrentConfig.System.SelectedLanguage = value;
-        
-                // Применяем язык через сервис локализации
-                _localizationService.SetLanguage(value);
-        
-                // Сохраняем конфигурацию согласно принципу Immediate Apply
-                _ = SaveConfigurationAsync();
+                if (!string.IsNullOrEmpty(value) && CurrentConfig?.System != null)
+                {
+                    CurrentConfig.System.SelectedLanguage = value;
+                    _localizationService.SetLanguage(value);
+                    _ = SaveConfigurationAsync();
+                }
+            }
+            finally
+            {
+                _isUpdatingLanguage = false;
             }
         }
 

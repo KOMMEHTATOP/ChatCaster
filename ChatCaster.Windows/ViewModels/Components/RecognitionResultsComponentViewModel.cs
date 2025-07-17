@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using ChatCaster.Core.Events;
+using ChatCaster.Core.Services.System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
 
@@ -11,6 +12,8 @@ namespace ChatCaster.Windows.ViewModels.Components
     /// </summary>
     public partial class RecognitionResultsComponentViewModel : ObservableObject
     {
+        private readonly ILocalizationService _localizationService;
+
         [ObservableProperty]
         private string _lastRecognizedText = string.Empty;
 
@@ -35,8 +38,13 @@ namespace ChatCaster.Windows.ViewModels.Components
         // События для связи с родительской ViewModel
         public event Action<string>? TextRecognized;
 
-        public RecognitionResultsComponentViewModel()
+        public RecognitionResultsComponentViewModel(ILocalizationService localizationService)
         {
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+            
+            // Подписываемся на смену языка
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            
             SetInitialState();
             Log.Debug("RecognitionResultsComponentViewModel инициализирован");
         }
@@ -81,9 +89,9 @@ namespace ChatCaster.Windows.ViewModels.Components
             // Добавляем в историю
             AddToRecentRecognitions(recognizedText);
 
-            // Устанавливаем метрики (можно расширить в будущем)
-            ConfidenceText = "Точность: высокая";
-            ProcessingTimeText = "Время: < 1с";
+            // Устанавливаем метрики (локализованные)
+            ConfidenceText = _localizationService.GetString("Main_ConfidenceHigh");
+            ProcessingTimeText = _localizationService.GetString("Main_ProcessingTimeFast");
 
             // Уведомляем родительскую ViewModel
             TextRecognized?.Invoke(recognizedText);
@@ -96,7 +104,7 @@ namespace ChatCaster.Windows.ViewModels.Components
         /// </summary>
         private void HandleRecognitionError(string? errorMessage)
         {
-            ResultText = "Не удалось распознать речь";
+            ResultText = _localizationService.GetString("Main_RecognitionFailed");
             ResultTextBrush = System.Windows.Media.Brushes.Red;
             ResultFontStyle = System.Windows.FontStyles.Italic;
 
@@ -138,7 +146,7 @@ namespace ChatCaster.Windows.ViewModels.Components
         {
             try
             {
-                ResultText = "Здесь появится распознанный текст...";
+                ResultText = _localizationService.GetString("Main_PlaceholderText");
                 ResultTextBrush = System.Windows.Media.Brushes.Gray;
                 ResultFontStyle = System.Windows.FontStyles.Italic;
                 LastRecognizedText = string.Empty;
@@ -150,6 +158,37 @@ namespace ChatCaster.Windows.ViewModels.Components
             catch (Exception ex)
             {
                 Log.Error(ex, "RecognitionResultsComponent: ошибка установки начального состояния");
+            }
+        }
+
+        /// <summary>
+        /// Обновляет локализацию при смене языка
+        /// </summary>
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Если текст еще не был заменен (показывается placeholder), обновляем его
+                if (ResultText == _localizationService.GetString("Main_PlaceholderText") || 
+                    ResultText == "Здесь появится распознанный текст..." || 
+                    ResultText == "Recognition result will appear here...")
+                {
+                    ResultText = _localizationService.GetString("Main_PlaceholderText");
+                }
+
+                // Если показывается ошибка, обновляем ее
+                if (ResultText == _localizationService.GetString("Main_RecognitionFailed") ||
+                    ResultText == "Не удалось распознать речь" ||
+                    ResultText == "Speech recognition failed")
+                {
+                    ResultText = _localizationService.GetString("Main_RecognitionFailed");
+                }
+
+                Log.Debug("RecognitionResultsComponent: обновлена локализация");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "RecognitionResultsComponent: ошибка обновления локализации");
             }
         }
 
@@ -193,6 +232,7 @@ namespace ChatCaster.Windows.ViewModels.Components
         {
             try
             {
+                _localizationService.LanguageChanged -= OnLanguageChanged;
                 RecentRecognitions.Clear();
                 Log.Debug("RecognitionResultsComponent: ресурсы освобождены");
             }

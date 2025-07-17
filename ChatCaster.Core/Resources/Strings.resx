@@ -40,6 +40,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  
+  <!-- БАЗОВЫЕ СТРОКИ -->
   <data name="LanguageName_ru-RU" xml:space="preserve">
     <value>Русский</value>
     <comment>Отображаемое имя русского языка</comment>
@@ -49,7 +51,7 @@
     <comment>Отображаемое имя английского языка</comment>
   </data>
   <data name="StatusReady" xml:space="preserve">
-    <value>Готов</value>
+    <value>Готов к записи</value>
     <comment>Статус готовности приложения</comment>
   </data>
   <data name="StatusRecording" xml:space="preserve">
@@ -72,6 +74,8 @@
     <value>Ошибка записи</value>
     <comment>Сообщение об ошибке при записи голоса</comment>
   </data>
+  
+  <!-- НАВИГАЦИЯ -->
   <data name="Navigation" xml:space="preserve">
     <value>Навигация</value>
   </data>
@@ -90,6 +94,16 @@
   <data name="AppTitle" xml:space="preserve">
     <value>ChatCaster</value>
   </data>
+  
+  <!-- ГЛАВНАЯ СТРАНИЦА -->
+  <data name="Main_LastResult" xml:space="preserve">
+    <value>Последний результат</value>
+  </data>
+  <data name="Main_CurrentDevice" xml:space="preserve">
+    <value>Микрофон не выбран</value>
+  </data>
+  
+  <!-- СТРАНИЦА АУДИО -->
   <data name="Audio_PageTitle" xml:space="preserve">
     <value>Аудио и распознавание</value>
   </data>
@@ -113,5 +127,129 @@
   </data>
   <data name="Audio_Language" xml:space="preserve">
     <value>Язык:</value>
+  </data>
+  
+  <!-- СТРАНИЦА ИНТЕРФЕЙСА -->
+  <data name="Interface_PageTitle" xml:space="preserve">
+    <value>Интерфейс</value>
+  </data>
+  <data name="Interface_PageDescription" xml:space="preserve">
+    <value>Настройка overlay индикатора и системных параметров</value>
+  </data>
+  <data name="Interface_OverlayIndicator" xml:space="preserve">
+    <value>Overlay индикатор</value>
+  </data>
+  <data name="Interface_ShowOverlay" xml:space="preserve">
+    <value>Показывать overlay во время записи</value>
+  </data>
+  <data name="Interface_Position" xml:space="preserve">
+    <value>Позиция:</value>
+  </data>
+  <data name="Interface_Visibility" xml:space="preserve">
+    <value>Видимость:</value>
+  </data>
+  <data name="Interface_ShowNotifications" xml:space="preserve">
+    <value>Показывать уведомления</value>
+  </data>
+  <data name="Interface_MinimizeToTray" xml:space="preserve">
+    <value>Кнопка закрытия (X) сворачивает в трей</value>
+  </data>
+  <data name="Interface_StartWithWindows" xml:space="preserve">
+    <value>Запускать с Windows</value>
+  </data>
+  <data name="Interface_StartMinimized" xml:space="preserve">
+    <value>Запускать свернутым в трей</value>
+  </data>
+  
+  <!-- СТРАНИЦА УПРАВЛЕНИЯ -->
+  <data name="Control_PageTitle" xml:space="preserve">
+    <value>Управление</value>
+  </data>
+  <data name="Control_PageDescription" xml:space="preserve">
+    <value>Кликните на поле комбинации и нажмите нужные кнопки</value>
+  </data>
+  <data name="Control_Gamepad" xml:space="preserve">
+    <value>Геймпад:</value>
+  </data>
+  <data name="Control_Keyboard" xml:space="preserve">
+    <value>Клавиатура:</value>
+  </data>
+  <data name="Interface_Position_TopLeft" xml:space="preserve">
+    <value>Верхний левый</value>
+  </data>
+  <data name="Interface_Position_TopCenter" xml:space="preserve">
+    <value>Верхний центр</value>
+  </data>
+  <data name="Interface_Position_TopRight" xml:space="preserve">
+    <value>Верхний правый</value>
+  </data>
+  <data name="Interface_Position_MiddleLeft" xml:space="preserve">
+    <value>Средний левый</value>
+  </data>
+  <data name="Interface_Position_MiddleCenter" xml:space="preserve">
+    <value>Центр</value>
+  </data>
+  <data name="Interface_Position_MiddleRight" xml:space="preserve">
+    <value>Средний правый</value>
+  </data>
+  <data name="Interface_Position_BottomLeft" xml:space="preserve">
+    <value>Нижний левый</value>
+  </data>
+  <data name="Interface_Position_BottomCenter" xml:space="preserve">
+    <value>Нижний центр</value>
+  </data>
+  <data name="Interface_Position_BottomRight" xml:space="preserve">
+    <value>Нижний правый</value>
+  </data>
+  <data name="ButtonRecord" xml:space="preserve">
+    <value>Записать</value>
+  </data>
+  <data name="ButtonStop" xml:space="preserve">
+    <value>Стоп</value>
+  </data>
+  <data name="ButtonProcessing" xml:space="preserve">
+    <value>Обработка...</value>
+  </data>
+  <data name="Main_PlaceholderText" xml:space="preserve">
+    <value>Здесь появится распознанный текст...</value>
+  </data>
+  <data name="Main_RecognitionFailed" xml:space="preserve">
+    <value>Не удалось распознать речь</value>
+  </data>
+  <data name="Main_ConfidenceHigh" xml:space="preserve">
+    <value>Точность: высокая</value>
+  </data>
+  <data name="Main_ProcessingTimeFast" xml:space="preserve">
+    <value>Время: &amp;lt; 1с</value>
+  </data>
+  <data name="Audio_Model_Tiny_Desc" xml:space="preserve">
+    <value>Мгновенно, но тупой</value>
+  </data>
+  <data name="Audio_Model_Base_Desc" xml:space="preserve">
+    <value>Терпимо, как борщ с пряником</value>
+  </data>
+  <data name="Audio_Model_Small_Desc" xml:space="preserve">
+    <value>Уже сильно лучше, косяки редкие</value>
+  </data>
+  <data name="Audio_Model_Medium_Desc" xml:space="preserve">
+    <value>Rarely makes mistakes, like a mathematician</value>
+  </data>
+  <data name="Audio_Model_Large_Desc" xml:space="preserve">
+    <value>УльтраМозг, но съест всю твою оперативку</value>
+  </data>
+  <data name="Audio_Model_Unknown" xml:space="preserve">
+    <value>Неизвестная модель</value>
+  </data>
+  <data name="Audio_ModelReady" xml:space="preserve">
+    <value>Модель готова</value>
+  </data>
+  <data name="Audio_ModelNotLoaded" xml:space="preserve">
+    <value>Модель не загружена</value>
+  </data>
+  <data name="Audio_ModelError" xml:space="preserve">
+    <value>Ошибка проверки</value>
+  </data>
+  <data name="Audio_DownloadError" xml:space="preserve">
+    <value>Ошибка загрузки</value>
   </data>
 </root>

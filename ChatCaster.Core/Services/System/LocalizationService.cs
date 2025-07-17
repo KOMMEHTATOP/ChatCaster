@@ -34,8 +34,13 @@ namespace ChatCaster.Core.Services.System
 
         private void OnConfigurationChanged(object sender, ConfigurationChangedEvent e)
         {
+            Log.Information("🔔 LocalizationService получил ConfigurationChanged: {SettingName} = {NewValue}", 
+                e.SettingName, e.NewValue);
+
             if (e.SettingName == "System.SelectedLanguage" && e.NewValue is string newLanguage)
             {
+                Log.Information("🔄 LocalizationService переключает язык на: {Language}", newLanguage);
+
                 SetLanguage(newLanguage);
             }
         }

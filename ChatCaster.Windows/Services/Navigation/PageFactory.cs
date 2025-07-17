@@ -1,14 +1,7 @@
 using System.Windows.Controls;
-using ChatCaster.Core.Models;
-using ChatCaster.Core.Services.Audio;
-using ChatCaster.Core.Services.Core;
-using ChatCaster.Core.Services.Input;
-using ChatCaster.Core.Services.Overlay;
-using ChatCaster.Core.Services.System;
-using ChatCaster.Core.Services.UI;
-using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.ViewModels;
 using ChatCaster.Windows.Views.ViewSettings;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace ChatCaster.Windows.Services.Navigation
@@ -19,41 +12,12 @@ namespace ChatCaster.Windows.Services.Navigation
     /// </summary>
     public class PageFactory
     {
-        private readonly IAudioCaptureService _audioService;
-        private readonly ISpeechRecognitionService _speechService;
-        private readonly IGamepadService _gamepadService;
-        private readonly ISystemIntegrationService _systemService;
-        private readonly IOverlayService _overlayService;
-        private readonly IConfigurationService _configService;
-        private readonly AppConfig _currentConfig;
-        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
-        private readonly INotificationService _notificationService;
-        private readonly ILocalizationService _localizationService;
+        private readonly IServiceProvider _serviceProvider;
 
-        public PageFactory(
-            IAudioCaptureService audioService,
-            ISpeechRecognitionService speechService,
-            IGamepadService gamepadService,
-            ISystemIntegrationService systemService,
-            IOverlayService overlayService,
-            IConfigurationService configService,
-            AppConfig currentConfig,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            INotificationService notificationService,
-            ILocalizationService localizationService)
+        public PageFactory(IServiceProvider serviceProvider)
         {
-            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
-            _speechService = speechService ?? throw new ArgumentNullException(nameof(speechService));
-            _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
-            _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
-            _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
-            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-            _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
-            _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-
-            Log.Debug("PageFactory инициализирован");
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Log.Debug("PageFactory инициализирован с IServiceProvider");
         }
 
         /// <summary>
@@ -88,13 +52,7 @@ namespace ChatCaster.Windows.Services.Navigation
                 Log.Information("PageFactory: создание AudioSettingsPage");
 
                 var audioView = new AudioSettingsView();
-                var audioViewModel = new AudioSettingsViewModel(
-                    _configService,
-                    _configService.CurrentConfig,
-                    _speechService,
-                    _audioService,
-                    _notificationService,
-                    _localizationService);
+                var audioViewModel = _serviceProvider.GetRequiredService<AudioSettingsViewModel>();
 
                 audioView.SetViewModel(audioViewModel);
 
@@ -117,12 +75,12 @@ namespace ChatCaster.Windows.Services.Navigation
             {
                 Log.Debug("PageFactory: создание InterfaceSettingsPage");
 
-                var interfaceView = new InterfaceSettingsView(_overlayService, _configService, _currentConfig);
-                var interfaceViewModel = new InterfaceSettingsViewModel(_configService, _currentConfig, _overlayService);
+                var interfaceViewModel = _serviceProvider.GetRequiredService<InterfaceSettingsViewModel>();
+                var interfaceView = new InterfaceSettingsView
+                {
+                    DataContext = interfaceViewModel
+                };
 
-                interfaceView.DataContext = interfaceViewModel;
-
-                // Инициализируем ViewModel
                 _ = interfaceViewModel.InitializeAsync();
 
                 Log.Debug("PageFactory: InterfaceSettingsPage создана");
@@ -144,14 +102,12 @@ namespace ChatCaster.Windows.Services.Navigation
             {
                 Log.Debug("PageFactory: создание ControlSettingsPage");
 
-                var controlView = new ControlSettingsView(
-                    _gamepadService, _systemService, _configService, _currentConfig, _gamepadVoiceCoordinator);
-                var controlViewModel = new ControlSettingsViewModel(
-                    _configService, _currentConfig, _gamepadService, _systemService, _gamepadVoiceCoordinator);
+                var controlViewModel = _serviceProvider.GetRequiredService<ControlSettingsViewModel>();
+                var controlView = new ControlSettingsView
+                {
+                    DataContext = controlViewModel
+                };
 
-                controlView.DataContext = controlViewModel;
-
-                // Инициализируем ViewModel
                 _ = controlViewModel.InitializeAsync();
 
                 Log.Debug("PageFactory: ControlSettingsPage создана");

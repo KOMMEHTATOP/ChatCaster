@@ -1,6 +1,8 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Managers.MainPage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
@@ -15,9 +17,10 @@ namespace ChatCaster.Windows.ViewModels.Components
     {
         private readonly RecordingStatusManager _statusManager;
         private readonly IAudioCaptureService _audioService;
+        private readonly ILocalizationService _localizationService;
 
         [ObservableProperty]
-        private bool _isRecording = false;
+        private bool _isRecording;
 
         [ObservableProperty]
         private string _recordingStatusText = "Готов к записи";
@@ -29,20 +32,25 @@ namespace ChatCaster.Windows.ViewModels.Components
         private string _statusColor = "#4caf50";
 
         [ObservableProperty]
-        private float _microphoneLevel = 0.0f;
+        private float _microphoneLevel;
 
         // События для связи с родительской ViewModel
         public event Action<RecordingStateInfo>? StatusChanged;
 
         public RecordingStatusComponentViewModel(
             RecordingStatusManager statusManager,
-            IAudioCaptureService audioService)
+            IAudioCaptureService audioService,
+            ILocalizationService localizationService)
         {
             _statusManager = statusManager ?? throw new ArgumentNullException(nameof(statusManager));
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
 
             // Подписываемся на события аудио сервиса
             _audioService.VolumeChanged += OnVolumeChanged;
+            
+            // Подписываемся на смену языка
+            _localizationService.LanguageChanged += OnLanguageChanged;
 
             Log.Debug("RecordingStatusComponentViewModel инициализирован");
         }
@@ -56,10 +64,10 @@ namespace ChatCaster.Windows.ViewModels.Components
             {
                 var stateInfo = _statusManager.CreateStateInfo(e.NewStatus, e.Reason);
 
-                // Обновляем Observable свойства
+                // Обновляем Observable свойства с локализацией
                 IsRecording = stateInfo.IsRecording;
-                RecordingStatusText = stateInfo.StatusText;
-                RecordButtonText = stateInfo.ButtonText;
+                RecordingStatusText = GetLocalizedStatusText(e.NewStatus);
+                RecordButtonText = GetLocalizedButtonText(e.NewStatus);
                 StatusColor = stateInfo.StatusColor;
 
                 // Уведомляем родительскую ViewModel
@@ -83,8 +91,8 @@ namespace ChatCaster.Windows.ViewModels.Components
                 var stateInfo = _statusManager.CreateStateInfo(RecordingStatus.Idle);
 
                 IsRecording = stateInfo.IsRecording;
-                RecordingStatusText = stateInfo.StatusText;
-                RecordButtonText = stateInfo.ButtonText;
+                RecordingStatusText = GetLocalizedStatusText(RecordingStatus.Idle);
+                RecordButtonText = GetLocalizedButtonText(RecordingStatus.Idle);
                 StatusColor = stateInfo.StatusColor;
                 MicrophoneLevel = 0.0f;
 
@@ -122,8 +130,8 @@ namespace ChatCaster.Windows.ViewModels.Components
                 var stateInfo = _statusManager.CreateStateInfo(RecordingStatus.Error, errorMessage);
 
                 IsRecording = stateInfo.IsRecording;
-                RecordingStatusText = stateInfo.StatusText;
-                RecordButtonText = stateInfo.ButtonText;
+                RecordingStatusText = _localizationService.GetString("ErrorRecording");
+                RecordButtonText = GetLocalizedButtonText(RecordingStatus.Error);
                 StatusColor = stateInfo.StatusColor;
 
                 StatusChanged?.Invoke(stateInfo);
@@ -133,6 +141,56 @@ namespace ChatCaster.Windows.ViewModels.Components
             catch (Exception ex)
             {
                 Log.Error(ex, "RecordingStatusComponent: ошибка установки состояния ошибки");
+            }
+        }
+
+        /// <summary>
+        /// Получает локализованный текст статуса
+        /// </summary>
+        private string GetLocalizedStatusText(RecordingStatus status)
+        {
+            return status switch
+            {
+                RecordingStatus.Idle => _localizationService.GetString("StatusReady"),
+                RecordingStatus.Recording => _localizationService.GetString("StatusRecording"),
+                RecordingStatus.Processing => _localizationService.GetString("StatusProcessing"),
+                RecordingStatus.Error => _localizationService.GetString("ErrorRecording"),
+                _ => _localizationService.GetString("StatusReady")
+            };
+        }
+
+        /// <summary>
+        /// Получает локализованный текст кнопки
+        /// </summary>
+        private string GetLocalizedButtonText(RecordingStatus status)
+        {
+            return status switch
+            {
+                RecordingStatus.Idle => _localizationService.GetString("ButtonRecord"),
+                RecordingStatus.Recording => _localizationService.GetString("ButtonStop"),
+                RecordingStatus.Processing => _localizationService.GetString("ButtonProcessing"),
+                RecordingStatus.Error => _localizationService.GetString("ButtonRecord"),
+                _ => _localizationService.GetString("ButtonRecord")
+            };
+        }
+
+        /// <summary>
+        /// Обновляет локализацию при смене языка
+        /// </summary>
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Обновляем текущие статусы с новой локализацией
+                var currentStatus = IsRecording ? RecordingStatus.Recording : RecordingStatus.Idle;
+                RecordingStatusText = GetLocalizedStatusText(currentStatus);
+                RecordButtonText = GetLocalizedButtonText(currentStatus);
+
+                Log.Debug("RecordingStatusComponent: обновлена локализация");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "RecordingStatusComponent: ошибка обновления локализации");
             }
         }
 
@@ -156,6 +214,7 @@ namespace ChatCaster.Windows.ViewModels.Components
             try
             {
                 _audioService.VolumeChanged -= OnVolumeChanged;
+                _localizationService.LanguageChanged -= OnLanguageChanged;
                 Log.Debug("RecordingStatusComponent: ресурсы освобождены");
             }
             catch (Exception ex)

@@ -1,8 +1,7 @@
 using ChatCaster.Core.Events;
-using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
-using ChatCaster.Core.Services.UI;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Managers.MainPage;
 using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Components;
@@ -22,6 +21,8 @@ namespace ChatCaster.Windows.ViewModels
 
         private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly DeviceDisplayManager _deviceDisplayManager;
+        private readonly ILocalizationService _localizationService;
+        private readonly IConfigurationService _configurationService;
 
         #endregion
 
@@ -32,29 +33,37 @@ namespace ChatCaster.Windows.ViewModels
 
         #endregion
 
-        #region Observable Properties (Readonly Display)
+        #region Observable Properties
 
         [ObservableProperty]
         private string _currentDeviceText = "Устройство не выбрано";
+        [ObservableProperty]
+        private string _lastResultTitle = "Последний результат";
 
         #endregion
 
         #region Constructor
 
         public MainPageViewModel(
-            IAudioCaptureService audioService,
             IVoiceRecordingService voiceRecordingService,
-            IConfigurationService configurationService)
+            IConfigurationService configurationService,
+            ILocalizationService localizationService,
+            RecordingStatusComponentViewModel recordingStatusComponent,
+            RecognitionResultsComponentViewModel recognitionResultsComponent,
+            DeviceDisplayManager deviceDisplayManager)
         {
             _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+            _deviceDisplayManager = deviceDisplayManager ?? throw new ArgumentNullException(nameof(deviceDisplayManager));
 
-            // Создаем менеджеры
-            var statusManager = new RecordingStatusManager();
-            _deviceDisplayManager = new DeviceDisplayManager(audioService, configurationService);
+            // Компоненты из DI
+            RecordingStatusComponent = recordingStatusComponent ?? throw new ArgumentNullException(nameof(recordingStatusComponent));
+            RecognitionResultsComponent = recognitionResultsComponent ?? throw new ArgumentNullException(nameof(recognitionResultsComponent));
 
-            // Инициализируем компоненты
-            RecordingStatusComponent = new RecordingStatusComponentViewModel(statusManager, audioService);
-            RecognitionResultsComponent = new RecognitionResultsComponentViewModel();
+            // Подписываемся на локализацию
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            UpdateLocalizedStrings();
 
             // Подписываемся на события
             SubscribeToEvents();
@@ -133,6 +142,9 @@ namespace ChatCaster.Windows.ViewModels
                 // Отписываемся от событий компонентов
                 RecognitionResultsComponent.TextRecognized -= OnTextRecognized;
 
+                _localizationService.LanguageChanged -= OnLanguageChanged;
+                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+                
                 Log.Debug("MainPageViewModel: события отписаны");
             }
             catch (Exception ex)
@@ -201,6 +213,11 @@ namespace ChatCaster.Windows.ViewModels
             }
         }
 
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            UpdateLocalizedStrings();
+        }
+
         #endregion
 
         #region Initialization
@@ -232,6 +249,12 @@ namespace ChatCaster.Windows.ViewModels
             {
                 Log.Error(ex, "MainPageViewModel: ошибка обновления отображения устройства");
             }
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            LastResultTitle = _localizationService.GetString("Main_LastResult");
+            CurrentDeviceText = _localizationService.GetString("Main_CurrentDevice");
         }
 
         #endregion

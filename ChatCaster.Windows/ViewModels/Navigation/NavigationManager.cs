@@ -1,7 +1,6 @@
 using System.Windows.Controls;
-using ChatCaster.Core.Services.Audio;
-using ChatCaster.Core.Services.Core;
 using ChatCaster.Windows.Services.Navigation;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Navigation
@@ -15,9 +14,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         private readonly PageFactory _pageFactory;
         private readonly PageCacheManager _pageCacheManager;
         private readonly ViewModelCleanupService _cleanupService;
-        private readonly IAudioCaptureService _audioService;
-        private readonly IVoiceRecordingService _voiceRecordingService;
-        private readonly IConfigurationService _configService;
+        private readonly IServiceProvider _serviceProvider;
 
         // Singleton ViewModel для MainPage
         private MainPageViewModel? _mainPageViewModel;
@@ -32,21 +29,17 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             PageFactory pageFactory,
             PageCacheManager pageCacheManager,
             ViewModelCleanupService cleanupService,
-            IAudioCaptureService audioService,
-            IVoiceRecordingService voiceRecordingService,
-            IConfigurationService configService)
+            IServiceProvider serviceProvider)
         {
             _pageFactory = pageFactory ?? throw new ArgumentNullException(nameof(pageFactory));
             _pageCacheManager = pageCacheManager ?? throw new ArgumentNullException(nameof(pageCacheManager));
             _cleanupService = cleanupService ?? throw new ArgumentNullException(nameof(cleanupService));
-            _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
-            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
-            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
 
-            Log.Debug("NavigationManager инициализирован для навигации");
+            Log.Debug("NavigationManager инициализирован с IServiceProvider");
         }
 
         /// <summary>
@@ -113,9 +106,8 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         {
             try
             {
-                // Создаем Singleton MainPageViewModel
-                // MainPage содержит кнопку записи, поэтому нужен IVoiceRecordingService
-                _mainPageViewModel = new MainPageViewModel(_audioService, _voiceRecordingService, _configService);
+                // Получаем Singleton MainPageViewModel из DI
+                _mainPageViewModel = _serviceProvider.GetRequiredService<MainPageViewModel>();
 
                 // Создаем страницу через фабрику
                 var mainPage = _pageFactory.CreateMainPage(_mainPageViewModel);
@@ -126,7 +118,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 CurrentPage = mainPage;
                 CurrentPageTag = NavigationConstants.MainPage;
 
-                Log.Debug("NavigationManager: главная страница загружена");
+                Log.Debug("NavigationManager: главная страница загружена из DI");
             }
             catch (Exception ex)
             {

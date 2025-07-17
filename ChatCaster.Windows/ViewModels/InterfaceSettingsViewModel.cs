@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.Overlay;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.ViewModels.Base;
 using Serilog;
 using System.ComponentModel;
@@ -15,8 +16,10 @@ namespace ChatCaster.Windows.ViewModels
         #region Private Services
 
         private readonly IOverlayService _overlayService;
+        private bool _isUpdatingLanguage;
 
         #endregion
+        private readonly ILocalizationService _localizationService;
 
         #region Observable Properties
 
@@ -45,7 +48,65 @@ namespace ChatCaster.Windows.ViewModels
         private bool _startWithWindows = true;
 
         [ObservableProperty]
-        private bool _startMinimized = false;
+        private bool _startMinimized;
+
+        // Локализованные свойства
+        [ObservableProperty]
+        private string _pageTitle = "Интерфейс";
+
+        [ObservableProperty]
+        private string _pageDescription = "Настройка overlay индикатора и системных параметров";
+
+        [ObservableProperty]
+        private string _overlayIndicatorTitle = "Overlay индикатор";
+
+        [ObservableProperty]
+        private string _showOverlayText = "Показывать overlay во время записи";
+
+        [ObservableProperty]
+        private string _positionLabel = "Позиция:";
+
+        [ObservableProperty]
+        private string _visibilityLabel = "Видимость:";
+
+        [ObservableProperty]
+        private string _showNotificationsText = "Показывать уведомления";
+
+        [ObservableProperty]
+        private string _minimizeToTrayText = "Кнопка закрытия (X) сворачивает в трей";
+
+        [ObservableProperty]
+        private string _startWithWindowsText = "Запускать с Windows";
+
+        [ObservableProperty]
+        private string _startMinimizedText = "Запускать свернутым в трей";
+
+        [ObservableProperty]
+        private string _positionTopLeft = "Верхний левый";
+
+        [ObservableProperty]
+        private string _positionTopCenter = "Верхний центр";
+
+        [ObservableProperty]
+        private string _positionTopRight = "Верхний правый";
+
+        [ObservableProperty]
+        private string _positionMiddleLeft = "Средний левый";
+
+        [ObservableProperty]
+        private string _positionMiddleCenter = "Центр";
+
+        [ObservableProperty]
+        private string _positionMiddleRight = "Средний правый";
+
+        [ObservableProperty]
+        private string _positionBottomLeft = "Нижний левый";
+
+        [ObservableProperty]
+        private string _positionBottomCenter = "Нижний центр";
+
+        [ObservableProperty]
+        private string _positionBottomRight = "Нижний правый";
 
         #endregion
 
@@ -106,9 +167,13 @@ namespace ChatCaster.Windows.ViewModels
         public InterfaceSettingsViewModel(
             IConfigurationService configurationService,
             AppConfig currentConfig,
-            IOverlayService overlayService) : base(configurationService, currentConfig)
+            IOverlayService overlayService,
+            ILocalizationService localizationService) : base(configurationService, currentConfig)
         {
             _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
+            _localizationService = localizationService;
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            UpdateLocalizedStrings();
 
             // ВАЖНО: сначала инициализируем статические данные
             InitializeStaticData();
@@ -162,13 +227,10 @@ namespace ChatCaster.Windows.ViewModels
             config.System.StartWithSystem = StartWithWindows; 
             config.System.StartMinimized = StartMinimized;
 
-            Log.Debug("Config HashCode в Settings: {HashCode}, AllowCompleteExit установлен в: {Value}, MinimizeToTray был: {MinimizeToTray}", 
-                config.GetHashCode(), 
-                config.System.AllowCompleteExit,
-                MinimizeToTray);
-
+            config.System.SelectedLanguage = _currentConfig.System.SelectedLanguage;
             
-            Log.Debug("Настройки интерфейса применены к конфигурации");
+            Log.Debug("Настройки интерфейса применены к конфигурации, язык сохранен: {Language}", 
+                config.System.SelectedLanguage);
             return Task.CompletedTask;
         }
 
@@ -208,6 +270,9 @@ namespace ChatCaster.Windows.ViewModels
                 try
                 {
                     await _overlayService.HideAsync();
+                    _localizationService.LanguageChanged -= OnLanguageChanged;
+                    base.CleanupPageSpecific();
+
                     Log.Debug("Overlay скрыт при cleanup InterfaceSettingsViewModel");
                 }
                 catch (Exception ex)
@@ -221,25 +286,96 @@ namespace ChatCaster.Windows.ViewModels
 
         #endregion
 
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            if (_isUpdatingLanguage) return; 
+        
+            _isUpdatingLanguage = true;
+            try
+            {
+                UpdateLocalizedStrings();
+            }
+            finally
+            {
+                _isUpdatingLanguage = false;
+            }
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            PageTitle = _localizationService.GetString("Interface_PageTitle");
+            PageDescription = _localizationService.GetString("Interface_PageDescription");
+            OverlayIndicatorTitle = _localizationService.GetString("Interface_OverlayIndicator");
+            ShowOverlayText = _localizationService.GetString("Interface_ShowOverlay");
+            PositionLabel = _localizationService.GetString("Interface_Position");
+            VisibilityLabel = _localizationService.GetString("Interface_Visibility");
+            ShowNotificationsText = _localizationService.GetString("Interface_ShowNotifications");
+            MinimizeToTrayText = _localizationService.GetString("Interface_MinimizeToTray");
+            StartWithWindowsText = _localizationService.GetString("Interface_StartWithWindows");
+            StartMinimizedText = _localizationService.GetString("Interface_StartMinimized");
+            
+            PositionTopLeft = _localizationService.GetString("Interface_Position_TopLeft");
+            PositionTopCenter = _localizationService.GetString("Interface_Position_TopCenter");
+            PositionTopRight = _localizationService.GetString("Interface_Position_TopRight");
+            PositionMiddleLeft = _localizationService.GetString("Interface_Position_MiddleLeft");
+            PositionMiddleCenter = _localizationService.GetString("Interface_Position_MiddleCenter");
+            PositionMiddleRight = _localizationService.GetString("Interface_Position_MiddleRight");
+            PositionBottomLeft = _localizationService.GetString("Interface_Position_BottomLeft");
+            PositionBottomCenter = _localizationService.GetString("Interface_Position_BottomCenter");
+            PositionBottomRight = _localizationService.GetString("Interface_Position_BottomRight");
+            UpdateOverlayPositions();
+
+        }
+
+        
         #region Private Methods
 
         private void InitializeStaticData()
         {
             // Инициализируем доступные позиции overlay
             AvailablePositions.Clear();
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopLeft, "Верхний левый"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopCenter, "Верхний центр"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopRight, "Верхний правый"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleLeft, "Средний левый"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleCenter, "Центр"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleRight, "Средний правый"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomLeft, "Нижний левый"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomCenter, "Нижний центр"));
-            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomRight, "Нижний правый"));
+            // Используем локализованные строки
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopLeft, PositionTopLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopCenter, PositionTopCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopRight, PositionTopRight));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleLeft, PositionMiddleLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleCenter, PositionMiddleCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleRight, PositionMiddleRight));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomLeft, PositionBottomLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomCenter, PositionBottomCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomRight, PositionBottomRight));
 
             // SelectedPosition будет установлен в LoadPageSpecificSettingsAsync()
             Log.Debug("Статические данные для InterfaceSettings инициализированы: {Count} позиций", 
                 AvailablePositions.Count);
+        }
+        
+        private void UpdateOverlayPositions()
+        {
+            if (_isUpdatingLanguage) return;
+            
+            // Сохраняем текущую выбранную позицию
+            var currentPosition = SelectedPosition?.Position;
+    
+            // Очищаем и заново создаем список с новыми локализованными названиями
+            AvailablePositions.Clear();
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopLeft, PositionTopLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopCenter, PositionTopCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.TopRight, PositionTopRight));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleLeft, PositionMiddleLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleCenter, PositionMiddleCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.MiddleRight, PositionMiddleRight));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomLeft, PositionBottomLeft));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomCenter, PositionBottomCenter));
+            AvailablePositions.Add(new OverlayPositionItem(OverlayPosition.BottomRight, PositionBottomRight));
+    
+            // Восстанавливаем выбранную позицию
+            if (currentPosition.HasValue)
+            {
+                SelectedPosition = AvailablePositions.FirstOrDefault(p => p.Position == currentPosition.Value);
+            }
+    
+            Log.Debug("Позиции overlay обновлены для нового языка");
         }
 
         private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)

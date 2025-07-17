@@ -27,9 +27,9 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- ИЗМЕНЕНО: привязка к NavigationText вместо статичного текста -->
                 <TextBlock Grid.Row="0"
                            Text="{Binding NavigationText}"
                            Margin="20,20,20,15"
@@ -38,7 +38,6 @@
                            Foreground="#cccccc" />
 
                 <StackPanel Grid.Row="1" Margin="0,10">
-                    <!-- ИЗМЕНЕНО: привязка к MainPageText -->
                     <ui:Button x:Name="MainPageButton"
                                Margin="10,5"
                                HorizontalAlignment="Stretch"
@@ -54,7 +53,6 @@
                         </StackPanel>
                     </ui:Button>
 
-                    <!-- ИЗМЕНЕНО: привязка к AudioPageText -->
                     <ui:Button x:Name="AudioPageButton"
                                Margin="10,5"
                                HorizontalAlignment="Stretch"
@@ -70,7 +68,6 @@
                         </StackPanel>
                     </ui:Button>
 
-                    <!-- ИЗМЕНЕНО: привязка к InterfacePageText -->
                     <ui:Button x:Name="InterfacePageButton"
                                Margin="10,5"
                                HorizontalAlignment="Stretch"
@@ -86,7 +83,6 @@
                         </StackPanel>
                     </ui:Button>
 
-                    <!-- ИЗМЕНЕНО: привязка к ControlPageText -->
                     <ui:Button x:Name="ControlPageButton"
                                Margin="10,5"
                                HorizontalAlignment="Stretch"
@@ -101,26 +97,26 @@
                             <TextBlock Text="{Binding ControlPageText}" FontSize="14" />
                         </StackPanel>
                     </ui:Button>
-
-                    <!-- ComboBox для выбора языка (без изменений) -->
-                    <ComboBox Margin="10,15,10,10"
-                              VerticalAlignment="Bottom"
-                              ItemsSource="{Binding AvailableLanguages}"
-                              SelectedValuePath="Culture"
-                              SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
-                              Height="30"
-                              Background="#3a3a3c"
-                              Foreground="White">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Width="20" Height="15" Margin="0,0,5,0" Source="{Binding FlagImage}" />
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
                 </StackPanel>
+
+                <!-- ComboBox теперь в отдельной строке внизу -->
+                <ComboBox Grid.Row="2"
+                          Margin="10,15,10,20"
+                          ItemsSource="{Binding AvailableLanguages}"
+                          SelectedValuePath="Culture"
+                          SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                          Height="40"
+                          Background="#3a3a3c"
+                          Foreground="White">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,5">
+                                <Image Width="20" Height="15" Margin="0,0,5,0" Source="{Binding FlagImage}" />
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </Grid>
         </Border>
 

@@ -10,20 +10,20 @@
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
             
-            <!-- Header секция -->
+            <!-- Header секция - ЛОКАЛИЗОВАНО -->
             <StackPanel Margin="0,0,0,20">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <ui:SymbolIcon Symbol="Desktop24" 
                                    FontSize="28" 
                                    Foreground="#1ba1e2"
                                    Margin="0,0,15,0"/>
-                    <TextBlock Text="Интерфейс" 
+                    <TextBlock Text="{Binding PageTitle}" 
                                FontSize="24" 
                                FontWeight="SemiBold"
                                Foreground="White"
                                VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="Настройка overlay индикатора и системных параметров" 
+                <TextBlock Text="{Binding PageDescription}" 
                            FontSize="14"
                            Foreground="#cccccc"/>
             </StackPanel>
@@ -45,21 +45,21 @@
                     
                     <StackPanel Grid.Row="0">
                         
-                        <!-- Overlay индикатор -->
-                        <TextBlock Text="Overlay индикатор" 
+                        <!-- Overlay индикатор - ЛОКАЛИЗОВАНО -->
+                        <TextBlock Text="{Binding OverlayIndicatorTitle}" 
                                    FontSize="16" 
                                    FontWeight="SemiBold"
                                    Foreground="White"
                                    Margin="0,0,0,15"/>
                         
-                        <!-- Показывать overlay -->
-                        <CheckBox Content="Показывать overlay во время записи"
+                        <!-- Показывать overlay - ЛОКАЛИЗОВАНО -->
+                        <CheckBox Content="{Binding ShowOverlayText}"
                                   FontSize="14"
                                   Foreground="#e0e0e0"
                                   Margin="0,0,0,20"
                                   IsChecked="{Binding ShowOverlay}"/>
                         
-                        <!-- Позиция overlay - ВОЗВРАЩАЕМ ОРИГИНАЛЬНУЮ СТРУКТУРУ -->
+                        <!-- Позиция overlay - ЗАМЕНА НА ПРИВЯЗКУ К КОЛЛЕКЦИИ -->
                         <Grid Margin="0,0,0,25">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="120"/>
@@ -67,33 +67,23 @@
                             </Grid.ColumnDefinitions>
                             
                             <TextBlock Grid.Column="0" 
-                                       Text="Позиция:" 
+                                       Text="{Binding PositionLabel}" 
                                        FontSize="14" 
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
                                        VerticalAlignment="Center"/>
                             
+                            <!-- ИЗМЕНЕНО: привязка к AvailablePositions из ViewModel -->
                             <ComboBox Grid.Column="1" 
                                       x:Name="OverlayPositionComboBox"
                                       FontSize="14"
                                       IsEnabled="{Binding ShowOverlay}"
-                                      SelectedValue="{Binding SelectedPosition.Position, Mode=OneWay}"
-                                      SelectedValuePath="Tag"
-                                      SelectionChanged="OverlayPositionComboBox_SelectionChanged">
-                                <ComboBoxItem Content="Верхний левый" Tag="TopLeft"/>
-                                <ComboBoxItem Content="Верхний центр" Tag="TopCenter"/>
-                                <ComboBoxItem Content="Верхний правый" Tag="TopRight"/>
-                                <ComboBoxItem Content="Средний левый" Tag="MiddleLeft"/>
-                                <ComboBoxItem Content="Центр" Tag="MiddleCenter"/>
-                                <ComboBoxItem Content="Средний правый" Tag="MiddleRight"/>
-                                <ComboBoxItem Content="Нижний левый" Tag="BottomLeft"/>
-                                <ComboBoxItem Content="Нижний центр" Tag="BottomCenter"/>
-                                <ComboBoxItem Content="Нижний правый" Tag="BottomRight"/>
-                                <ComboBoxItem Content="Произвольная" Tag="Custom"/>
-                            </ComboBox>
+                                      ItemsSource="{Binding AvailablePositions}"
+                                      SelectedItem="{Binding SelectedPosition, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName"/>
                         </Grid>
                         
-                        <!-- Прозрачность overlay -->
+                        <!-- Прозрачность overlay - ЛОКАЛИЗОВАНО -->
                         <Grid Margin="0,0,0,30">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -105,7 +95,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" 
-                                       Text="Видимость:" 
+                                       Text="{Binding VisibilityLabel}" 
                                        FontSize="14" 
                                        FontWeight="Medium"
                                        Foreground="#e0e0e0"
@@ -129,27 +119,27 @@
                                        HorizontalAlignment="Center"/>
                         </Grid>
                         
-                        <!-- Системные настройки - БЕЗ ЛИШНЕГО ЗАГОЛОВКА -->
+                        <!-- Системные настройки - ЛОКАЛИЗОВАНО -->
                         <StackPanel>
-                            <CheckBox Content="Показывать уведомления"
+                            <CheckBox Content="{Binding ShowNotificationsText}"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
                                       Margin="0,0,0,7"
                                       IsChecked="{Binding ShowNotifications}"/>
                             
-                            <CheckBox Content="Кнопка закрытия (X) сворачивает в трей"
+                            <CheckBox Content="{Binding MinimizeToTrayText}"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
                                       Margin="0,0,0,7"
                                       IsChecked="{Binding MinimizeToTray}"/>
                             
-                            <CheckBox Content="Запускать с Windows"
+                            <CheckBox Content="{Binding StartWithWindowsText}"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
                                       Margin="0,0,0,7"
                                       IsChecked="{Binding StartWithWindows}"/>
                             
-                            <CheckBox Content="Запускать свернутым в трей"
+                            <CheckBox Content="{Binding StartMinimizedText}"
                                       FontSize="14"
                                       Foreground="#e0e0e0"
                                       IsChecked="{Binding StartMinimized}"/>

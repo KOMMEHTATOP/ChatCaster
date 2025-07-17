@@ -78,6 +78,15 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Download error.
+        /// </summary>
+        internal static string Audio_DownloadError {
+            get {
+                return ResourceManager.GetString("Audio_DownloadError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language:.
         /// </summary>
         internal static string Audio_Language {
@@ -101,6 +110,87 @@ namespace ChatCaster.Core.Resources {
         internal static string Audio_Microphone {
             get {
                 return ResourceManager.GetString("Audio_Microphone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decent enough, like pizza with pineapple.
+        /// </summary>
+        internal static string Audio_Model_Base_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Base_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UltraBrain, but will eat all your RAM.
+        /// </summary>
+        internal static string Audio_Model_Large_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Large_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Почти не ошибается, как математик.
+        /// </summary>
+        internal static string Audio_Model_Medium_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Medium_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Much better, mistakes are rare.
+        /// </summary>
+        internal static string Audio_Model_Small_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Small_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lightning fast, but dumb as rocks.
+        /// </summary>
+        internal static string Audio_Model_Tiny_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Tiny_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown model.
+        /// </summary>
+        internal static string Audio_Model_Unknown {
+            get {
+                return ResourceManager.GetString("Audio_Model_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Check error.
+        /// </summary>
+        internal static string Audio_ModelError {
+            get {
+                return ResourceManager.GetString("Audio_ModelError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Model not loaded.
+        /// </summary>
+        internal static string Audio_ModelNotLoaded {
+            get {
+                return ResourceManager.GetString("Audio_ModelNotLoaded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Model ready.
+        /// </summary>
+        internal static string Audio_ModelReady {
+            get {
+                return ResourceManager.GetString("Audio_ModelReady", resourceCulture);
             }
         }
         
@@ -141,6 +231,69 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Processing....
+        /// </summary>
+        internal static string ButtonProcessing {
+            get {
+                return ResourceManager.GetString("ButtonProcessing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Record.
+        /// </summary>
+        internal static string ButtonRecord {
+            get {
+                return ResourceManager.GetString("ButtonRecord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop.
+        /// </summary>
+        internal static string ButtonStop {
+            get {
+                return ResourceManager.GetString("ButtonStop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gamepad:.
+        /// </summary>
+        internal static string Control_Gamepad {
+            get {
+                return ResourceManager.GetString("Control_Gamepad", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keyboard:.
+        /// </summary>
+        internal static string Control_Keyboard {
+            get {
+                return ResourceManager.GetString("Control_Keyboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Click on combination field and press desired buttons.
+        /// </summary>
+        internal static string Control_PageDescription {
+            get {
+                return ResourceManager.GetString("Control_PageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Control.
+        /// </summary>
+        internal static string Control_PageTitle {
+            get {
+                return ResourceManager.GetString("Control_PageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
         internal static string Error {
@@ -168,6 +321,177 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close button (X) minimizes to tray.
+        /// </summary>
+        internal static string Interface_MinimizeToTray {
+            get {
+                return ResourceManager.GetString("Interface_MinimizeToTray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Overlay Indicator.
+        /// </summary>
+        internal static string Interface_OverlayIndicator {
+            get {
+                return ResourceManager.GetString("Interface_OverlayIndicator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Overlay indicator and system settings.
+        /// </summary>
+        internal static string Interface_PageDescription {
+            get {
+                return ResourceManager.GetString("Interface_PageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Interface.
+        /// </summary>
+        internal static string Interface_PageTitle {
+            get {
+                return ResourceManager.GetString("Interface_PageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Position:.
+        /// </summary>
+        internal static string Interface_Position {
+            get {
+                return ResourceManager.GetString("Interface_Position", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bottom Center.
+        /// </summary>
+        internal static string Interface_Position_BottomCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bottom Left.
+        /// </summary>
+        internal static string Interface_Position_BottomLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bottom Right.
+        /// </summary>
+        internal static string Interface_Position_BottomRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Center.
+        /// </summary>
+        internal static string Interface_Position_MiddleCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Middle Left.
+        /// </summary>
+        internal static string Interface_Position_MiddleLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Middle Right.
+        /// </summary>
+        internal static string Interface_Position_MiddleRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top Center.
+        /// </summary>
+        internal static string Interface_Position_TopCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top Left.
+        /// </summary>
+        internal static string Interface_Position_TopLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top Right.
+        /// </summary>
+        internal static string Interface_Position_TopRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show notifications.
+        /// </summary>
+        internal static string Interface_ShowNotifications {
+            get {
+                return ResourceManager.GetString("Interface_ShowNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show overlay during recording.
+        /// </summary>
+        internal static string Interface_ShowOverlay {
+            get {
+                return ResourceManager.GetString("Interface_ShowOverlay", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start minimized to tray.
+        /// </summary>
+        internal static string Interface_StartMinimized {
+            get {
+                return ResourceManager.GetString("Interface_StartMinimized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start with Windows.
+        /// </summary>
+        internal static string Interface_StartWithWindows {
+            get {
+                return ResourceManager.GetString("Interface_StartWithWindows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Visibility:.
+        /// </summary>
+        internal static string Interface_Visibility {
+            get {
+                return ResourceManager.GetString("Interface_Visibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to English.
         /// </summary>
         internal static string LanguageName_en_US {
@@ -182,6 +506,60 @@ namespace ChatCaster.Core.Resources {
         internal static string LanguageName_ru_RU {
             get {
                 return ResourceManager.GetString("LanguageName_ru-RU", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confidence: high.
+        /// </summary>
+        internal static string Main_ConfidenceHigh {
+            get {
+                return ResourceManager.GetString("Main_ConfidenceHigh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No microphone selected.
+        /// </summary>
+        internal static string Main_CurrentDevice {
+            get {
+                return ResourceManager.GetString("Main_CurrentDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last Result.
+        /// </summary>
+        internal static string Main_LastResult {
+            get {
+                return ResourceManager.GetString("Main_LastResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recognition result will appear here....
+        /// </summary>
+        internal static string Main_PlaceholderText {
+            get {
+                return ResourceManager.GetString("Main_PlaceholderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time: &amp;lt; 1s.
+        /// </summary>
+        internal static string Main_ProcessingTimeFast {
+            get {
+                return ResourceManager.GetString("Main_ProcessingTimeFast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Speech recognition failed.
+        /// </summary>
+        internal static string Main_RecognitionFailed {
+            get {
+                return ResourceManager.GetString("Main_RecognitionFailed", resourceCulture);
             }
         }
         
@@ -240,7 +618,7 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Ready.
+        ///   Looks up a localized string similar to Ready to record.
         /// </summary>
         internal static string StatusReady {
             get {

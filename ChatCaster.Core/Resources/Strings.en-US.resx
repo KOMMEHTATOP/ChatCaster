@@ -40,6 +40,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  
+  <!-- БАЗОВЫЕ СТРОКИ -->
   <data name="LanguageName_ru-RU" xml:space="preserve">
     <value>Russian</value>
     <comment>Displayed name for Russian language</comment>
@@ -49,7 +51,7 @@
     <comment>Displayed name for English language</comment>
   </data>
   <data name="StatusReady" xml:space="preserve">
-    <value>Ready</value>
+    <value>Ready to record</value>
     <comment>Status when the application is ready</comment>
   </data>
   <data name="StatusRecording" xml:space="preserve">
@@ -72,6 +74,8 @@
     <value>Recording error</value>
     <comment>Message for voice recording error</comment>
   </data>
+  
+  <!-- НАВИГАЦИЯ -->
   <data name="Navigation" xml:space="preserve">
     <value>Navigation</value>
   </data>
@@ -90,6 +94,16 @@
   <data name="AppTitle" xml:space="preserve">
     <value>ChatCaster</value>
   </data>
+  
+  <!-- ГЛАВНАЯ СТРАНИЦА -->
+  <data name="Main_LastResult" xml:space="preserve">
+    <value>Last Result</value>
+  </data>
+  <data name="Main_CurrentDevice" xml:space="preserve">
+    <value>No microphone selected</value>
+  </data>
+  
+  <!-- СТРАНИЦА АУДИО -->
   <data name="Audio_PageTitle" xml:space="preserve">
     <value>Audio &amp; Recognition</value>
   </data>
@@ -113,5 +127,129 @@
   </data>
   <data name="Audio_Language" xml:space="preserve">
     <value>Language:</value>
+  </data>
+  
+  <!-- СТРАНИЦА ИНТЕРФЕЙСА -->
+  <data name="Interface_PageTitle" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="Interface_PageDescription" xml:space="preserve">
+    <value>Overlay indicator and system settings</value>
+  </data>
+  <data name="Interface_OverlayIndicator" xml:space="preserve">
+    <value>Overlay Indicator</value>
+  </data>
+  <data name="Interface_ShowOverlay" xml:space="preserve">
+    <value>Show overlay during recording</value>
+  </data>
+  <data name="Interface_Position" xml:space="preserve">
+    <value>Position:</value>
+  </data>
+  <data name="Interface_Visibility" xml:space="preserve">
+    <value>Visibility:</value>
+  </data>
+  <data name="Interface_ShowNotifications" xml:space="preserve">
+    <value>Show notifications</value>
+  </data>
+  <data name="Interface_MinimizeToTray" xml:space="preserve">
+    <value>Close button (X) minimizes to tray</value>
+  </data>
+  <data name="Interface_StartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="Interface_StartMinimized" xml:space="preserve">
+    <value>Start minimized to tray</value>
+  </data>
+  
+  <!-- СТРАНИЦА УПРАВЛЕНИЯ -->
+  <data name="Control_PageTitle" xml:space="preserve">
+    <value>Control</value>
+  </data>
+  <data name="Control_PageDescription" xml:space="preserve">
+    <value>Click on combination field and press desired buttons</value>
+  </data>
+  <data name="Control_Gamepad" xml:space="preserve">
+    <value>Gamepad:</value>
+  </data>
+  <data name="Control_Keyboard" xml:space="preserve">
+    <value>Keyboard:</value>
+  </data>
+  <data name="Interface_Position_TopCenter" xml:space="preserve">
+    <value>Top Center</value>
+  </data>
+  <data name="Interface_Position_TopLeft" xml:space="preserve">
+    <value>Top Left</value>
+  </data>
+  <data name="Interface_Position_MiddleLeft" xml:space="preserve">
+    <value>Middle Left</value>
+  </data>
+  <data name="Interface_Position_TopRight" xml:space="preserve">
+    <value>Top Right</value>
+  </data>
+  <data name="Interface_Position_MiddleCenter" xml:space="preserve">
+    <value>Center</value>
+  </data>
+  <data name="Interface_Position_MiddleRight" xml:space="preserve">
+    <value>Middle Right</value>
+  </data>
+  <data name="Interface_Position_BottomLeft" xml:space="preserve">
+    <value>Bottom Left</value>
+  </data>
+  <data name="Interface_Position_BottomCenter" xml:space="preserve">
+    <value>Bottom Center</value>
+  </data>
+  <data name="Interface_Position_BottomRight" xml:space="preserve">
+    <value>Bottom Right</value>
+  </data>
+  <data name="ButtonRecord" xml:space="preserve">
+    <value>Record</value>
+  </data>
+  <data name="ButtonStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="ButtonProcessing" xml:space="preserve">
+    <value>Processing...</value>
+  </data>
+  <data name="Main_PlaceholderText" xml:space="preserve">
+    <value>Recognition result will appear here...</value>
+  </data>
+  <data name="Main_RecognitionFailed" xml:space="preserve">
+    <value>Speech recognition failed</value>
+  </data>
+  <data name="Main_ConfidenceHigh" xml:space="preserve">
+    <value>Confidence: high</value>
+  </data>
+  <data name="Main_ProcessingTimeFast" xml:space="preserve">
+    <value>Time: &amp;lt; 1s</value>
+  </data>
+  <data name="Audio_Model_Tiny_Desc" xml:space="preserve">
+    <value>Lightning fast, but dumb as rocks</value>
+  </data>
+  <data name="Audio_Model_Base_Desc" xml:space="preserve">
+    <value>Decent enough, like pizza with pineapple</value>
+  </data>
+  <data name="Audio_Model_Small_Desc" xml:space="preserve">
+    <value>Much better, mistakes are rare</value>
+  </data>
+  <data name="Audio_Model_Medium_Desc" xml:space="preserve">
+    <value>Почти не ошибается, как математик</value>
+  </data>
+  <data name="Audio_Model_Large_Desc" xml:space="preserve">
+    <value>UltraBrain, but will eat all your RAM</value>
+  </data>
+  <data name="Audio_Model_Unknown" xml:space="preserve">
+    <value>Unknown model</value>
+  </data>
+  <data name="Audio_ModelReady" xml:space="preserve">
+    <value>Model ready</value>
+  </data>
+  <data name="Audio_ModelNotLoaded" xml:space="preserve">
+    <value>Model not loaded</value>
+  </data>
+  <data name="Audio_ModelError" xml:space="preserve">
+    <value>Check error</value>
+  </data>
+  <data name="Audio_DownloadError" xml:space="preserve">
+    <value>Download error</value>
   </data>
 </root>

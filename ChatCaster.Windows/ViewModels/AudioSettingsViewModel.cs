@@ -90,13 +90,13 @@ namespace ChatCaster.Windows.ViewModels
             
             Log.Information("AudioSettingsViewModel конструктор вызван (рефакторинг)");
 
-            // Создаем менеджеры
+            // Создаем менеджеры (теперь передаем localizationService в WhisperModelManager)
             var audioDeviceManager = new AudioDeviceManager(audioService);
-            var whisperModelManager = new WhisperModelManager(speechRecognitionService, currentConfig);
+            var whisperModelManager = new WhisperModelManager(speechRecognitionService, currentConfig, localizationService);
 
-            // Инициализируем компоненты
+            // Инициализируем компоненты (теперь передаем localizationService в WhisperModelComponent)
             AudioDeviceComponent = new AudioDeviceComponentViewModel(audioDeviceManager, notificationService);
-            WhisperModelComponent = new WhisperModelComponentViewModel(whisperModelManager);
+            WhisperModelComponent = new WhisperModelComponentViewModel(whisperModelManager, localizationService);
 
             // Подписываемся на события компонентов
             SubscribeToComponentEvents();
@@ -265,6 +265,10 @@ namespace ChatCaster.Windows.ViewModels
                 _localizationService.LanguageChanged -= OnLanguageChanged;
                 
                 UnsubscribeFromComponentEvents();
+                
+                // Очищаем компоненты
+                WhisperModelComponent.Dispose();
+                
                 Log.Information("AudioSettingsViewModel Cleanup завершен");
             }
             catch (Exception ex)

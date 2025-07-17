@@ -20,7 +20,6 @@ using ChatCaster.Windows.Managers.VoiceRecording;
 using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
 using ChatCaster.Windows.Services.Navigation;
-using ChatCaster.Core.Services; // Добавлено для ILocalizationService и LocalizationService
 using Serilog;
 
 namespace ChatCaster.Windows
@@ -54,7 +53,7 @@ namespace ChatCaster.Windows
                 trayService.Initialize();
                 Log.Information("TrayService инициализирован");
 
-                // Инициализируем NotificationService (заменяет TrayNotificationCoordinator)
+                // Инициализируем NotificationService
                 notificationService.InitializeAsync().GetAwaiter().GetResult();
                 Log.Information("NotificationService инициализирован");
 
@@ -101,7 +100,7 @@ namespace ChatCaster.Windows
             var appConfig = LoadAppConfig();
             services.AddSingleton(appConfig);
 
-            // === НОВЫЙ WHISPER МОДУЛЬ ===
+            // === WHISPER МОДУЛЬ ===
             var speechConfig = appConfig.SpeechRecognition;
 
             services.AddWhisperAsSpeechRecognition(config =>
@@ -143,7 +142,7 @@ namespace ChatCaster.Windows
             services.AddSingleton<ITrayService, TrayService>();
             services.AddSingleton<INotificationService, NotificationService>();
 
-            // === ОСТАЛЬНЫЕ СЕРВИСЫ ===
+            // === VOICE RECORDING СЕРВИСЫ ===
             services.AddSingleton<IVoiceRecordingService>(provider =>
                 new VoiceRecordingCoordinator(
                     provider.GetRequiredService<IAudioCaptureService>(),
@@ -160,8 +159,10 @@ namespace ChatCaster.Windows
                     provider.GetRequiredService<ITrayService>()
                 ));
 
-            // === СЕРВИСЫ НАВИГАЦИИ ===
+            // === ИНИЦИАЛИЗАЦИЯ И НАВИГАЦИЯ ===
             services.AddSingleton<ApplicationInitializationService>();
+            
+            // НАВИГАЦИЯ 
             services.AddSingleton<PageFactory>();
             services.AddSingleton<PageCacheManager>();
             services.AddSingleton<ViewModelCleanupService>();
@@ -170,18 +171,24 @@ namespace ChatCaster.Windows
             // === МЕНЕДЖЕРЫ MAINPAGE ===
             services.AddSingleton<RecordingStatusManager>();
             services.AddSingleton<DeviceDisplayManager>();
-            services.AddSingleton<ViewModels.Navigation.NavigationManager>();
+
+            // === КОМПОНЕНТЫ VIEWMODELS ===
+            services.AddSingleton<ViewModels.Components.RecordingStatusComponentViewModel>();
+            services.AddSingleton<ViewModels.Components.RecognitionResultsComponentViewModel>();
 
             // === VIEWMODELS ===
             services.AddSingleton<ChatCasterWindowViewModel>();
 
+            // Страничные ViewModels как Scoped (новый экземпляр для каждой навигации)
+            services.AddScoped<AudioSettingsViewModel>();
+            services.AddScoped<InterfaceSettingsViewModel>();
+            services.AddScoped<ControlSettingsViewModel>();
+            services.AddScoped<MainPageViewModel>();
+
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
-
-            services.AddScoped<AudioSettingsViewModel>();
-
             
-            Log.Information("DI контейнер настроен успешно");
+            Log.Information("DI контейнер настроен успешно - убраны дубликаты");
         }
 
         private static AppConfig LoadAppConfig()

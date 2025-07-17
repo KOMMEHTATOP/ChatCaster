@@ -14,32 +14,4 @@ public partial class ControlSettingsView
     {
         InitializeComponent();
     }
-
-    public ControlSettingsView(
-        IGamepadService gamepadService, 
-        ISystemIntegrationService systemService, 
-        IConfigurationService configurationService,
-        AppConfig currentConfig,
-        GamepadVoiceCoordinator gamepadVoiceCoordinator) : this()
-    {
-        try
-        {
-            var viewModel = new ControlSettingsViewModel(
-                configurationService, 
-                currentConfig, 
-                gamepadService, 
-                systemService,
-                gamepadVoiceCoordinator);
-            
-            DataContext = viewModel;
-            
-            _ = viewModel.InitializeAsync();
-            
-            Log.Debug("ControlSettingsView инициализирован с ViewModel");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка при инициализации ControlSettingsView");
-        }
-    }
 }

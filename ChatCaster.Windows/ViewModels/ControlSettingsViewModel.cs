@@ -4,6 +4,7 @@ using ChatCaster.Core.Services.Input;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Services.GamepadService;
 using ChatCaster.Windows.ViewModels.Base;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
 
@@ -15,14 +16,22 @@ namespace ChatCaster.Windows.ViewModels
     /// </summary>
     public partial class ControlSettingsViewModel : BaseSettingsViewModel
     {
-        #region Additional Services
+        private readonly ILocalizationService _localizationService;
 
-        private readonly IGamepadService _gamepadService;
-        private readonly ISystemIntegrationService _systemService;
-        private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
+        // Локализованные свойства
+        [ObservableProperty]
+        private string _pageTitle = "Управление";
 
-        #endregion
+        [ObservableProperty]
+        private string _pageDescription = "Кликните на поле комбинации и нажмите нужные кнопки";
 
+        [ObservableProperty]
+        private string _gamepadLabel = "Геймпад:";
+
+        [ObservableProperty]
+        private string _keyboardLabel = "Клавиатура:";
+
+        
         #region Components
 
         // Компоненты
@@ -73,11 +82,13 @@ namespace ChatCaster.Windows.ViewModels
             AppConfig currentConfig,
             IGamepadService gamepadService,
             ISystemIntegrationService systemService,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator) : base(configurationService, currentConfig)
+            GamepadVoiceCoordinator gamepadVoiceCoordinator,
+            ILocalizationService localizationService) : base(configurationService, currentConfig)
         {
-            _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
-            _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
-            _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
+            _localizationService = localizationService;
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            UpdateLocalizedStrings();
+
 
             Log.Debug("Инициализация ControlSettingsViewModel начата");
             
@@ -169,7 +180,9 @@ namespace ChatCaster.Windows.ViewModels
                 
                 // Отписываемся от событий
                 UnsubscribeFromComponentEvents();
-                
+                _localizationService.LanguageChanged -= OnLanguageChanged;
+                base.CleanupPageSpecific();
+
                 // Освобождаем компоненты
                 GamepadComponent?.Dispose();
                 KeyboardComponent?.Dispose();
@@ -227,6 +240,21 @@ namespace ChatCaster.Windows.ViewModels
         }
 
         #endregion
+
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            UpdateLocalizedStrings();
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            PageTitle = _localizationService.GetString("Control_PageTitle");
+            PageDescription = _localizationService.GetString("Control_PageDescription");
+            GamepadLabel = _localizationService.GetString("Control_Gamepad");
+            KeyboardLabel = _localizationService.GetString("Control_Keyboard");
+        }
+        
+        
 
         #region Event Handlers
 

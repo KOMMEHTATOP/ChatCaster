@@ -10,20 +10,20 @@
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="800">
 
-            <!-- Header секция -->
+            <!-- Header секция - ЛОКАЛИЗОВАНО -->
             <StackPanel Margin="0,0,0,20">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <ui:SymbolIcon Symbol="Games24"
                                    FontSize="28"
                                    Foreground="#1ba1e2"
                                    Margin="0,0,15,0" />
-                    <TextBlock Text="Управление"
+                    <TextBlock Text="{Binding PageTitle}"
                                FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="White"
                                VerticalAlignment="Center" />
                 </StackPanel>
-                <TextBlock Text="Кликните на поле комбинации и нажмите нужные кнопки"
+                <TextBlock Text="{Binding PageDescription}"
                            FontSize="14"
                            Foreground="#cccccc" />
             </StackPanel>
@@ -48,7 +48,7 @@
                 <Grid Margin="25">
                     <StackPanel>
 
-                        <!-- Геймпад секция с улучшенным UI -->
+                        <!-- Геймпад секция - ЛОКАЛИЗОВАНО -->
                         <StackPanel Margin="0,0,0,30">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <ui:SymbolIcon Symbol="Games20"
@@ -56,7 +56,7 @@
                                                Foreground="#1ba1e2"
                                                Margin="0,0,8,0"
                                                VerticalAlignment="Center" />
-                                <TextBlock Text="Геймпад:"
+                                <TextBlock Text="{Binding GamepadLabel}"
                                            FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="White"
@@ -172,7 +172,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Клавиатура секция с улучшенным UI -->
+                        <!-- Клавиатура секция - ЛОКАЛИЗОВАНО -->
                         <StackPanel Margin="0,0,0,30">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <ui:SymbolIcon Symbol="Keyboard24"
@@ -180,7 +180,7 @@
                                                Foreground="#1ba1e2"
                                                Margin="0,0,8,0"
                                                VerticalAlignment="Center" />
-                                <TextBlock Text="Клавиатура:"
+                                <TextBlock Text="{Binding KeyboardLabel}"
                                            FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="White"

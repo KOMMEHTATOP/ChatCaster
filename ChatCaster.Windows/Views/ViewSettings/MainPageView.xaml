@@ -87,7 +87,7 @@
                                        FontSize="20" 
                                        Foreground="#1ba1e2"
                                        Margin="0,0,12,0"/>
-                        <TextBlock Text="Последний результат" 
+                        <TextBlock Text="{Binding LastResultTitle}" 
                                    FontSize="18" 
                                    FontWeight="SemiBold"
                                    Foreground="White"/>
@@ -99,7 +99,7 @@
                             Padding="20"
                             MinHeight="120"
                             Margin="0,0,0,15">
-                        <!-- ✅ ИСПРАВЛЕНО: Правильные привязки к результатам -->
+                        <!-- Правильные привязки к результатам -->
                         <TextBlock Text="{Binding RecognitionResultsComponent.ResultText}"
                                    FontFamily="Consolas"
                                    FontSize="14"
@@ -110,7 +110,7 @@
                     
                     <StackPanel Grid.Row="2" 
                                 Orientation="Horizontal">
-                        <!-- ✅ ИСПРАВЛЕНО: Правильные привязки к метрикам -->
+                        <!-- Правильные привязки к метрикам -->
                         <TextBlock Text="{Binding RecognitionResultsComponent.ConfidenceText}"
                                    FontSize="12"
                                    Foreground="#999999"

@@ -1,5 +1,7 @@
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
+using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.System;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
@@ -15,13 +17,16 @@ namespace ChatCaster.Windows.Managers.AudioSettings
     {
         private readonly ISpeechRecognitionService _speechRecognitionService;
         private readonly AppConfig _currentConfig;
+        private readonly ILocalizationService _localizationService;
 
         public WhisperModelManager(
             ISpeechRecognitionService speechRecognitionService,
-            AppConfig currentConfig)
+            AppConfig currentConfig,
+            ILocalizationService localizationService)
         {
             _speechRecognitionService = speechRecognitionService ?? throw new ArgumentNullException(nameof(speechRecognitionService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         }
         
         /// <summary>
@@ -109,12 +114,14 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             try
             {
-                return Task.FromResult(_speechRecognitionService.IsInitialized ? new ModelStatusInfo("Модель готова", "#4caf50", ModelState.Ready) : new ModelStatusInfo("Модель не загружена", "#ff9800", ModelState.NotDownloaded));
+                return Task.FromResult(_speechRecognitionService.IsInitialized 
+                    ? new ModelStatusInfo(_localizationService.GetString("Audio_ModelReady"), "#4caf50", ModelState.Ready) 
+                    : new ModelStatusInfo(_localizationService.GetString("Audio_ModelNotLoaded"), "#ff9800", ModelState.NotDownloaded));
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка проверки статуса модели в WhisperModelManager");
-                return Task.FromResult(new ModelStatusInfo("Ошибка проверки", "#f44336", ModelState.Error));
+                return Task.FromResult(new ModelStatusInfo(_localizationService.GetString("Audio_ModelError"), "#f44336", ModelState.Error));
             }
         }
         
@@ -136,18 +143,18 @@ namespace ChatCaster.Windows.Managers.AudioSettings
                 if (result)
                 {
                     Log.Information("WhisperModelManager модель успешно загружена: {Model}", modelSize);
-                    return new ModelStatusInfo("Модель готова", "#4caf50", ModelState.Ready);
+                    return new ModelStatusInfo(_localizationService.GetString("Audio_ModelReady"), "#4caf50", ModelState.Ready);
                 }
                 else
                 {
                     Log.Error("WhisperModelManager ошибка загрузки модели: {Model}", modelSize);
-                    return new ModelStatusInfo("Ошибка загрузки", "#f44336", ModelState.Error);
+                    return new ModelStatusInfo(_localizationService.GetString("Audio_DownloadError"), "#f44336", ModelState.Error);
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "WhisperModelManager исключение при загрузке модели: {Model}", modelSize);
-                return new ModelStatusInfo("Ошибка загрузки", "#f44336", ModelState.Error);
+                return new ModelStatusInfo(_localizationService.GetString("Audio_DownloadError"), "#f44336", ModelState.Error);
             }
         }
 
@@ -155,11 +162,11 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "Tiny ⚡ (~76 MB)",
-                WhisperConstants.ModelSizes.Base => "Base 🎯 (~144 MB)",
-                WhisperConstants.ModelSizes.Small => "Small 💪 (~476 MB)",
-                WhisperConstants.ModelSizes.Medium => "Medium 🧠 (~1.5 GB)",
-                WhisperConstants.ModelSizes.Large => "Large 🚀 (~3.0 GB)",
+                WhisperConstants.ModelSizes.Tiny => $"{_localizationService.GetString("Audio_Model_Tiny")} ⚡ (~76 MB)",
+                WhisperConstants.ModelSizes.Base => $"{_localizationService.GetString("Audio_Model_Base")} 🎯 (~144 MB)",
+                WhisperConstants.ModelSizes.Small => $"{_localizationService.GetString("Audio_Model_Small")} 💪 (~476 MB)",
+                WhisperConstants.ModelSizes.Medium => $"{_localizationService.GetString("Audio_Model_Medium")} 🧠 (~1.5 GB)",
+                WhisperConstants.ModelSizes.Large => $"{_localizationService.GetString("Audio_Model_Large")} 🚀 (~3.0 GB)",
                 _ => modelSize
             };
         }
@@ -168,12 +175,12 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             return modelSize switch
             {
-                WhisperConstants.ModelSizes.Tiny => "Мгновенно, но тупой",
-                WhisperConstants.ModelSizes.Base => "Терпимо, как борщ с пряником",
-                WhisperConstants.ModelSizes.Small => "Уже сильно лучше, косяки редкие",
-                WhisperConstants.ModelSizes.Medium => "Почти не ошибается, как математик",
-                WhisperConstants.ModelSizes.Large => "УльтраМозг, но съест всю твою оперативку",
-                _ => "Неизвестная модель"
+                WhisperConstants.ModelSizes.Tiny => _localizationService.GetString("Audio_Model_Tiny_Desc"),
+                WhisperConstants.ModelSizes.Base => _localizationService.GetString("Audio_Model_Base_Desc"),
+                WhisperConstants.ModelSizes.Small => _localizationService.GetString("Audio_Model_Small_Desc"),
+                WhisperConstants.ModelSizes.Medium => _localizationService.GetString("Audio_Model_Medium_Desc"),
+                WhisperConstants.ModelSizes.Large => _localizationService.GetString("Audio_Model_Large_Desc"),
+                _ => _localizationService.GetString("Audio_Model_Unknown")
             };
         }
     }

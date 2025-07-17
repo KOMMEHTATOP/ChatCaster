@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using ChatCaster.Core.Services.System;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.Windows.Managers.AudioSettings;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,8 +16,10 @@ namespace ChatCaster.Windows.ViewModels.Components
     public partial class WhisperModelComponentViewModel : ObservableObject
     {
         private readonly WhisperModelManager _whisperModelManager;
+        private readonly ILocalizationService _localizationService;
+        private bool _isUpdatingFromLocalization;
+        
         public WhisperModelManager ModelManager => _whisperModelManager;
-
 
         [ObservableProperty]
         private WhisperModelItem? _selectedModel;
@@ -75,13 +78,58 @@ namespace ChatCaster.Windows.ViewModels.Components
         public event Func<Task>? ModelChanged;
         public event Func<Task>? LanguageChanged;
 
-        public WhisperModelComponentViewModel(WhisperModelManager whisperModelManager)
+        public WhisperModelComponentViewModel(
+            WhisperModelManager whisperModelManager,
+            ILocalizationService localizationService)
         {
             _whisperModelManager = whisperModelManager ?? throw new ArgumentNullException(nameof(whisperModelManager));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
 
-            Log.Debug("WhisperModelComponentViewModel инициализирован");
+            // Подписываемся на смену языка
+            _localizationService.LanguageChanged += OnLocalizationChanged;
+
+            Log.Debug("WhisperModelComponentViewModel инициализирован с локализацией");
         }
 
+        /// <summary>
+        /// Обработчик смены языка - перезагружает модели с новой локализацией
+        /// </summary>
+        private async void OnLocalizationChanged(object? sender, EventArgs e)
+        {
+            if (_isUpdatingFromLocalization) return;
+            
+            try
+            {
+                _isUpdatingFromLocalization = true;
+                Log.Debug("WhisperModelComponent: язык изменен, перезагружаем модели");
+                
+                // Сохраняем выбранную модель
+                var selectedModelSize = SelectedModel?.ModelSize;
+                
+                // Перезагружаем модели с новой локализацией
+                await LoadModelsWithStatusAsync();
+                
+                // Восстанавливаем выбранную модель БЕЗ вызова событий
+                if (!string.IsNullOrEmpty(selectedModelSize))
+                {
+                    var restoredModel = AvailableModels.FirstOrDefault(m => m.ModelSize == selectedModelSize);
+                    if (restoredModel != null)
+                    {
+                        _selectedModel = restoredModel; // Прямое присвоение без вызова события
+                        OnPropertyChanged(nameof(SelectedModel));
+                        Log.Debug("WhisperModelComponent: модель восстановлена после смены языка: {Model}", selectedModelSize);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "WhisperModelComponent: ошибка обновления при смене языка");
+            }
+            finally
+            {
+                _isUpdatingFromLocalization = false;
+            }
+        }
 
         /// <summary>
         /// Устанавливает выбранную модель из конфигурации
@@ -245,9 +293,11 @@ namespace ChatCaster.Windows.ViewModels.Components
             }
         }
 
-
         partial void OnSelectedModelChanged(WhisperModelItem? value)
         {
+            // Игнорируем событие если обновляемся из-за смены языка
+            if (_isUpdatingFromLocalization) return;
+            
             Log.Information("WhisperModelComponent модель изменена: {Model} ({DisplayName})",
                 value?.ModelSize, value?.DisplayName);
 
@@ -275,6 +325,22 @@ namespace ChatCaster.Windows.ViewModels.Components
             // Уведомляем родительскую ViewModel
             LanguageChanged?.Invoke();
         }
+
+        /// <summary>
+        /// Очистка ресурсов
+        /// </summary>
+        public void Dispose()
+        {
+            try
+            {
+                _localizationService.LanguageChanged -= OnLocalizationChanged;
+                Log.Debug("WhisperModelComponent: ресурсы освобождены");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "WhisperModelComponent: ошибка освобождения ресурсов");
+            }
+        }
     }
 
     #region Helper Classes
@@ -286,5 +352,4 @@ namespace ChatCaster.Windows.ViewModels.Components
     }
 
     #endregion
-
 }

@@ -78,6 +78,15 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Ошибка загрузки.
+        /// </summary>
+        internal static string Audio_DownloadError {
+            get {
+                return ResourceManager.GetString("Audio_DownloadError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Язык:.
         /// </summary>
         internal static string Audio_Language {
@@ -101,6 +110,87 @@ namespace ChatCaster.Core.Resources {
         internal static string Audio_Microphone {
             get {
                 return ResourceManager.GetString("Audio_Microphone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Терпимо, как борщ с пряником.
+        /// </summary>
+        internal static string Audio_Model_Base_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Base_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to УльтраМозг, но съест всю твою оперативку.
+        /// </summary>
+        internal static string Audio_Model_Large_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Large_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rarely makes mistakes, like a mathematician.
+        /// </summary>
+        internal static string Audio_Model_Medium_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Medium_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Уже сильно лучше, косяки редкие.
+        /// </summary>
+        internal static string Audio_Model_Small_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Small_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Мгновенно, но тупой.
+        /// </summary>
+        internal static string Audio_Model_Tiny_Desc {
+            get {
+                return ResourceManager.GetString("Audio_Model_Tiny_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Неизвестная модель.
+        /// </summary>
+        internal static string Audio_Model_Unknown {
+            get {
+                return ResourceManager.GetString("Audio_Model_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ошибка проверки.
+        /// </summary>
+        internal static string Audio_ModelError {
+            get {
+                return ResourceManager.GetString("Audio_ModelError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Модель не загружена.
+        /// </summary>
+        internal static string Audio_ModelNotLoaded {
+            get {
+                return ResourceManager.GetString("Audio_ModelNotLoaded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Модель готова.
+        /// </summary>
+        internal static string Audio_ModelReady {
+            get {
+                return ResourceManager.GetString("Audio_ModelReady", resourceCulture);
             }
         }
         
@@ -141,6 +231,69 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Обработка....
+        /// </summary>
+        internal static string ButtonProcessing {
+            get {
+                return ResourceManager.GetString("ButtonProcessing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Записать.
+        /// </summary>
+        internal static string ButtonRecord {
+            get {
+                return ResourceManager.GetString("ButtonRecord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Стоп.
+        /// </summary>
+        internal static string ButtonStop {
+            get {
+                return ResourceManager.GetString("ButtonStop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Геймпад:.
+        /// </summary>
+        internal static string Control_Gamepad {
+            get {
+                return ResourceManager.GetString("Control_Gamepad", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Клавиатура:.
+        /// </summary>
+        internal static string Control_Keyboard {
+            get {
+                return ResourceManager.GetString("Control_Keyboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Кликните на поле комбинации и нажмите нужные кнопки.
+        /// </summary>
+        internal static string Control_PageDescription {
+            get {
+                return ResourceManager.GetString("Control_PageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Управление.
+        /// </summary>
+        internal static string Control_PageTitle {
+            get {
+                return ResourceManager.GetString("Control_PageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Ошибка.
         /// </summary>
         internal static string Error {
@@ -168,6 +321,177 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Кнопка закрытия (X) сворачивает в трей.
+        /// </summary>
+        internal static string Interface_MinimizeToTray {
+            get {
+                return ResourceManager.GetString("Interface_MinimizeToTray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Overlay индикатор.
+        /// </summary>
+        internal static string Interface_OverlayIndicator {
+            get {
+                return ResourceManager.GetString("Interface_OverlayIndicator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Настройка overlay индикатора и системных параметров.
+        /// </summary>
+        internal static string Interface_PageDescription {
+            get {
+                return ResourceManager.GetString("Interface_PageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Интерфейс.
+        /// </summary>
+        internal static string Interface_PageTitle {
+            get {
+                return ResourceManager.GetString("Interface_PageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Позиция:.
+        /// </summary>
+        internal static string Interface_Position {
+            get {
+                return ResourceManager.GetString("Interface_Position", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Нижний центр.
+        /// </summary>
+        internal static string Interface_Position_BottomCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Нижний левый.
+        /// </summary>
+        internal static string Interface_Position_BottomLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Нижний правый.
+        /// </summary>
+        internal static string Interface_Position_BottomRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_BottomRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Центр.
+        /// </summary>
+        internal static string Interface_Position_MiddleCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Средний левый.
+        /// </summary>
+        internal static string Interface_Position_MiddleLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Средний правый.
+        /// </summary>
+        internal static string Interface_Position_MiddleRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_MiddleRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Верхний центр.
+        /// </summary>
+        internal static string Interface_Position_TopCenter {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopCenter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Верхний левый.
+        /// </summary>
+        internal static string Interface_Position_TopLeft {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Верхний правый.
+        /// </summary>
+        internal static string Interface_Position_TopRight {
+            get {
+                return ResourceManager.GetString("Interface_Position_TopRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Показывать уведомления.
+        /// </summary>
+        internal static string Interface_ShowNotifications {
+            get {
+                return ResourceManager.GetString("Interface_ShowNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Показывать overlay во время записи.
+        /// </summary>
+        internal static string Interface_ShowOverlay {
+            get {
+                return ResourceManager.GetString("Interface_ShowOverlay", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Запускать свернутым в трей.
+        /// </summary>
+        internal static string Interface_StartMinimized {
+            get {
+                return ResourceManager.GetString("Interface_StartMinimized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Запускать с Windows.
+        /// </summary>
+        internal static string Interface_StartWithWindows {
+            get {
+                return ResourceManager.GetString("Interface_StartWithWindows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Видимость:.
+        /// </summary>
+        internal static string Interface_Visibility {
+            get {
+                return ResourceManager.GetString("Interface_Visibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Английский.
         /// </summary>
         internal static string LanguageName_en_US {
@@ -182,6 +506,60 @@ namespace ChatCaster.Core.Resources {
         internal static string LanguageName_ru_RU {
             get {
                 return ResourceManager.GetString("LanguageName_ru-RU", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Точность: высокая.
+        /// </summary>
+        internal static string Main_ConfidenceHigh {
+            get {
+                return ResourceManager.GetString("Main_ConfidenceHigh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Микрофон не выбран.
+        /// </summary>
+        internal static string Main_CurrentDevice {
+            get {
+                return ResourceManager.GetString("Main_CurrentDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Последний результат.
+        /// </summary>
+        internal static string Main_LastResult {
+            get {
+                return ResourceManager.GetString("Main_LastResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Здесь появится распознанный текст....
+        /// </summary>
+        internal static string Main_PlaceholderText {
+            get {
+                return ResourceManager.GetString("Main_PlaceholderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Время: &amp;lt; 1с.
+        /// </summary>
+        internal static string Main_ProcessingTimeFast {
+            get {
+                return ResourceManager.GetString("Main_ProcessingTimeFast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Не удалось распознать речь.
+        /// </summary>
+        internal static string Main_RecognitionFailed {
+            get {
+                return ResourceManager.GetString("Main_RecognitionFailed", resourceCulture);
             }
         }
         
@@ -240,7 +618,7 @@ namespace ChatCaster.Core.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Готов.
+        ///   Looks up a localized string similar to Готов к записи.
         /// </summary>
         internal static string StatusReady {
             get {
