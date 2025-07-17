@@ -91,14 +91,10 @@ public class TextInputService : ITextInputService
             {
                 if (string.IsNullOrWhiteSpace(text))
                 {
-                    _logger.LogWarning("Текст для ввода пустой");
                     return false;
                 }
-
-                _logger.LogInformation("Отправляем текст: '{Text}'", text);
-
+                
                 var activeWindow = _windowService.GetActiveWindowTitle();
-                _logger.LogDebug("Активное окно: '{ActiveWindow}'", activeWindow);
 
                 // Единственная проверка - не отправляем в собственное окно
                 if (_windowService.IsOwnWindow(activeWindow))
@@ -118,7 +114,6 @@ public class TextInputService : ITextInputService
                 // Универсальный ввод для всех приложений
                 SendTextSendInput(text);
 
-                _logger.LogInformation("Текст отправлен успешно");
                 return true;
             }
             catch (Exception ex)
@@ -136,7 +131,6 @@ public class TextInputService : ITextInputService
             try
             {
                 var activeWindow = _windowService.GetActiveWindowTitle();
-                _logger.LogInformation("Очищаем активное поле в окне: '{ActiveWindow}'", activeWindow);
 
                 if (_windowService.IsOwnWindow(activeWindow))
                 {
@@ -145,7 +139,6 @@ public class TextInputService : ITextInputService
                 }
 
                 SendClearField();
-                _logger.LogInformation("Поле успешно очищено");
                 return true;
             }
             catch (Exception ex)
@@ -163,7 +156,6 @@ public class TextInputService : ITextInputService
             try
             {
                 var activeWindow = _windowService.GetActiveWindowTitle();
-                _logger.LogDebug("Выделяем весь текст в окне: '{ActiveWindow}'", activeWindow);
 
                 if (_windowService.IsOwnWindow(activeWindow))
                 {
@@ -188,25 +180,19 @@ public class TextInputService : ITextInputService
     public void SetTypingDelay(int delayMs)
     {
         _typingDelayMs = Math.Max(1, delayMs);
-        _logger.LogDebug("Задержка ввода установлена: {Delay}ms", _typingDelayMs);
     }
 
     public bool CanSendToActiveWindow()
     {
         var activeWindow = _windowService.GetActiveWindowTitle();
-
-        _logger.LogTrace("Проверка возможности ввода. Активное окно: '{ActiveWindow}'", activeWindow);
-
+        
         if (_windowService.IsOwnWindow(activeWindow))
         {
-            _logger.LogTrace("Нельзя вводить в собственное окно");
             return false;
         }
 
         // Проверяем, есть ли права на ввод
         bool hasInputRights = CheckInputRights();
-        _logger.LogTrace("Права на ввод: {HasRights}", hasInputRights);
-
         return hasInputRights;
     }
 
@@ -216,31 +202,25 @@ public class TextInputService : ITextInputService
         var activeHandle = _windowService.GetActiveWindowHandle();
         if (activeHandle == IntPtr.Zero)
         {
-            _logger.LogTrace("Нет активного окна");
             return false;
         }
 
-        // Дополнительные проверки...
         return true;
     }
 
     private void SendClearField()
     {
-        _logger.LogTrace("Очищаем поле ввода");
         TrySmartClear();
     }
 
     private bool TrySmartClear()
     {
-        _logger.LogDebug("Пробуем универсальную очистку");
-    
         // Способ 1: Стандартный Ctrl+A + Delete
         SendKeyCombo(VK_CONTROL, VK_A);
         Thread.Sleep(50);
         SendKey(VK_DELETE);
     
         // Способ 2: Если не сработало - пробуем Backspace
-        _logger.LogDebug("Дополнительно очищаем через Backspace");
         ClearWithBackspace();
     
         return true;
@@ -260,8 +240,6 @@ public class TextInputService : ITextInputService
     {
         try
         {
-            _logger.LogDebug("Отправка через SendInput: '{Text}'", text);
-
             foreach (char c in text)
             {
                 if (char.IsControl(c) && c != '\r' && c != '\n' && c != '\t')
@@ -282,8 +260,6 @@ public class TextInputService : ITextInputService
                 SendUnicodeChar(c);
                 Thread.Sleep(_typingDelayMs); 
             }
-
-            _logger.LogDebug("Текст отправлен через SendInput");
         }
         catch (Exception ex)
         {

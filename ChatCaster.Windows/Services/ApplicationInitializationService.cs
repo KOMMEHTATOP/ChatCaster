@@ -45,8 +45,6 @@ namespace ChatCaster.Windows.Services
         {
             try
             {
-                Log.Information("ApplicationInitializationService: начинаем инициализацию приложения");
-
                 // 1. Загружаем конфигурацию
                 await _configurationService.LoadConfigAsync();
                 var config = _configurationService.CurrentConfig;
@@ -62,7 +60,6 @@ namespace ChatCaster.Windows.Services
                 await InitializeHotkeysAsync(config);
                 await InitializeGamepadAsync();
 
-                Log.Information("ApplicationInitializationService: инициализация завершена успешно");
                 return config;
             }
             catch (Exception ex)
@@ -81,11 +78,7 @@ namespace ChatCaster.Windows.Services
             {
                 if (config.Input.KeyboardShortcut != null)
                 {
-                    Log.Debug("ApplicationInitializationService: регистрируем хоткей: {Key} + {Modifiers}",
-                        config.Input.KeyboardShortcut.Key, config.Input.KeyboardShortcut.Modifiers);
-
                     var registered = await _systemService.RegisterGlobalHotkeyAsync(config.Input.KeyboardShortcut);
-                    Log.Information("ApplicationInitializationService: хоткей зарегистрирован: {Registered}", registered);
                     return registered;
                 }
 
@@ -114,15 +107,11 @@ namespace ChatCaster.Windows.Services
                 config.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
                 configChanged = true;
 
-                Log.Information("ApplicationInitializationService: дефолтная модель Whisper установлена: tiny");
             }
 
             // Проверяем и устанавливаем аудио устройство по умолчанию
             if (string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
             {
-                Log.Information(
-                    "ApplicationInitializationService: аудио устройство не выбрано, выбираем устройство по умолчанию");
-
                 try
                 {
                     // Получаем список доступных устройств
@@ -134,10 +123,6 @@ namespace ChatCaster.Windows.Services
                     {
                         config.Audio.SelectedDeviceId = defaultDevice.Id;
                         configChanged = true;
-
-                        Log.Information(
-                            "ApplicationInitializationService: выбрано устройство по умолчанию: {DeviceName} ({DeviceId})",
-                            defaultDevice.Name, defaultDevice.Id);
                     }
                     else
                     {
@@ -164,10 +149,7 @@ namespace ChatCaster.Windows.Services
 
         private async Task InitializeSpeechRecognitionAsync(AppConfig config)
         {
-            Log.Information("ApplicationInitializationService: инициализируем Whisper модуль");
             var speechInitialized = await _speechService.InitializeAsync(config.SpeechRecognition);
-            Log.Information("ApplicationInitializationService: сервис распознавания речи инициализирован: {Success}",
-                speechInitialized);
         }
 
         private async Task InitializeAudioAsync(AppConfig config)
@@ -204,11 +186,7 @@ namespace ChatCaster.Windows.Services
         
         private async Task InitializeOverlayAsync(AppConfig config)
         {
-            Log.Debug("ApplicationInitializationService: применяем конфигурацию к OverlayService");
             await _overlayService.ApplyConfigAsync(config.Overlay);
-            Log.Information(
-                "ApplicationInitializationService: конфигурация OverlayService применена: Position={Position}, Opacity={Opacity}",
-                config.Overlay.Position, config.Overlay.Opacity);
         }
 
         private async Task InitializeHotkeysAsync(AppConfig config)
@@ -218,9 +196,7 @@ namespace ChatCaster.Windows.Services
 
         private async Task InitializeGamepadAsync()
         {
-            Log.Debug("ApplicationInitializationService: инициализируем GamepadVoiceCoordinator");
             var gamepadInitialized = await _gamepadVoiceCoordinator.InitializeAsync();
-            Log.Information("ApplicationInitializationService: геймпад инициализирован: {Initialized}", gamepadInitialized);
         }
     }
 }

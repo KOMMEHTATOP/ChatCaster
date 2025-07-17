@@ -8,14 +8,12 @@ public class SystemNotificationService : ISystemNotificationService
     public async Task ShowNotificationAsync(string title, string message)
     {
         await Task.CompletedTask;
-        Log.Information($"[SystemNotificationService] Уведомление: {title} - {message}");
         // Здесь можно добавить реальные Windows уведомления
     }
 
     public async Task<bool> SetAutoStartAsync(bool enabled)
     {
         await Task.CompletedTask;
-        Log.Information($"[SystemNotificationService] Автозапуск {(enabled ? "включен" : "выключен")}");
         // Здесь можно добавить работу с реестром Windows
         return true;
     }

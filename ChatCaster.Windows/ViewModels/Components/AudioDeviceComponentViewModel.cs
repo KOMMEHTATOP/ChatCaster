@@ -35,8 +35,6 @@ namespace ChatCaster.Windows.ViewModels.Components
         {
             _audioDeviceManager = audioDeviceManager ?? throw new ArgumentNullException(nameof(audioDeviceManager));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-
-            Log.Debug("AudioDeviceComponentViewModel инициализирован");
         }
 
         /// <summary>
@@ -47,7 +45,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             try
             {
                 AvailableDevices = await _audioDeviceManager.LoadAvailableDevicesAsync();
-                Log.Information("AudioDeviceComponent загружено {Count} устройств", AvailableDevices.Count);
             }
             catch (Exception ex)
             {
@@ -64,15 +61,12 @@ namespace ChatCaster.Windows.ViewModels.Components
             if (!string.IsNullOrEmpty(deviceId))
             {
                 SelectedDevice = _audioDeviceManager.FindDeviceById(AvailableDevices, deviceId);
-                Log.Information("AudioDeviceComponent устройство из конфига: {DeviceId} -> {DeviceName}", 
-                    deviceId, SelectedDevice?.Name ?? "не найдено");
             }
 
             // Если устройство не найдено или пустое - автовыбор
             if (SelectedDevice == null && AvailableDevices.Any())
             {
                 SelectedDevice = _audioDeviceManager.SelectDefaultDevice(AvailableDevices);
-                Log.Information("AudioDeviceComponent автовыбор устройства: {DeviceName}", SelectedDevice?.Name);
             }
         }
 
@@ -104,32 +98,26 @@ namespace ChatCaster.Windows.ViewModels.Components
                 TestMicrophoneCommand.NotifyCanExecuteChanged();
                 
                 StatusChanged?.Invoke("Тестируется...");
-                Log.Information("AudioDeviceComponent начинаем тест микрофона");
 
                 // Проверяем, что устройство выбрано
                 if (SelectedDevice == null)
                 {
                     StatusChanged?.Invoke("Выберите устройство");
-                    Log.Warning("AudioDeviceComponent устройство не выбрано для тестирования");
                     return;
                 }
-
-                Log.Information("AudioDeviceComponent тестируем устройство: {DeviceName}", SelectedDevice.Name);
                 
-                // Тестируем текущее активное устройство (НЕ устанавливаем новое!)
+                // Тестируем текущее активное устройство 
                 var result = await _audioDeviceManager.TestMicrophoneAsync();
                 
                 if (result)
                 {
                     StatusChanged?.Invoke("Микрофон работает");
                     _notificationService.NotifyMicrophoneTest(true, SelectedDevice.Name);
-                    Log.Information("AudioDeviceComponent тест микрофона прошел успешно");
                 }
                 else
                 {
                     StatusChanged?.Invoke("Проблема с микрофоном");
                     _notificationService.NotifyMicrophoneTest(false);
-                    Log.Warning("AudioDeviceComponent тест микрофона не прошел");
                 }
             }
             catch (Exception ex)
@@ -149,9 +137,6 @@ namespace ChatCaster.Windows.ViewModels.Components
 
         partial void OnSelectedDeviceChanged(AudioDevice? value)
         {
-            Log.Information("AudioDeviceComponent устройство изменено: {DeviceName} ({DeviceId})",
-                value?.Name ?? "не выбрано", value?.Id ?? "");
-
             // Уведомляем родительскую ViewModel об изменении
             DeviceChanged?.Invoke();
         }

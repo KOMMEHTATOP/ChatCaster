@@ -147,9 +147,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                         }
                     }
 
-                    // Создаем WaveIn - принудительно устанавливаем 16kHz для Whisper
-                    _logger.Information("Устанавливаем аудио формат: 16000Hz, 16bit, 1ch для Whisper");
-
                     _waveIn = new WaveInEvent
                     {
                         DeviceNumber = deviceNumber,
@@ -299,9 +296,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                 VolumeThreshold = 0.01f // Низкий порог для теста
             };
 
-            _logger.Information("Тестируем микрофон с устройством: {DeviceName} ({DeviceId})", 
-                activeDevice.Name, activeDevice.Id);
-
             // Пробуем кратковременный захват аудио
             bool captureStarted = await StartCaptureAsync(testConfig);
 
@@ -309,7 +303,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             {
                 await Task.Delay(500); // Записываем полсекунды
                 await StopCaptureAsync();
-                _logger.Information("Тест микрофона успешен для устройства: {DeviceName}", activeDevice.Name);
                 return true;
             }
 
@@ -329,28 +322,22 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
         {
             try
             {
-                _logger.Information("AudioCaptureService Dispose начат");
-
                 lock (_lockObject)
                 {
                     // Останавливаем захват синхронно
                     if (_waveIn != null && IsCapturing)
                     {
-                        _logger.Information("Останавливаем WaveIn...");
                         _waveIn.StopRecording();
                         _waveIn.DataAvailable -= OnDataAvailable;
                         _waveIn.RecordingStopped -= OnRecordingStopped;
                         _waveIn.Dispose();
                         _waveIn = null;
-                        _logger.Information("WaveIn остановлен");
                     }
 
                     IsCapturing = false;
                     CurrentVolume = 0;
                     ActiveDevice = null;
                     _currentConfig = null;
-
-                    _logger.Information("AudioCaptureService Dispose завершен");
                 }
             }
             catch (Exception ex)

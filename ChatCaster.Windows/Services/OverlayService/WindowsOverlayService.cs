@@ -38,8 +38,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
         
         // Автоматическая подписка через DI
         SubscribeToVoiceService(voiceService, configService);
-        
-        _logger.Debug("WindowsOverlayService создан с Core компонентами");
     }
 
     #region IOverlayService Implementation
@@ -47,7 +45,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
     public void SubscribeToVoiceService(IVoiceRecordingService voiceService, IConfigurationService configService)
     {
         _eventCoordinator.SubscribeToVoiceService(voiceService, configService);
-        _logger.Debug("Подписка делегирована OverlayEventCoordinator");
     }
 
     public async Task<bool> ApplyConfigAsync(OverlayConfig config)
@@ -58,7 +55,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
         
         if (!OverlayPositionCalculator.ValidateConfig(config, screenWidth, screenHeight))
         {
-            _logger.Warning("Невалидная конфигурация overlay, используем дефолтную");
             config = OverlayPositionCalculator.CreateDefaultConfig();
         }
 
@@ -69,11 +65,9 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
             if (_overlayWindow != null)
             {
                 ApplyConfigToWindow(config);
-                _logger.Debug("Конфигурация применена к существующему окну");
             }
         });
 
-        _logger.Information("Конфигурация overlay применена успешно");
         return true;
     }
 
@@ -92,8 +86,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
                     NewY = y,
                     Source = "manual"
                 });
-                
-                _logger.Debug("Позиция overlay обновлена: ({X}, {Y})", x, y);
             }
         });
     }
@@ -115,7 +107,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
                 if (!_overlayWindow.IsVisible)
                 {
                     _overlayWindow.Show();
-                    _logger.Debug("Overlay показан для статуса: {Status}", status);
                 }
             }
         });
@@ -128,7 +119,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
             if (_overlayWindow?.IsVisible == true)
             {
                 _overlayWindow.Hide();
-                _logger.Debug("Overlay скрыт");
             }
         });
     }
@@ -140,7 +130,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
             if (_overlayWindow != null)
             {
                 UpdateOverlayStatus(status, message);
-                _logger.Debug("Статус overlay обновлен: {Status}", status);
             }
         });
     }
@@ -158,8 +147,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
         
         var config = _currentConfig ?? OverlayPositionCalculator.CreateDefaultConfig();
         ApplyConfigToWindow(config);
-        
-        _logger.Debug("Overlay окно создано и настроено");
     }
 
     private void ApplyConfigToWindow(OverlayConfig config)
@@ -177,9 +164,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
         
         _overlayWindow.Left = x;
         _overlayWindow.Top = y;
-        
-        _logger.Debug("Конфигурация применена: {Position} ({X}, {Y}), прозрачность: {Opacity}", 
-            config.Position, x, y, config.Opacity);
     }
 
     private void UpdateOverlayStatus(RecordingStatus status, string? customMessage = null)
@@ -223,8 +207,6 @@ public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposab
                 _overlayWindow?.Close();
                 _overlayWindow = null;
             });
-
-            _logger.Debug("WindowsOverlayService disposed");
             _isDisposed = true;
         }
     }

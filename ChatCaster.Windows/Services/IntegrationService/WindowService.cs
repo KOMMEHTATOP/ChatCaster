@@ -27,20 +27,16 @@ public class WindowService : IWindowService
     public string GetActiveWindowTitle()
     {
         IntPtr handle = GetForegroundWindow();
-        _logger.LogDebug("GetForegroundWindow returned handle: {Handle}", handle);
     
         if (handle == IntPtr.Zero) 
         {
-            _logger.LogWarning("GetForegroundWindow returned Zero handle");
             return string.Empty;
         }
 
         int length = GetWindowTextLength(handle);
-        _logger.LogDebug("Window text length: {Length}", length);
     
         if (length <= 0) 
         {
-            _logger.LogWarning("Window text length is {Length}", length);
             return string.Empty;
         }
 
@@ -48,7 +44,6 @@ public class WindowService : IWindowService
         int result = GetWindowText(handle, title, title.Capacity);
         var windowTitle = title.ToString();
     
-        _logger.LogDebug("Window title retrieved: '{Title}' (result: {Result})", windowTitle, result);
         return windowTitle;
     }
     

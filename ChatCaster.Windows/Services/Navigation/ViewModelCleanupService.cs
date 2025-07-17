@@ -16,14 +16,6 @@ namespace ChatCaster.Windows.Services.Navigation
         /// </summary>
         public void CleanupAllViewModels(Dictionary<string, Page> pages, MainPageViewModel? mainPageViewModel)
         {
-            if (pages == null)
-            {
-                Log.Warning("ViewModelCleanupService: pages коллекция null, пропускаем cleanup");
-                return;
-            }
-
-            Log.Information("ViewModelCleanupService: начинаем cleanup всех ViewModels");
-
             try
             {
                 // Выполняем cleanup в UI потоке
@@ -35,8 +27,6 @@ namespace ChatCaster.Windows.Services.Navigation
                     // Затем очищаем ViewModels остальных страниц
                     CleanupPageViewModels(pages);
                 });
-
-                Log.Information("ViewModelCleanupService: cleanup всех ViewModels завершен");
             }
             catch (Exception ex)
             {
@@ -51,14 +41,11 @@ namespace ChatCaster.Windows.Services.Navigation
         {
             if (viewModel == null)
             {
-                Log.Debug("ViewModelCleanupService: {ViewModelName} is null, пропускаем cleanup", viewModelName);
                 return;
             }
 
             try
             {
-                Log.Debug("ViewModelCleanupService: выполняем cleanup для {ViewModelName}", viewModelName);
-
                 switch (viewModel)
                 {
                     case MainPageViewModel mainPageVM:
@@ -81,8 +68,6 @@ namespace ChatCaster.Windows.Services.Navigation
                         Log.Warning("ViewModelCleanupService: неизвестный тип ViewModel: {Type}", viewModel.GetType().Name);
                         break;
                 }
-
-                Log.Debug("ViewModelCleanupService: cleanup для {ViewModelName} завершен", viewModelName);
             }
             catch (Exception ex)
             {
@@ -94,7 +79,6 @@ namespace ChatCaster.Windows.Services.Navigation
         {
             if (mainPageViewModel != null)
             {
-                Log.Debug("ViewModelCleanupService: вызываем cleanup для Singleton MainPageViewModel");
                 CleanupViewModel(mainPageViewModel, "MainPageViewModel");
             }
             else
@@ -112,13 +96,10 @@ namespace ChatCaster.Windows.Services.Navigation
 
                 try
                 {
-                    Log.Debug("ViewModelCleanupService: обрабатываем страницу: {PageTag}", pageTag);
-
                     switch (page)
                     {
                         case MainPageView:
                             // MainPageViewModel уже очищен выше как Singleton
-                            Log.Debug("ViewModelCleanupService: MainPageView - ViewModel уже очищен");
                             break;
 
                         case AudioSettingsView audioPage:

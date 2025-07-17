@@ -36,8 +36,6 @@ public class NotificationService : INotificationService, IDisposable
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
         _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
-
-        Log.Information("NotificationService создан");
     }
 
     #endregion
@@ -48,12 +46,9 @@ public class NotificationService : INotificationService, IDisposable
     {
         try
         {
-            Log.Debug("Инициализация NotificationService");
-
             // Подписываемся на системные события
             SubscribeToSystemEvents();
 
-            Log.Information("NotificationService успешно инициализирован");
             return Task.CompletedTask;
         }
         catch (Exception ex)
@@ -73,7 +68,6 @@ public class NotificationService : INotificationService, IDisposable
             // События конфигурации
             _configurationService.ConfigurationChanged += OnConfigurationChanged;
 
-            Log.Debug("Подписка на системные события завершена");
         }
         catch (Exception ex)
         {
@@ -112,7 +106,6 @@ public class NotificationService : INotificationService, IDisposable
             // События конфигурации
             _configurationService.ConfigurationChanged -= OnConfigurationChanged;
 
-            Log.Debug("Отписка от системных событий завершена");
         }
         catch (Exception ex)
         {
@@ -131,8 +124,6 @@ public class NotificationService : INotificationService, IDisposable
             var message = $"Геймпад подключен: {gamepad.Name}";
             _trayService.ShowNotification("Геймпад", message, NotificationType.Success);
             _trayService.UpdateStatus($"ChatCaster - {message}");
-            
-            Log.Information("Уведомление о подключении геймпада: {GamepadName}", gamepad.Name);
         }
         catch (Exception ex)
         {
@@ -147,8 +138,6 @@ public class NotificationService : INotificationService, IDisposable
             var message = $"Геймпад отключен: {gamepad.Name}";
             _trayService.ShowNotification("Геймпад", message, NotificationType.Warning);
             _trayService.UpdateStatus("ChatCaster - Геймпад отключен");
-            
-            Log.Information("Уведомление об отключении геймпада: {GamepadName}", gamepad.Name);
         }
         catch (Exception ex)
         {
@@ -162,8 +151,6 @@ public class NotificationService : INotificationService, IDisposable
         {
             var message = $"Микрофон изменен: {deviceName}";
             _trayService.ShowNotification("Аудио", message);
-            
-            Log.Information("Уведомление об изменении микрофона: {DeviceName}", deviceName);
         }
         catch (Exception ex)
         {
@@ -187,7 +174,6 @@ public class NotificationService : INotificationService, IDisposable
                 _trayService.ShowNotification("Тест микрофона", "Обнаружена проблема с микрофоном", NotificationType.Error);
             }
             
-            Log.Information("Уведомление о тесте микрофона: Success={Success}, Device={DeviceName}", success, deviceName);
         }
         catch (Exception ex)
         {
@@ -219,7 +205,6 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             _trayService.ShowNotification(title, message, NotificationType.Success);
-            Log.Information("Успешное уведомление: {Title} - {Message}", title, message);
         }
         catch (Exception ex)
         {
@@ -232,7 +217,6 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             _trayService.ShowNotification(title, message, NotificationType.Warning);
-            Log.Information("Предупреждающее уведомление: {Title} - {Message}", title, message);
         }
         catch (Exception ex)
         {
@@ -245,7 +229,6 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             _trayService.ShowNotification(title, message, NotificationType.Error);
-            Log.Information("Ошибочное уведомление: {Title} - {Message}", title, message);
         }
         catch (Exception ex)
         {
@@ -258,7 +241,6 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             _trayService.ShowNotification(title, message);
-            Log.Information("Информационное уведомление: {Title} - {Message}", title, message);
         }
         catch (Exception ex)
         {
@@ -275,7 +257,6 @@ public class NotificationService : INotificationService, IDisposable
         try
         {
             _trayService.UpdateStatus(status);
-            Log.Debug("Статус обновлен: {Status}", status);
         }
         catch (Exception ex)
         {
@@ -292,7 +273,6 @@ public class NotificationService : INotificationService, IDisposable
     {
         try
         {
-            // Обрабатываем только важные изменения настроек
             switch (e.SettingName)
             {
                 case "GamepadShortcut":
@@ -351,20 +331,15 @@ public class NotificationService : INotificationService, IDisposable
     {
         if (_isDisposed)
         {
-            Log.Debug("NotificationService уже был освобожден");
             return;
         }
 
         try
         {
-            Log.Information("Освобождение ресурсов NotificationService");
-
             UnsubscribeFromSystemEvents();
 
             _isDisposed = true;
             GC.SuppressFinalize(this);
-            
-            Log.Information("NotificationService успешно освобожден");
         }
         catch (Exception ex)
         {

@@ -51,8 +51,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             
             // Подписываемся на смену языка
             _localizationService.LanguageChanged += OnLanguageChanged;
-
-            Log.Debug("RecordingStatusComponentViewModel инициализирован");
         }
 
         /// <summary>
@@ -72,8 +70,6 @@ namespace ChatCaster.Windows.ViewModels.Components
 
                 // Уведомляем родительскую ViewModel
                 StatusChanged?.Invoke(stateInfo);
-
-                Log.Debug("RecordingStatusComponent: статус обновлен: {Status}", e.NewStatus);
             }
             catch (Exception ex)
             {
@@ -95,8 +91,6 @@ namespace ChatCaster.Windows.ViewModels.Components
                 RecordButtonText = GetLocalizedButtonText(RecordingStatus.Idle);
                 StatusColor = stateInfo.StatusColor;
                 MicrophoneLevel = 0.0f;
-
-                Log.Debug("RecordingStatusComponent: установлено начальное состояние");
             }
             catch (Exception ex)
             {
@@ -169,7 +163,6 @@ namespace ChatCaster.Windows.ViewModels.Components
                 RecordingStatus.Idle => _localizationService.GetString("ButtonRecord"),
                 RecordingStatus.Recording => _localizationService.GetString("ButtonStop"),
                 RecordingStatus.Processing => _localizationService.GetString("ButtonProcessing"),
-                RecordingStatus.Error => _localizationService.GetString("ButtonRecord"),
                 _ => _localizationService.GetString("ButtonRecord")
             };
         }
@@ -215,7 +208,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             {
                 _audioService.VolumeChanged -= OnVolumeChanged;
                 _localizationService.LanguageChanged -= OnLanguageChanged;
-                Log.Debug("RecordingStatusComponent: ресурсы освобождены");
             }
             catch (Exception ex)
             {

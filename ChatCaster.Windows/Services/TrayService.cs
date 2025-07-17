@@ -48,12 +48,9 @@ public class TrayService : ITrayService, IDisposable
     {
         if (_isDisposed)
         {
-            Log.Warning("Попытка инициализации уже освобожденного TrayService");
             return;
         }
-
-        Log.Information("Инициализация TrayService");
-
+        
         try
         {
             _notifyIcon = new NotifyIcon
@@ -67,8 +64,6 @@ public class TrayService : ITrayService, IDisposable
             _notifyIcon.DoubleClick += OnDoubleClick;
 
             CreateContextMenu();
-
-            Log.Information("TrayService успешно инициализирован");
         }
         catch (Exception ex)
         {
@@ -84,19 +79,15 @@ public class TrayService : ITrayService, IDisposable
             // Проверяем настройки перед показом уведомления
             if (_configService.CurrentConfig?.System?.ShowNotifications != true)
             {
-                Log.Debug("Уведомления отключены в настройках, пропускаем: {Title} - {Message}", title, message);
                 return;
             }
 
             if (_notifyIcon == null || _isDisposed)
             {
-                Log.Warning("Попытка показа уведомления при неинициализированном TrayService");
                 return;
             }
 
             var toolTipIcon = GetToolTipIcon(type);
-            
-            Log.Information("Показываем уведомление [{Type}]: {Title} - {Message}", type, title, message);
             
             _notifyIcon.ShowBalloonTip(timeout, title, message, toolTipIcon);
         }
@@ -112,15 +103,12 @@ public class TrayService : ITrayService, IDisposable
         {
             if (_notifyIcon == null || _isDisposed)
             {
-                Log.Warning("Попытка обновления статуса при неинициализированном TrayService");
                 return;
             }
 
             // Ограничиваем длину tooltip (Windows лимит ~127 символов)
             string tooltipText = status.Length > 120 ? status.Substring(0, 117) + "..." : status;
             _notifyIcon.Text = tooltipText;
-            
-            Log.Debug("Статус трея обновлен: {Status}", status);
         }
         catch (Exception ex)
         {
@@ -138,7 +126,6 @@ public class TrayService : ITrayService, IDisposable
             NotificationType.Info);
             
         _hasShownFirstTimeNotification = true;
-        Log.Debug("Показано уведомление о первом сворачивании в трей");
     }
 
     #endregion
@@ -162,7 +149,6 @@ public class TrayService : ITrayService, IDisposable
                 return new Icon("Resources/Logo.ico");
             }
         
-            Log.Warning("Файл иконки не найден, используем системную");
             return SystemIcons.Application;
         }
         catch (Exception ex)
@@ -176,7 +162,6 @@ public class TrayService : ITrayService, IDisposable
     {
         if (_notifyIcon == null) 
         {
-            Log.Warning("Попытка создания контекстного меню для null NotifyIcon");
             return;
         }
 
@@ -190,8 +175,6 @@ public class TrayService : ITrayService, IDisposable
             contextMenu.Items.Add("❌ Выход", null, (s, e) => ExitApplicationRequested?.Invoke(this, EventArgs.Empty));
 
             _notifyIcon.ContextMenuStrip = contextMenu;
-            
-            Log.Debug("Контекстное меню создано");
         }
         catch (Exception ex)
         {
@@ -203,7 +186,6 @@ public class TrayService : ITrayService, IDisposable
     {
         try
         {
-            Log.Debug("Двойной клик по иконке трея");
             ShowMainWindowRequested?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
@@ -226,8 +208,6 @@ public class TrayService : ITrayService, IDisposable
                 "О программе",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Information);
-                
-            Log.Debug("Показан диалог 'О программе'");
         }
         catch (Exception ex)
         {
@@ -255,14 +235,11 @@ public class TrayService : ITrayService, IDisposable
     {
         if (_isDisposed)
         {
-            Log.Debug("TrayService уже был освобожден");
             return;
         }
 
         try
         {
-            Log.Information("Освобождение ресурсов TrayService");
-
             if (_notifyIcon != null)
             {
                 _notifyIcon.Visible = false;
@@ -274,8 +251,6 @@ public class TrayService : ITrayService, IDisposable
 
             _isDisposed = true;
             GC.SuppressFinalize(this);
-            
-            Log.Information("TrayService успешно освобожден");
         }
         catch (Exception ex)
         {

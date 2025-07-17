@@ -127,8 +127,6 @@ namespace ChatCaster.Windows.ViewModels.Base
                 
                 // Специфичная очистка страницы
                 CleanupPageSpecific();
-
-                Log.Debug("[{ViewModelName}] Cleanup завершен", GetType().Name);
             }
             catch (Exception ex)
             {
@@ -256,15 +254,8 @@ namespace ChatCaster.Windows.ViewModels.Base
         {
             try
             {
-                Log.Information("[{ViewModelName}] Начинаем инициализацию", GetType().Name);
-
-                // 1. Инициализируем данные страницы
                 await InitializePageDataAsync();
-
-                // 2. Загружаем настройки
                 await LoadSettingsAsync();
-
-                Log.Information("[{ViewModelName}] Инициализация завершена", GetType().Name);
             }
             catch (Exception ex)
             {

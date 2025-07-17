@@ -44,7 +44,6 @@ public class OverlayWindow : Window
             CreateContent();
             ApplyEffects();
             
-            _logger.Debug("OverlayWindow создано успешно");
         }
         catch (Exception ex)
         {
@@ -66,7 +65,6 @@ public class OverlayWindow : Window
             _statusText.Text = text;
             _statusText.Foreground = color;
             
-            _logger.Debug("UI overlay обновлен: {Icon} {Text}", icon, text);
         }
         catch (Exception ex)
         {

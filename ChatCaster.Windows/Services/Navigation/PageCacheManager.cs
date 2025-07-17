@@ -19,27 +19,23 @@ namespace ChatCaster.Windows.Services.Navigation
         {
             if (string.IsNullOrEmpty(pageTag))
             {
-                Log.Warning("PageCacheManager: пустой pageTag, возвращаем MainPage");
                 return GetMainPageOrDefault();
             }
 
             // Проверяем кеш
             if (_cachedPages.TryGetValue(pageTag, out var cachedPage))
             {
-                Log.Debug("PageCacheManager: используем кешированную страницу: {PageTag}", pageTag);
                 return cachedPage;
             }
 
             // Создаем новую страницу
             try
             {
-                Log.Debug("PageCacheManager: создаем новую страницу: {PageTag}", pageTag);
                 var newPage = pageCreator(pageTag);
                 
                 // Кешируем созданную страницу
                 _cachedPages[pageTag] = newPage;
                 
-                Log.Debug("PageCacheManager: страница создана и закеширована: {PageTag}", pageTag);
                 return newPage;
             }
             catch (Exception ex)
@@ -54,14 +50,12 @@ namespace ChatCaster.Windows.Services.Navigation
         /// </summary>
         public void CachePage(string pageTag, Page page)
         {
-            if (string.IsNullOrEmpty(pageTag) || page == null)
+            if (string.IsNullOrEmpty(pageTag))
             {
-                Log.Warning("PageCacheManager: некорректные параметры для кеширования");
                 return;
             }
 
             _cachedPages[pageTag] = page;
-            Log.Debug("PageCacheManager: страница добавлена в кеш: {PageTag}", pageTag);
         }
 
         /// <summary>
@@ -90,7 +84,6 @@ namespace ChatCaster.Windows.Services.Navigation
             {
                 var pageCount = _cachedPages.Count;
                 _cachedPages.Clear();
-                Log.Information("PageCacheManager: кеш очищен, удалено {Count} страниц", pageCount);
             }
             catch (Exception ex)
             {
@@ -118,8 +111,6 @@ namespace ChatCaster.Windows.Services.Navigation
             {
                 return mainPage;
             }
-
-            Log.Error("PageCacheManager: MainPage не найдена в кеше, это критическая ошибка");
             throw new InvalidOperationException("MainPage должна быть всегда доступна в кеше");
         }
     }

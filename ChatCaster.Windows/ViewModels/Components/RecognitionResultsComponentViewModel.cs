@@ -46,7 +46,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             _localizationService.LanguageChanged += OnLanguageChanged;
             
             SetInitialState();
-            Log.Debug("RecognitionResultsComponentViewModel инициализирован");
         }
 
         /// <summary>
@@ -66,8 +65,6 @@ namespace ChatCaster.Windows.ViewModels.Components
                     // Ошибка распознавания
                     HandleRecognitionError(e.Result.ErrorMessage);
                 }
-
-                Log.Information("RecognitionResultsComponent: обработано завершение распознавания, успех: {Success}", e.Result.Success);
             }
             catch (Exception ex)
             {
@@ -95,8 +92,6 @@ namespace ChatCaster.Windows.ViewModels.Components
 
             // Уведомляем родительскую ViewModel
             TextRecognized?.Invoke(recognizedText);
-
-            Log.Information("RecognitionResultsComponent: успешное распознавание: {Text}", recognizedText);
         }
 
         /// <summary>
@@ -111,8 +106,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             // Очищаем метрики при ошибке
             ConfidenceText = "";
             ProcessingTimeText = "";
-
-            Log.Warning("RecognitionResultsComponent: ошибка распознавания: {Error}", errorMessage ?? "неизвестная ошибка");
         }
 
         /// <summary>
@@ -130,8 +123,6 @@ namespace ChatCaster.Windows.ViewModels.Components
                 {
                     RecentRecognitions.RemoveAt(RecentRecognitions.Count - 1);
                 }
-
-                Log.Debug("RecognitionResultsComponent: добавлен текст в историю: {Text}", text);
             }
             catch (Exception ex)
             {
@@ -152,8 +143,6 @@ namespace ChatCaster.Windows.ViewModels.Components
                 LastRecognizedText = string.Empty;
                 ConfidenceText = "";
                 ProcessingTimeText = "";
-
-                Log.Debug("RecognitionResultsComponent: установлено начальное состояние");
             }
             catch (Exception ex)
             {
@@ -201,7 +190,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             {
                 var count = RecentRecognitions.Count;
                 RecentRecognitions.Clear();
-                Log.Information("RecognitionResultsComponent: очищена история, удалено {Count} записей", count);
             }
             catch (Exception ex)
             {
@@ -234,7 +222,6 @@ namespace ChatCaster.Windows.ViewModels.Components
             {
                 _localizationService.LanguageChanged -= OnLanguageChanged;
                 RecentRecognitions.Clear();
-                Log.Debug("RecognitionResultsComponent: ресурсы освобождены");
             }
             catch (Exception ex)
             {

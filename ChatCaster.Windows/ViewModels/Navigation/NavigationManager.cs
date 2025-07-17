@@ -38,8 +38,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
             // Загружаем главную страницу по умолчанию
             LoadMainPage();
-
-            Log.Debug("NavigationManager инициализирован с IServiceProvider");
         }
 
         /// <summary>
@@ -55,9 +53,7 @@ namespace ChatCaster.Windows.ViewModels.Navigation
                 var page = _pageCacheManager.GetOrCreatePage(pageTag, CreatePageByTag);
                 CurrentPage = page;
                 CurrentPageTag = pageTag;
-
-                Log.Debug("NavigationManager: навигация на страницу: {PageTag}", pageTag);
-
+                
                 // Уведомляем родительскую ViewModel об изменении
                 NavigationChanged?.Invoke(this, new NavigationChangedEventArgs(pageTag, page));
             }
@@ -80,8 +76,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
         /// </summary>
         public void CleanupAllPages()
         {
-            Log.Information("NavigationManager: начинаем cleanup всех страниц");
-
             try
             {
                 // Делегируем cleanup сервису
@@ -93,8 +87,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
                 // Сбрасываем singleton
                 _mainPageViewModel = null;
-
-                Log.Information("NavigationManager: cleanup всех страниц завершен");
             }
             catch (Exception ex)
             {
@@ -117,8 +109,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
 
                 CurrentPage = mainPage;
                 CurrentPageTag = NavigationConstants.MainPage;
-
-                Log.Debug("NavigationManager: главная страница загружена из DI");
             }
             catch (Exception ex)
             {
@@ -144,7 +134,6 @@ namespace ChatCaster.Windows.ViewModels.Navigation
             var mainPage = _pageCacheManager.GetCachedPage(NavigationConstants.MainPage);
             if (mainPage == null)
             {
-                Log.Error("NavigationManager: MainPage не найдена в кеше, это критическая ошибка");
                 throw new InvalidOperationException("MainPage должна быть всегда доступна");
             }
             return mainPage;
