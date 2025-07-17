@@ -26,9 +26,9 @@ namespace ChatCaster.Windows.Services.Navigation
         private readonly IOverlayService _overlayService;
         private readonly IConfigurationService _configService;
         private readonly AppConfig _currentConfig;
-        private readonly IVoiceRecordingService _voiceRecordingService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
         private readonly INotificationService _notificationService;
+        private readonly ILocalizationService _localizationService;
 
         public PageFactory(
             IAudioCaptureService audioService,
@@ -38,9 +38,9 @@ namespace ChatCaster.Windows.Services.Navigation
             IOverlayService overlayService,
             IConfigurationService configService,
             AppConfig currentConfig,
-            IVoiceRecordingService voiceRecordingService,
             GamepadVoiceCoordinator gamepadVoiceCoordinator,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            ILocalizationService localizationService)
         {
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _speechService = speechService ?? throw new ArgumentNullException(nameof(speechService));
@@ -49,9 +49,9 @@ namespace ChatCaster.Windows.Services.Navigation
             _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
-            _voiceRecordingService = voiceRecordingService ?? throw new ArgumentNullException(nameof(voiceRecordingService));
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
 
             Log.Debug("PageFactory инициализирован");
         }
@@ -93,7 +93,8 @@ namespace ChatCaster.Windows.Services.Navigation
                     _configService.CurrentConfig,
                     _speechService,
                     _audioService,
-                    _notificationService);
+                    _notificationService,
+                    _localizationService);
 
                 audioView.SetViewModel(audioViewModel);
 

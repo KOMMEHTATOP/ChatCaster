@@ -1,6 +1,7 @@
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.Managers.AudioSettings;
 using ChatCaster.Windows.ViewModels.Base;
@@ -12,6 +13,12 @@ namespace ChatCaster.Windows.ViewModels
 {
     public partial class AudioSettingsViewModel : BaseSettingsViewModel
     {
+        #region Services
+        
+        private readonly ILocalizationService _localizationService;
+        
+        #endregion
+
         #region Components
 
         public AudioDeviceComponentViewModel AudioDeviceComponent { get; }
@@ -33,6 +40,31 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _microphoneStatusColor = "#4caf50";
 
+        // ЛОКАЛИЗОВАННЫЕ СВОЙСТВА
+        [ObservableProperty]
+        private string _pageTitle = "Аудио и распознавание";
+
+        [ObservableProperty]
+        private string _pageDescription = "Настройка микрофона, модели Whisper и параметров записи";
+
+        [ObservableProperty]
+        private string _mainSettingsTitle = "Основные настройки";
+
+        [ObservableProperty]
+        private string _microphoneLabel = "Микрофон:";
+
+        [ObservableProperty]
+        private string _whisperModelLabel = "Модель Whisper:";
+
+        [ObservableProperty]
+        private string _recordingDurationLabel = "Длительность записи:";
+
+        [ObservableProperty]
+        private string _languageLabel = "Язык:";
+
+        [ObservableProperty]
+        private string _autoSaveText = "Автоматическое сохранение при изменении";
+
         /// <summary>
         /// Доступные частоты дискретизации
         /// </summary>
@@ -50,9 +82,12 @@ namespace ChatCaster.Windows.ViewModels
             AppConfig currentConfig,
             ISpeechRecognitionService speechRecognitionService,
             IAudioCaptureService audioService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            ILocalizationService localizationService) 
             : base(configurationService, currentConfig)
         {
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+            
             Log.Information("AudioSettingsViewModel конструктор вызван (рефакторинг)");
 
             // Создаем менеджеры
@@ -66,7 +101,33 @@ namespace ChatCaster.Windows.ViewModels
             // Подписываемся на события компонентов
             SubscribeToComponentEvents();
 
-            Log.Information("AudioSettingsViewModel создан с компонентами");
+            // ПОДПИСЫВАЕМСЯ НА ИЗМЕНЕНИЕ ЯЗЫКА И ИНИЦИАЛИЗИРУЕМ СТРОКИ
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            UpdateLocalizedStrings();
+
+            Log.Information("AudioSettingsViewModel создан с компонентами и локализацией");
+        }
+
+        #endregion
+
+        #region Localization
+
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            UpdateLocalizedStrings();
+            Log.Debug("AudioSettingsViewModel: локализованные строки обновлены");
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            PageTitle = _localizationService.GetString("Audio_PageTitle");
+            PageDescription = _localizationService.GetString("Audio_PageDescription");
+            MainSettingsTitle = _localizationService.GetString("Audio_MainSettings");
+            MicrophoneLabel = _localizationService.GetString("Audio_Microphone");
+            WhisperModelLabel = _localizationService.GetString("Audio_WhisperModel");
+            RecordingDurationLabel = _localizationService.GetString("Audio_RecordingDuration");
+            LanguageLabel = _localizationService.GetString("Audio_Language");
+            AutoSaveText = _localizationService.GetString("Audio_AutoSave");
         }
 
         #endregion
@@ -90,7 +151,6 @@ namespace ChatCaster.Windows.ViewModels
         #endregion
 
         #region BaseSettingsViewModel Implementation
-
 
         protected override async Task LoadPageSpecificSettingsAsync()
         {
@@ -131,7 +191,6 @@ namespace ChatCaster.Windows.ViewModels
             }
         }
 
-        
         protected override Task ApplySettingsToConfigAsync(AppConfig config)
         {
             try
@@ -202,6 +261,9 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 Log.Debug("AudioSettingsViewModel Cleanup начат");
+                
+                _localizationService.LanguageChanged -= OnLanguageChanged;
+                
                 UnsubscribeFromComponentEvents();
                 Log.Information("AudioSettingsViewModel Cleanup завершен");
             }

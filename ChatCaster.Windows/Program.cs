@@ -122,7 +122,7 @@ namespace ChatCaster.Windows
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
             services.AddSingleton<IOverlayService, WindowsOverlayService>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
-            services.AddSingleton<ILocalizationService, LocalizationService>(); // Добавлена регистрация
+            services.AddSingleton<ILocalizationService, LocalizationService>();
 
             // === ГЕЙМПАД СЕРВИСЫ ===
             services.AddSingleton<Services.GamepadService.MainGamepadService>(provider =>
@@ -178,6 +178,9 @@ namespace ChatCaster.Windows
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
 
+            services.AddScoped<AudioSettingsViewModel>();
+
+            
             Log.Information("DI контейнер настроен успешно");
         }
 

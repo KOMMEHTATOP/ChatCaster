@@ -40,14 +40,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Greeting" xml:space="preserve">
-    <value>Привет</value>
-    <comment>Приветствие в главном окне</comment>
-  </data>
-  <data name="Button_OK" xml:space="preserve">
-    <value>ОК</value>
-    <comment>Текст кнопки подтверждения</comment>
-  </data>
   <data name="LanguageName_ru-RU" xml:space="preserve">
     <value>Русский</value>
     <comment>Отображаемое имя русского языка</comment>
@@ -72,10 +64,6 @@
     <value>Ошибка</value>
     <comment>Общее сообщение об ошибке</comment>
   </data>
-  <data name="ErrorInitialization" xml:space="preserve">
-    <value>Ошибка инициализации</value>
-    <comment>Сообщение об ошибке при инициализации приложения</comment>
-  </data>
   <data name="HotkeyError" xml:space="preserve">
     <value>Произошла ошибка при обработке хоткея</value>
     <comment>Сообщение об ошибке при обработке глобального хоткея</comment>
@@ -83,5 +71,47 @@
   <data name="ErrorRecording" xml:space="preserve">
     <value>Ошибка записи</value>
     <comment>Сообщение об ошибке при записи голоса</comment>
+  </data>
+  <data name="Navigation" xml:space="preserve">
+    <value>Навигация</value>
+  </data>
+  <data name="Navigation_Main" xml:space="preserve">
+    <value>Главное</value>
+  </data>
+  <data name="Navigation_Audio" xml:space="preserve">
+    <value>Аудио и распознавание</value>
+  </data>
+  <data name="Navigation_Interface" xml:space="preserve">
+    <value>Интерфейс</value>
+  </data>
+  <data name="Navigation_Control" xml:space="preserve">
+    <value>Управление</value>
+  </data>
+  <data name="AppTitle" xml:space="preserve">
+    <value>ChatCaster</value>
+  </data>
+  <data name="Audio_PageTitle" xml:space="preserve">
+    <value>Аудио и распознавание</value>
+  </data>
+  <data name="Audio_PageDescription" xml:space="preserve">
+    <value>Настройка микрофона, модели Whisper и параметров записи</value>
+  </data>
+  <data name="Audio_MainSettings" xml:space="preserve">
+    <value>Основные настройки</value>
+  </data>
+  <data name="Audio_Microphone" xml:space="preserve">
+    <value>Микрофон:</value>
+  </data>
+  <data name="Audio_WhisperModel" xml:space="preserve">
+    <value>Модель Whisper:</value>
+  </data>
+  <data name="Audio_RecordingDuration" xml:space="preserve">
+    <value>Длительность записи:</value>
+  </data>
+  <data name="Audio_AutoSave" xml:space="preserve">
+    <value>Автоматическое сохранение при изменении</value>
+  </data>
+  <data name="Audio_Language" xml:space="preserve">
+    <value>Язык:</value>
   </data>
 </root>

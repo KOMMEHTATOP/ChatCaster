@@ -46,5 +46,9 @@
     <Resource Include="Resources\Logo.ico" />
     <Resource Include="Resources\free-icon-mic-7663253.png" />
     <Resource Include="Styles\DarkTheme.xaml" />
+    <None Remove="Resources\usa-flag.png" />
+    <Resource Include="Resources\usa-flag.png" />
+    <None Remove="Resources\russia-flag.png" />
+    <Resource Include="Resources\russia-flag.png" />
   </ItemGroup>
 </Project>

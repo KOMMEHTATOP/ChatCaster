@@ -40,14 +40,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Greeting" xml:space="preserve">
-    <value>Hello</value>
-    <comment>Greeting in the main window</comment>
-  </data>
-  <data name="Button_OK" xml:space="preserve">
-    <value>OK</value>
-    <comment>Text for the confirmation button</comment>
-  </data>
   <data name="LanguageName_ru-RU" xml:space="preserve">
     <value>Russian</value>
     <comment>Displayed name for Russian language</comment>
@@ -72,10 +64,6 @@
     <value>Error</value>
     <comment>General error message</comment>
   </data>
-  <data name="ErrorInitialization" xml:space="preserve">
-    <value>Initialization error</value>
-    <comment>Message for application initialization error</comment>
-  </data>
   <data name="HotkeyError" xml:space="preserve">
     <value>Error processing hotkey</value>
     <comment>Message for error processing global hotkey</comment>
@@ -83,5 +71,47 @@
   <data name="ErrorRecording" xml:space="preserve">
     <value>Recording error</value>
     <comment>Message for voice recording error</comment>
+  </data>
+  <data name="Navigation" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Navigation_Main" xml:space="preserve">
+    <value>Main</value>
+  </data>
+  <data name="Navigation_Audio" xml:space="preserve">
+    <value>Audio &amp; Recognition</value>
+  </data>
+  <data name="Navigation_Interface" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="Navigation_Control" xml:space="preserve">
+    <value>Control</value>
+  </data>
+  <data name="AppTitle" xml:space="preserve">
+    <value>ChatCaster</value>
+  </data>
+  <data name="Audio_PageTitle" xml:space="preserve">
+    <value>Audio &amp; Recognition</value>
+  </data>
+  <data name="Audio_PageDescription" xml:space="preserve">
+    <value>Microphone, Whisper model and recording settings</value>
+  </data>
+  <data name="Audio_MainSettings" xml:space="preserve">
+    <value>Main Settings</value>
+  </data>
+  <data name="Audio_Microphone" xml:space="preserve">
+    <value>Microphone:</value>
+  </data>
+  <data name="Audio_WhisperModel" xml:space="preserve">
+    <value>Whisper Model:</value>
+  </data>
+  <data name="Audio_RecordingDuration" xml:space="preserve">
+    <value>Recording Duration:</value>
+  </data>
+  <data name="Audio_AutoSave" xml:space="preserve">
+    <value>Auto-save on change</value>
+  </data>
+  <data name="Audio_Language" xml:space="preserve">
+    <value>Language:</value>
   </data>
 </root>

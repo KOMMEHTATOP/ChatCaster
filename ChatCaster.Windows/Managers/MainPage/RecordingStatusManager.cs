@@ -19,7 +19,7 @@ namespace ChatCaster.Windows.Managers.MainPage
                 RecordingStatus.Idle => "Готов к записи",
                 RecordingStatus.Recording => "Идет запись...",
                 RecordingStatus.Processing => "Обработка...",
-                RecordingStatus.Completed => "Готов к записи", // ✅ ДОБАВЛЕНО
+                RecordingStatus.Completed => "Готов к записи", 
                 RecordingStatus.Error => $"Ошибка: {reason}",
                 _ => "Неизвестный статус"
             };
@@ -37,7 +37,6 @@ namespace ChatCaster.Windows.Managers.MainPage
             {
                 RecordingStatus.Recording => "Остановить",
                 RecordingStatus.Processing => "Обработка...",
-                RecordingStatus.Completed => "Записать", // ✅ ДОБАВЛЕНО
                 _ => "Записать"
             };
 
@@ -55,7 +54,7 @@ namespace ChatCaster.Windows.Managers.MainPage
                 RecordingStatus.Idle => "#4caf50",      // Зеленый
                 RecordingStatus.Recording => "#ff9800", // Оранжевый
                 RecordingStatus.Processing => "#2196f3", // Синий
-                RecordingStatus.Completed => "#4caf50",  // Зеленый ✅ ДОБАВЛЕНО
+                RecordingStatus.Completed => "#4caf50",  // Зеленый 
                 RecordingStatus.Error => "#f44336",     // Красный
                 _ => "#9e9e9e"                          // Серый
             };

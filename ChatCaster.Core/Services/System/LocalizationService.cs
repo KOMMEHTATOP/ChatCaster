@@ -1,6 +1,7 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Resources;
 using ChatCaster.Core.Services.Core;
+using Serilog;
 using System.Globalization;
 
 namespace ChatCaster.Core.Services.System
@@ -21,13 +22,14 @@ namespace ChatCaster.Core.Services.System
 
         public void SetLanguage(string culture)
         {
+            Log.Debug("LocalizationService: устанавливаем язык {Culture}", culture);
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
+            Log.Debug("LocalizationService: текущая культура установлена в {Culture}", Thread.CurrentThread.CurrentUICulture.Name);
             LanguageChanged?.Invoke(this, EventArgs.Empty);
-        }
-
+        } 
         public string GetString(string key)
         {
-            return ResourcesRu.ResourceManager.GetString(key, Thread.CurrentThread.CurrentUICulture) ?? key;
+            return Strings.ResourceManager.GetString(key, Thread.CurrentThread.CurrentUICulture) ?? key;
         }
 
         private void OnConfigurationChanged(object sender, ConfigurationChangedEvent e)
