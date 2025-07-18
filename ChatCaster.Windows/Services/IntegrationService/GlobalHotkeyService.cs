@@ -13,7 +13,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
     public event EventHandler<KeyboardShortcut>? GlobalHotkeyPressed;
 
     private KeyboardShortcut? _registeredHotkey;
-    private bool _isCapturingHotkey = false;
+    private bool _isCapturingHotkey;
 
     public bool IsRegistered => _registeredHotkey != null;
     public KeyboardShortcut? CurrentShortcut => _registeredHotkey;

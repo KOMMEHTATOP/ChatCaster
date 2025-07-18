@@ -35,7 +35,7 @@ namespace ChatCaster.Windows.ViewModels
         private int _selectedSampleRate = 16000;
 
         [ObservableProperty]
-        private string _microphoneStatusText = "Микрофон готов";
+        private string _microphoneStatusText = "";
 
         [ObservableProperty]
         private string _microphoneStatusColor = "#4caf50";
@@ -126,6 +126,8 @@ namespace ChatCaster.Windows.ViewModels
             RecordingDurationLabel = _localizationService.GetString("Audio_RecordingDuration");
             LanguageLabel = _localizationService.GetString("Audio_Language");
             AutoSaveText = _localizationService.GetString("Audio_AutoSave");
+            MicrophoneStatusText = _localizationService.GetString("Audio_MicrophoneReady");
+
         }
 
         #endregion
@@ -319,15 +321,18 @@ namespace ChatCaster.Windows.ViewModels
         /// </summary>
         private string DetermineStatusColor(string status)
         {
+            var testingText = _localizationService.GetString("Audio_MicrophoneTesting");
+            var workingText = _localizationService.GetString("Audio_MicrophoneWorking"); 
+            var errorText = _localizationService.GetString("Audio_MicrophoneError");
+    
             return status.ToLower() switch
             {
-                var s when s.Contains("тестируется") => "#ff9800", // Оранжевый
-                var s when s.Contains("работает") => "#4caf50",    // Зеленый
-                var s when s.Contains("проблема") || s.Contains("ошибка") => "#f44336", // Красный
+                var s when s.Contains(testingText.ToLower()) => "#ff9800", // Оранжевый
+                var s when s.Contains(workingText.ToLower()) => "#4caf50", // Зеленый  
+                var s when s.Contains(errorText.ToLower()) => "#f44336",   // Красный
                 _ => "#4caf50" // По умолчанию зеленый
             };
         }
-
         #endregion
     }
 }
