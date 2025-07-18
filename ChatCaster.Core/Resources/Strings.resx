@@ -273,4 +273,16 @@
   <data name="Keyboard_SaveError" xml:space="preserve">
     <value>Ошибка сохранения: {0}</value>
   </data>
+  <data name="Device_Label" xml:space="preserve">
+    <value>Устройство</value>
+  </data>
+  <data name="Device_NotSelected" xml:space="preserve">
+    <value>Не выбрано</value>
+  </data>
+  <data name="Device_Unavailable" xml:space="preserve">
+    <value>Недоступно</value>
+  </data>
+  <data name="Device_Error" xml:space="preserve">
+    <value>Ошибка получения</value>
+  </data>
 </root>

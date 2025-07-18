@@ -175,8 +175,13 @@ namespace ChatCaster.Windows
 
             // === МЕНЕДЖЕРЫ MAINPAGE ===
             services.AddSingleton<RecordingStatusManager>();
-            services.AddSingleton<DeviceDisplayManager>();
-
+            services.AddSingleton<DeviceDisplayManager>(provider =>
+                new DeviceDisplayManager(
+                    provider.GetRequiredService<IAudioCaptureService>(),
+                    provider.GetRequiredService<IConfigurationService>(),
+                    provider.GetRequiredService<ILocalizationService>()
+                ));
+            
             // === КОМПОНЕНТЫ VIEWMODELS ===
             services.AddSingleton<ViewModels.Components.RecordingStatusComponentViewModel>();
             services.AddSingleton<ViewModels.Components.RecognitionResultsComponentViewModel>();

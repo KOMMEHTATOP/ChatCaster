@@ -1,5 +1,6 @@
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
+using ChatCaster.Core.Services.System;
 using Serilog;
 
 namespace ChatCaster.Windows.Managers.MainPage
@@ -11,13 +12,16 @@ namespace ChatCaster.Windows.Managers.MainPage
     {
         private readonly IAudioCaptureService _audioService;
         private readonly IConfigurationService _configurationService;
+        private readonly ILocalizationService _localizationService;
 
         public DeviceDisplayManager(
             IAudioCaptureService audioService,
-            IConfigurationService configurationService)
+            IConfigurationService configurationService,
+            ILocalizationService localizationService)
         {
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         }
 
         /// <summary>
@@ -32,7 +36,9 @@ namespace ChatCaster.Windows.Managers.MainPage
                 
                 if (string.IsNullOrEmpty(selectedDeviceId))
                 {
-                    return new DeviceDisplayInfo("Не выбран", "Устройство: Не выбрано");
+                    var notSelectedText = _localizationService.GetString("Device_NotSelected");
+                    var deviceLabelText = _localizationService.GetString("Device_Label");
+                    return new DeviceDisplayInfo(notSelectedText, $"{deviceLabelText}: {notSelectedText}");
                 }
 
                 // Получаем список доступных устройств
@@ -41,18 +47,23 @@ namespace ChatCaster.Windows.Managers.MainPage
 
                 if (selectedDevice != null)
                 {
-                    return new DeviceDisplayInfo(selectedDevice.Name, $"Устройство: {selectedDevice.Name}");
+                    var deviceLabelText = _localizationService.GetString("Device_Label");
+                    return new DeviceDisplayInfo(selectedDevice.Name, $"{deviceLabelText}: {selectedDevice.Name}");
                 }
                 else
                 {
                     Log.Warning("DeviceDisplayManager: устройство не найдено: {DeviceId}", selectedDeviceId);
-                    return new DeviceDisplayInfo("Недоступно", $"Устройство: Недоступно ({selectedDeviceId})");
+                    var unavailableText = _localizationService.GetString("Device_Unavailable");
+                    var deviceLabelText = _localizationService.GetString("Device_Label");
+                    return new DeviceDisplayInfo(unavailableText, $"{deviceLabelText}: {unavailableText} ({selectedDeviceId})");
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "DeviceDisplayManager: ошибка получения информации об устройстве");
-                return new DeviceDisplayInfo("Ошибка", "Устройство: Ошибка получения");
+                var errorText = _localizationService.GetString("Device_Error");
+                var deviceLabelText = _localizationService.GetString("Device_Label");
+                return new DeviceDisplayInfo(errorText, $"{deviceLabelText}: {errorText}");
             }
         }
     }

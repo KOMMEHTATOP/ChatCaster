@@ -273,4 +273,16 @@
   <data name="Keyboard_SaveError" xml:space="preserve">
     <value>Save error: {0}</value>
   </data>
+  <data name="Device_Label" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="Device_NotSelected" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="Device_Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Device_Error" xml:space="preserve">
+    <value>Error retrieving</value>
+  </data>
 </root>
