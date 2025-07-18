@@ -252,4 +252,25 @@
   <data name="Audio_DownloadError" xml:space="preserve">
     <value>Ошибка загрузки</value>
   </data>
+  <data name="Gamepad_NotFound" xml:space="preserve">
+    <value>Геймпад не найден</value>
+  </data>
+  <data name="Gamepad_Connected" xml:space="preserve">
+    <value>Геймпад подключен: {0}</value>
+  </data>
+  <data name="Gamepad_Disconnected" xml:space="preserve">
+    <value>Геймпад отключен</value>
+  </data>
+  <data name="Gamepad_ErrorPrefix" xml:space="preserve">
+    <value>Ошибка проверки геймпада</value>
+  </data>
+  <data name="Keyboard_Ready" xml:space="preserve">
+    <value>Клавиатура готова</value>
+  </data>
+  <data name="Keyboard_CaptureError" xml:space="preserve">
+    <value>Ошибка захвата клавиатуры: {0}</value>
+  </data>
+  <data name="Keyboard_SaveError" xml:space="preserve">
+    <value>Ошибка сохранения: {0}</value>
+  </data>
 </root>

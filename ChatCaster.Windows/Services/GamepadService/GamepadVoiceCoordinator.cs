@@ -37,9 +37,7 @@ public class GamepadVoiceCoordinator : IDisposable
         _voiceService = voiceService ?? throw new ArgumentNullException(nameof(voiceService));
         _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-        _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService)); 
-
-        _logger.Information("GamepadVoiceCoordinator создан");
+        _trayService = trayService ?? throw new ArgumentNullException(nameof(trayService));
     }
     
     private async void HandleClearField()
@@ -76,8 +74,6 @@ public class GamepadVoiceCoordinator : IDisposable
     /// </summary>
     public async Task<bool> InitializeAsync()
     {
-        _logger.Information("Начинаем инициализацию GamepadVoiceCoordinator");
-
         try
         {
             lock (_lockObject)
@@ -96,7 +92,6 @@ public class GamepadVoiceCoordinator : IDisposable
                 if (_gamepadService is MainGamepadService mainService)
                 {
                     mainService.ShortcutDetector.LongHoldFeedbackTriggered += OnLongHoldFeedback;
-                    _logger.Debug("Подписались на обратную связь длинного удержания");
                 }
 
                 // Подписываемся на события записи для логирования
@@ -104,9 +99,8 @@ public class GamepadVoiceCoordinator : IDisposable
                 _voiceService.RecognitionCompleted += OnVoiceRecognitionCompleted;
             }
 
+            var config = _configService.CurrentConfig;
             // Запускаем мониторинг геймпада с настройками из конфигурации
-            var config = await _configService.LoadConfigAsync();
-            _logger.Debug("Конфигурация загружена. EnableGamepadControl: {EnableGamepadControl}", config.Input.EnableGamepadControl);
 
             if (!config.Input.EnableGamepadControl)
             {
@@ -124,7 +118,6 @@ public class GamepadVoiceCoordinator : IDisposable
                 config.Input.GamepadShortcut.PrimaryButton, config.Input.GamepadShortcut.SecondaryButton);
 
             await _gamepadService.StartMonitoringAsync(config.Input.GamepadShortcut);
-            _logger.Information("Мониторинг геймпада запущен");
 
             lock (_lockObject)
             {

@@ -96,8 +96,8 @@ namespace ChatCaster.Windows.ViewModels
 
             try
             {
-                GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator);
-                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig, configurationService);
+                GamepadComponent = new GamepadCaptureComponentViewModel(gamepadService, currentConfig, gamepadVoiceCoordinator, localizationService);
+                KeyboardComponent = new KeyboardCaptureComponentViewModel(systemService, currentConfig, configurationService, localizationService);
 
                 // Подписываемся на события компонентов
                 SubscribeToComponentEvents();

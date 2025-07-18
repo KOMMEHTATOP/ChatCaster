@@ -68,9 +68,6 @@ public class ConfigurationService : IConfigurationService
                     OldValue = null,
                     NewValue = config
                 });
-            
-                _logger.Debug("Событие ConfigurationLoaded поднято для {Count} подписчиков", 
-                    ConfigurationChanged.GetInvocationList().Length);
             }
 
             _logger.Information("Конфигурация успешно загружена");

@@ -229,7 +229,6 @@ namespace ChatCaster.Windows.ViewModels
             {
                 var deviceInfo = await _deviceDisplayManager.GetCurrentDeviceDisplayAsync();
                 CurrentDeviceText = deviceInfo.FullDisplayText;
-                Log.Debug("MainPageViewModel: отображение устройства обновлено: {DeviceText}", CurrentDeviceText);
             }
             catch (Exception ex)
             {

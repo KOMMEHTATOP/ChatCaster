@@ -1,5 +1,6 @@
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Interfaces;
 using ChatCaster.Windows.Services.GamepadService;
 
@@ -22,9 +23,11 @@ namespace ChatCaster.Windows.Managers
         #region Private Fields
 
         private readonly MainGamepadService _gamepadService;
-        private string _statusText = "Геймпад не найден";
+        private readonly ILocalizationService _localizationService;
+        private string _statusText = "";
         private string _statusColor = "#f44336"; // Красный
         private bool _isDisposed;
+        private string _currentGamepadName = "";
 
         #endregion
 
@@ -38,12 +41,17 @@ namespace ChatCaster.Windows.Managers
 
         #region Constructor
 
-        public GamepadStatusManager(MainGamepadService gamepadService)
+        public GamepadStatusManager(MainGamepadService gamepadService, ILocalizationService localizationService)
         {
             _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             
-            // Подписываемся на события геймпада
+            // Подписываемся на события
             SubscribeToGamepadEvents();
+            SubscribeToLocalizationEvents();
+            
+            // Инициализируем локализованные строки
+            UpdateLocalizedStrings();
         }
 
         #endregion
@@ -109,7 +117,46 @@ namespace ChatCaster.Windows.Managers
             }
             catch (Exception ex)
             {
-                SetErrorStatus($"Ошибка проверки геймпада: {ex.Message}");
+                SetErrorStatus($"{_localizationService.GetString("Gamepad_ErrorPrefix")}: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Localization
+
+        private void SubscribeToLocalizationEvents()
+        {
+            _localizationService.LanguageChanged += OnLanguageChanged;
+        }
+
+        private void UnsubscribeFromLocalizationEvents()
+        {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+        }
+
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            UpdateLocalizedStrings();
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            // Обновляем текущий статус в зависимости от состояния
+            if (IsAvailable && !string.IsNullOrEmpty(_currentGamepadName))
+            {
+                // Геймпад подключен
+                StatusText = string.Format(_localizationService.GetString("Gamepad_Connected"), _currentGamepadName);
+            }
+            else if (!IsAvailable && !string.IsNullOrEmpty(_currentGamepadName))
+            {
+                // Геймпад был подключен, но отключился
+                StatusText = _localizationService.GetString("Gamepad_Disconnected");
+            }
+            else
+            {
+                // Геймпад не найден (начальное состояние)
+                StatusText = _localizationService.GetString("Gamepad_NotFound");
             }
         }
 
@@ -146,14 +193,16 @@ namespace ChatCaster.Windows.Managers
         private void SetConnectedStatus(string gamepadName)
         {
             IsAvailable = true;
-            StatusText = $"Геймпад подключен: {gamepadName}";
+            _currentGamepadName = gamepadName;
+            StatusText = string.Format(_localizationService.GetString("Gamepad_Connected"), gamepadName);
             StatusColor = ConnectedColor;
         }
 
         private void SetDisconnectedStatus()
         {
             IsAvailable = false;
-            StatusText = "Геймпад отключен";
+            // Сохраняем имя для возможного переподключения, но обновляем статус
+            StatusText = _localizationService.GetString("Gamepad_Disconnected");
             StatusColor = DisconnectedColor;
         }
 
@@ -181,6 +230,7 @@ namespace ChatCaster.Windows.Managers
             if (_isDisposed) return;
 
             UnsubscribeFromGamepadEvents();
+            UnsubscribeFromLocalizationEvents();
             StatusChanged = null;
             _isDisposed = true;
         }

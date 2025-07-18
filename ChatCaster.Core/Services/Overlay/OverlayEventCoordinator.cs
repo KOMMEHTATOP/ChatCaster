@@ -41,7 +41,6 @@ public class OverlayEventCoordinator : IDisposable
     
         // Подписываемся на события
         voiceService.StatusChanged += OnRecordingStatusChanged;
-        _logger.Debug("OverlayEventCoordinator подписался на события VoiceRecordingService");
     }
 
     /// <summary>

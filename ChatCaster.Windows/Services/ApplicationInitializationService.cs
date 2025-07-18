@@ -46,7 +46,6 @@ namespace ChatCaster.Windows.Services
             try
             {
                 // 1. Загружаем конфигурацию
-                await _configurationService.LoadConfigAsync();
                 var config = _configurationService.CurrentConfig;
                 Log.Information("ApplicationInitializationService: конфигурация загружена");
 
@@ -154,23 +153,11 @@ namespace ChatCaster.Windows.Services
 
         private async Task InitializeAudioAsync(AppConfig config)
         {
-            Log.Debug("ApplicationInitializationService: применяем аудио настройки");
-
             if (!string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
             {
                 try
                 {
                     var deviceSet = await _audioService.SetActiveDeviceAsync(config.Audio.SelectedDeviceId);
-                    if (deviceSet)
-                    {
-                        Log.Information("ApplicationInitializationService: активное аудио устройство установлено: {DeviceId}", 
-                            config.Audio.SelectedDeviceId);
-                    }
-                    else
-                    {
-                        Log.Warning("ApplicationInitializationService: не удалось установить аудио устройство: {DeviceId}", 
-                            config.Audio.SelectedDeviceId);
-                    }
                 }
                 catch (Exception ex)
                 {

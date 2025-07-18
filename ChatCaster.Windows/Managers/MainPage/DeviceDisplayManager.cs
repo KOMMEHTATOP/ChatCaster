@@ -1,4 +1,3 @@
-using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.Core;
 using Serilog;
@@ -7,7 +6,6 @@ namespace ChatCaster.Windows.Managers.MainPage
 {
     /// <summary>
     /// Менеджер для отображения информации о текущем аудио устройстве
-    /// Только readonly отображение, БЕЗ логики изменения устройств
     /// </summary>
     public class DeviceDisplayManager
     {
@@ -31,12 +29,9 @@ namespace ChatCaster.Windows.Managers.MainPage
             {
                 var currentConfig = _configurationService.CurrentConfig;
                 var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
-
-                Log.Debug("DeviceDisplayManager: получаем информацию об устройстве: {DeviceId}", selectedDeviceId ?? "NULL");
-
+                
                 if (string.IsNullOrEmpty(selectedDeviceId))
                 {
-                    Log.Warning("DeviceDisplayManager: DeviceId пустой");
                     return new DeviceDisplayInfo("Не выбран", "Устройство: Не выбрано");
                 }
 
@@ -46,7 +41,6 @@ namespace ChatCaster.Windows.Managers.MainPage
 
                 if (selectedDevice != null)
                 {
-                    Log.Debug("DeviceDisplayManager: устройство найдено: {DeviceName}", selectedDevice.Name);
                     return new DeviceDisplayInfo(selectedDevice.Name, $"Устройство: {selectedDevice.Name}");
                 }
                 else
@@ -78,7 +72,6 @@ namespace ChatCaster.Windows.Managers.MainPage
                 var devices = await _audioService.GetAvailableDevicesAsync();
                 var isAvailable = devices.Any(d => d.Id == selectedDeviceId);
 
-                Log.Debug("DeviceDisplayManager: доступность устройства {DeviceId}: {Available}", selectedDeviceId, isAvailable);
                 return isAvailable;
             }
             catch (Exception ex)

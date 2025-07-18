@@ -1,6 +1,5 @@
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
-using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.System;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -50,7 +49,6 @@ namespace ChatCaster.Windows.Managers.AudioSettings
                 });
             }
             
-            Log.Information("WhisperModelManager инициализировано {Count} моделей со статусами", models.Count);
             return models;
         }
 

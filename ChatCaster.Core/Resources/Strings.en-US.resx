@@ -252,4 +252,25 @@
   <data name="Audio_DownloadError" xml:space="preserve">
     <value>Download error</value>
   </data>
+  <data name="Gamepad_NotFound" xml:space="preserve">
+    <value>Gamepad not found</value>
+  </data>
+  <data name="Gamepad_Connected" xml:space="preserve">
+    <value>Gamepad connected: {0}</value>
+  </data>
+  <data name="Gamepad_Disconnected" xml:space="preserve">
+    <value>Gamepad disconnected</value>
+  </data>
+  <data name="Gamepad_ErrorPrefix" xml:space="preserve">
+    <value>Gamepad check error</value>
+  </data>
+  <data name="Keyboard_Ready" xml:space="preserve">
+    <value>Keyboard ready</value>
+  </data>
+  <data name="Keyboard_CaptureError" xml:space="preserve">
+    <value>Keyboard capture error: {0}</value>
+  </data>
+  <data name="Keyboard_SaveError" xml:space="preserve">
+    <value>Save error: {0}</value>
+  </data>
 </root>

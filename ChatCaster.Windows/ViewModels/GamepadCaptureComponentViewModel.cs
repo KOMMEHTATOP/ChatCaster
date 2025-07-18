@@ -1,6 +1,7 @@
 using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Input;
+using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Managers;
 using ChatCaster.Windows.Services.GamepadService;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,13 +17,14 @@ namespace ChatCaster.Windows.ViewModels
         private readonly IGamepadService _gamepadService;
         private readonly AppConfig _currentConfig;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
+        private readonly ILocalizationService _localizationService;
         
         private GamepadStatusManager? _statusManager;
         private GamepadCaptureManager? _captureManager;
 
-        // Статус геймпада
+        // Статус геймпада 
         [ObservableProperty]
-        private string _statusText = "Геймпад не найден";
+        private string _statusText = "";
 
         [ObservableProperty]
         private string _statusColor = "#f44336";
@@ -30,11 +32,13 @@ namespace ChatCaster.Windows.ViewModels
         public GamepadCaptureComponentViewModel(
             IGamepadService gamepadService, 
             AppConfig currentConfig,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator)
+            GamepadVoiceCoordinator gamepadVoiceCoordinator,
+            ILocalizationService localizationService)
         {
             _gamepadService = gamepadService ?? throw new ArgumentNullException(nameof(gamepadService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
             _gamepadVoiceCoordinator = gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
             
             InitializeManagers();
         }
@@ -45,7 +49,8 @@ namespace ChatCaster.Windows.ViewModels
             {
                 if (_gamepadService is MainGamepadService mainGamepadService)
                 {
-                    _statusManager = new GamepadStatusManager(mainGamepadService);
+                    // Передаем ILocalizationService в GamepadStatusManager
+                    _statusManager = new GamepadStatusManager(mainGamepadService, _localizationService);
                     _captureManager = new GamepadCaptureManager(mainGamepadService);
                 }
                 else
@@ -56,6 +61,13 @@ namespace ChatCaster.Windows.ViewModels
                 _uiManager = new CaptureUIStateManager();
 
                 SubscribeToEvents();
+                
+                // Инициализируем начальный статус из локализованного менеджера
+                if (_statusManager != null)
+                {
+                    StatusText = _statusManager.StatusText;
+                    StatusColor = _statusManager.StatusColor;
+                }
             }
             catch (Exception ex)
             {

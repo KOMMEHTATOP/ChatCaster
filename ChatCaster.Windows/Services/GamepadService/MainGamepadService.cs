@@ -112,7 +112,6 @@ public class MainGamepadService : IGamepadService, IDisposable
                     StartButtonPolling();
 
                     _isMonitoring = true;
-                    _logger.Information("Мониторинг геймпада запущен: {Shortcut}", shortcut.DisplayText);
                 }
                 catch (Exception ex)
                 {

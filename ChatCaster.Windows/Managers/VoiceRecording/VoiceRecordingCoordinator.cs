@@ -22,7 +22,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
     private readonly AudioBufferManager _bufferManager;
     private readonly RecordingTimerManager _timerManager;
 
-    private bool _isDisposed = false;
+    private bool _isDisposed;
 
     public RecordingState CurrentState => _stateManager.CurrentState;
     public bool IsRecording => _stateManager.IsRecording;
@@ -55,7 +55,6 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
         {
             if (IsRecording)
             {
-                Log.Information("📝 Запись уже идет, игнорируем");
                 return false;
             }
 

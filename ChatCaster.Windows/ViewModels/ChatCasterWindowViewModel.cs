@@ -184,8 +184,6 @@ namespace ChatCaster.Windows.ViewModels
         {
             try
             {
-                Log.Information("ChatCasterWindowViewModel: начинаем инициализацию приложения");
-
                 // Делегируем всю инициализацию сервису
                 CurrentConfig = await _initializationService.InitializeApplicationAsync();
                 
@@ -214,8 +212,6 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Устанавливаем локализованный статус
                 UpdateLocalizedStatus();
-
-                Log.Information("ChatCasterWindowViewModel: инициализация завершена");
             }
             catch (Exception ex)
             {

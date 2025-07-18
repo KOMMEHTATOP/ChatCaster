@@ -3,6 +3,7 @@ using ChatCaster.Core.Events;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Core;
 using ChatCaster.Core.Services.System;
+using ChatCaster.Core.Services.UI;
 using ChatCaster.Windows.Managers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Serilog;
@@ -17,12 +18,13 @@ namespace ChatCaster.Windows.ViewModels
         private readonly ISystemIntegrationService _systemService;
         private readonly AppConfig _currentConfig;
         private readonly IConfigurationService _configurationService;
+        private readonly ILocalizationService _localizationService;
         
         private KeyboardCaptureManager? _captureManager;
 
-        // Статус клавиатуры
+        // Статус клавиатуры (теперь локализованный)
         [ObservableProperty]
-        private string _statusText = "Клавиатура готова";
+        private string _statusText = "";
 
         [ObservableProperty]
         private string _statusColor = "#4caf50";
@@ -30,12 +32,20 @@ namespace ChatCaster.Windows.ViewModels
         public KeyboardCaptureComponentViewModel(
             ISystemIntegrationService systemService,
             AppConfig currentConfig,
-            IConfigurationService configurationService) 
+            IConfigurationService configurationService,
+            ILocalizationService localizationService) 
         {
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
             _currentConfig = currentConfig ?? throw new ArgumentNullException(nameof(currentConfig));
-            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService)); 
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
     
+            // Подписываемся на смену языка
+            _localizationService.LanguageChanged += OnLanguageChanged;
+            
+            // Инициализируем локализованные строки
+            UpdateLocalizedStrings();
+            
             InitializeManagers();
         }
         
@@ -54,6 +64,20 @@ namespace ChatCaster.Windows.ViewModels
                 throw;
             }
         }
+
+        #region Localization
+
+        private void OnLanguageChanged(object? sender, EventArgs e)
+        {
+            UpdateLocalizedStrings();
+        }
+
+        private void UpdateLocalizedStrings()
+        {
+            StatusText = _localizationService.GetString("Keyboard_Ready");
+        }
+
+        #endregion
 
         public Task LoadSettingsAsync()
         {
@@ -90,7 +114,8 @@ namespace ChatCaster.Windows.ViewModels
                 
                 _systemService.SetHotkeyCaptureMode(false);
                 
-                OnStatusMessageChanged($"Ошибка захвата клавиатуры: {ex.Message}");
+                var errorMessage = string.Format(_localizationService.GetString("Keyboard_CaptureError"), ex.Message);
+                OnStatusMessageChanged(errorMessage);
             }
         }
 
@@ -126,7 +151,9 @@ namespace ChatCaster.Windows.ViewModels
             {
                 _uiManager.StateChanged -= OnUIStateChanged;
             }
-            _configurationService.ConfigurationChanged -= OnConfigurationChanged;  
+            
+            _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+            _localizationService.LanguageChanged -= OnLanguageChanged;
         }
         
         private void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
@@ -174,7 +201,8 @@ namespace ChatCaster.Windows.ViewModels
                 IsWaitingForInput = false;
                 if (_uiManager != null)
                 {
-                    await _uiManager.CompleteWithErrorAsync($"Ошибка сохранения: {ex.Message}");
+                    var errorMessage = string.Format(_localizationService.GetString("Keyboard_SaveError"), ex.Message);
+                    await _uiManager.CompleteWithErrorAsync(errorMessage);
                 }
             }
         }

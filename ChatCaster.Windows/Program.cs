@@ -51,15 +51,11 @@ namespace ChatCaster.Windows
 
                 // Инициализируем TrayService
                 trayService.Initialize();
-                Log.Information("TrayService инициализирован");
 
                 // Инициализируем NotificationService
                 notificationService.InitializeAsync().GetAwaiter().GetResult();
-                Log.Information("NotificationService инициализирован");
 
                 app.MainWindow = mainWindow;
-
-                Log.Information("ChatCaster успешно инициализирован");
 
                 // Запуск приложения
                 app.Run(mainWindow);
@@ -88,29 +84,33 @@ namespace ChatCaster.Windows
                         .AddUserSecrets<Program>(optional: true);
                 })
                 .ConfigureServices((context, services) => { ConfigureServices(services, context.Configuration); });
-        
+
         private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             Log.Debug("Настройка DI контейнера...");
+
+            // === КОНФИГУРАЦИЯ ===
+            services.AddSingleton(configuration);
+
+            // ИСПРАВЛЕНО: Создаем единственный экземпляр AppConfig
+            services.AddSingleton<AppConfig>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+            // Инициализируем конфигурацию после создания сервисов
             services.AddSingleton<AppConfig>(provider =>
             {
                 var configService = provider.GetRequiredService<IConfigurationService>();
                 return configService.LoadConfigAsync().GetAwaiter().GetResult();
             });
 
-            // === КОНФИГУРАЦИЯ ===
-            services.AddSingleton(configuration);
-
-            // Загружаем AppConfig из файла
-            var appConfig = LoadAppConfig();
-            services.AddSingleton(appConfig);
-
             // === WHISPER МОДУЛЬ ===
-            var speechConfig = appConfig.SpeechRecognition;
-
             services.AddWhisperAsSpeechRecognition(config =>
             {
+                // Получаем AppConfig из DI для настройки Whisper
+                var serviceProvider = services.BuildServiceProvider();
+                var appConfig = serviceProvider.GetRequiredService<AppConfig>();
+                var speechConfig = appConfig.SpeechRecognition;
+
                 config.ModelSize = GetWhisperModelSize(speechConfig);
                 config.ThreadCount = Environment.ProcessorCount / 2;
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
@@ -126,7 +126,6 @@ namespace ChatCaster.Windows
             services.AddSingleton<IAudioCaptureService, AudioCaptureService>();
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
             services.AddSingleton<IOverlayService, WindowsOverlayService>();
-            services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
 
             // === ГЕЙМПАД СЕРВИСЫ ===
@@ -167,13 +166,13 @@ namespace ChatCaster.Windows
 
             // === ИНИЦИАЛИЗАЦИЯ И НАВИГАЦИЯ ===
             services.AddSingleton<ApplicationInitializationService>();
-            
+
             // НАВИГАЦИЯ 
             services.AddSingleton<PageFactory>();
             services.AddSingleton<PageCacheManager>();
             services.AddSingleton<ViewModelCleanupService>();
             services.AddSingleton<ViewModels.Navigation.NavigationManager>();
-            
+
             // === МЕНЕДЖЕРЫ MAINPAGE ===
             services.AddSingleton<RecordingStatusManager>();
             services.AddSingleton<DeviceDisplayManager>();
@@ -184,8 +183,6 @@ namespace ChatCaster.Windows
 
             // === VIEWMODELS ===
             services.AddSingleton<ChatCasterWindowViewModel>();
-
-            // Страничные ViewModels как Scoped (новый экземпляр для каждой навигации)
             services.AddSingleton<AudioSettingsViewModel>();
             services.AddSingleton<InterfaceSettingsViewModel>();
             services.AddSingleton<ControlSettingsViewModel>();
@@ -193,21 +190,11 @@ namespace ChatCaster.Windows
 
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
+
+            Log.Information("DI контейнер настроен с правильным Single Source of Truth");
         }
 
-        private static AppConfig LoadAppConfig()
-        {
-            try
-            {
-                var configService = new ConfigurationService();
-                return configService.LoadConfigAsync().GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Не удалось загрузить конфигурацию, используем дефолтную");
-                return new AppConfig();
-            }
-        }
+        // УДАЛЕН МЕТОД LoadAppConfig() - больше не нужен!
 
         /// <summary>
         /// Получает размер модели из EngineSettings или возвращает дефолтный
