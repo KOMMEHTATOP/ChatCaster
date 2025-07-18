@@ -187,22 +187,10 @@ namespace ChatCaster.Windows.ViewModels
                 // Делегируем всю инициализацию сервису
                 CurrentConfig = await _initializationService.InitializeApplicationAsync();
                 
-                Log.Information("🔍 ДИАГНОСТИКА: После InitializeApplicationAsync, SelectedLanguage = {Lang}", 
-                    CurrentConfig?.System?.SelectedLanguage);
-
                 // Устанавливаем язык из конфигурации
                 SelectedLanguage = CurrentConfig.System.SelectedLanguage;
                 
-                Log.Information("🔍 ДИАГНОСТИКА: После установки SelectedLanguage в UI = {Lang}", 
-                    SelectedLanguage);
-
                 UpdateLocalizedStrings();
-
-                // Регистрируем глобальный хоткей если настроен
-                if (CurrentConfig.Input.KeyboardShortcut != null)
-                {
-                    var registered = await _systemService.RegisterGlobalHotkeyAsync(CurrentConfig.Input.KeyboardShortcut);
-                }
 
                 // Применяем настройки окна
                 if (CurrentConfig.System.StartMinimized)
@@ -313,15 +301,9 @@ namespace ChatCaster.Windows.ViewModels
             _isUpdatingLanguage = true;
             try
             {
-                Log.Information("🔄 OnSelectedLanguageChanged вызван: {Value}", value);
-                Log.Information("🔍 ДИАГНОСТИКА: CurrentConfig.System.SelectedLanguage ДО изменения = {Before}", 
-                    CurrentConfig?.System?.SelectedLanguage);
-
                 if (!string.IsNullOrEmpty(value) && CurrentConfig?.System != null)
                 {
                     CurrentConfig.System.SelectedLanguage = value;
-                    Log.Information("🔍 ДИАГНОСТИКА: CurrentConfig.System.SelectedLanguage ПОСЛЕ изменения = {After}", 
-                        CurrentConfig.System.SelectedLanguage);
                     _localizationService.SetLanguage(value);
                     _ = SaveConfigurationAsync();
                 }
@@ -337,7 +319,6 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 await _configurationService.SaveConfigAsync(CurrentConfig);
-                Log.Debug("ChatCasterWindowViewModel: конфигурация сохранена после смены языка");
             }
             catch (Exception ex)
             {

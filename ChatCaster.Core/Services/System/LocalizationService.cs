@@ -14,6 +14,7 @@ namespace ChatCaster.Core.Services.System
         {
             _configService = configService;
             _configService.ConfigurationChanged += OnConfigurationChanged;
+            
             // Устанавливаем язык из конфигурации при инициализации
             SetLanguage(_configService.CurrentConfig.System?.SelectedLanguage ?? "ru-RU");
         }
@@ -22,10 +23,7 @@ namespace ChatCaster.Core.Services.System
 
         public void SetLanguage(string culture)
         {
-            Log.Debug("LocalizationService: устанавливаем язык {Culture}", culture);
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
-            Log.Debug("LocalizationService: текущая культура установлена в {Culture}", Thread.CurrentThread.CurrentUICulture.Name);
-            LanguageChanged?.Invoke(this, EventArgs.Empty);
         } 
         public string GetString(string key)
         {
@@ -34,13 +32,8 @@ namespace ChatCaster.Core.Services.System
 
         private void OnConfigurationChanged(object sender, ConfigurationChangedEvent e)
         {
-            Log.Information("🔔 LocalizationService получил ConfigurationChanged: {SettingName} = {NewValue}", 
-                e.SettingName, e.NewValue);
-
             if (e.SettingName == "System.SelectedLanguage" && e.NewValue is string newLanguage)
             {
-                Log.Information("🔄 LocalizationService переключает язык на: {Language}", newLanguage);
-
                 SetLanguage(newLanguage);
             }
         }

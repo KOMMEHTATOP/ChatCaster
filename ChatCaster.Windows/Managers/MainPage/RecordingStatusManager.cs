@@ -23,8 +23,6 @@ namespace ChatCaster.Windows.Managers.MainPage
                 RecordingStatus.Error => $"Ошибка: {reason}",
                 _ => "Неизвестный статус"
             };
-
-            Log.Debug("RecordingStatusManager: статус форматирован: {Status} -> {Text}", status, statusText);
             return statusText;
         }
 
@@ -40,7 +38,6 @@ namespace ChatCaster.Windows.Managers.MainPage
                 _ => "Записать"
             };
 
-            Log.Debug("RecordingStatusManager: текст кнопки: {Status} -> {ButtonText}", status, buttonText);
             return buttonText;
         }
 

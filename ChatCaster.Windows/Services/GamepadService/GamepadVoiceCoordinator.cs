@@ -123,8 +123,6 @@ public class GamepadVoiceCoordinator : IDisposable
             {
                 _isInitialized = true;
             }
-
-            _logger.Information("Инициализация GamepadVoiceCoordinator завершена успешно");
             return true;
         }
         catch (Exception ex)

@@ -37,7 +37,6 @@ public class TrayService : ITrayService, IDisposable
     public TrayService(IConfigurationService configService)
     {
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-        Log.Information("TrayService создан");
     }
 
     #endregion

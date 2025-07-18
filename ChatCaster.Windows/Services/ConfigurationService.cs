@@ -39,14 +39,11 @@ public class ConfigurationService : IConfigurationService
         {
             if (!File.Exists(ConfigPath))
             {
-                _logger.Information("Файл конфигурации не найден, создаем дефолтный");
                 var defaultConfig = new AppConfig();
                 await SaveConfigAsync(defaultConfig);
                 return defaultConfig;
             }
-
-            _logger.Debug("Загружаем конфигурацию из: {ConfigPath}", ConfigPath);
-        
+            
             var jsonText = await File.ReadAllTextAsync(ConfigPath);
             var config = JsonSerializer.Deserialize<AppConfig>(jsonText, GetJsonOptions());
         
@@ -69,8 +66,6 @@ public class ConfigurationService : IConfigurationService
                     NewValue = config
                 });
             }
-
-            _logger.Information("Конфигурация успешно загружена");
             return CurrentConfig;
         }
         catch (Exception ex)
@@ -88,18 +83,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            _logger.Debug("Сохраняем конфигурацию в: {ConfigPath}", ConfigPath);
-            
             // Сохраняем старое значение языка для сравнения
             var oldLanguage = CurrentConfig.System?.SelectedLanguage;
             
             var jsonText = JsonSerializer.Serialize(config, GetJsonOptions());
             await File.WriteAllTextAsync(ConfigPath, jsonText);
-        
-            // ДИАГНОСТИКА: Проверяем что записалось в файл
-            var savedText = await File.ReadAllTextAsync(ConfigPath);
-            _logger.Debug("В файле сохранено selectedLanguage: {HasField}", savedText.Contains("selectedLanguage"));
-
+            
             // Обновляем кеш
             CurrentConfig = config;
             
@@ -118,12 +107,6 @@ public class ConfigurationService : IConfigurationService
                     NewValue = config.System?.SelectedLanguage
                 });
             }
-
-            // ДИАГНОСТИКА: Проверяем кеш после обновления
-            _logger.Debug("CurrentConfig.AllowCompleteExit = {AllowCompleteExit}, SelectedLanguage = {SelectedLanguage}, HashCode = {HashCode}",
-                CurrentConfig.System?.AllowCompleteExit, CurrentConfig.System?.SelectedLanguage, CurrentConfig.GetHashCode());        
-            
-            _logger.Debug("Конфигурация успешно сохранена");
         }
         catch (Exception ex)
         {

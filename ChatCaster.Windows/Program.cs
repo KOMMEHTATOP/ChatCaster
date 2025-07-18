@@ -196,7 +196,7 @@ namespace ChatCaster.Windows
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
 
-            Log.Information("DI контейнер настроен с правильным Single Source of Truth");
+            Log.Information("DI контейнер настроен");
         }
         
         /// <summary>
