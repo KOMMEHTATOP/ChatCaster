@@ -108,16 +108,6 @@ namespace ChatCaster.Windows.Utilities
             }
         }
 
-        /// <summary>
-        /// Перезапускает таймер с тем же временем
-        /// </summary>
-        public void Restart()
-        {
-            var totalSeconds = TotalSeconds;
-            Stop();
-            Start(totalSeconds);
-        }
-
         #endregion
 
         #region Private Methods

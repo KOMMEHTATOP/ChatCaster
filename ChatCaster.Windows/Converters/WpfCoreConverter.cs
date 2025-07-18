@@ -14,8 +14,6 @@ namespace ChatCaster.Windows.Converters;
 /// </summary>
 public static class WpfCoreConverter
 {
-    private readonly static ILogger _logger = Log.ForContext(typeof(WpfCoreConverter));
-
     #region Key Conversion Dictionary
 
     private readonly static Dictionary<WpfKey, CoreKey> KeyMap = new()
@@ -88,17 +86,7 @@ public static class WpfCoreConverter
     #endregion
 
     #region Public Methods
-
-    /// <summary>
-    /// Конвертирует WPF клавишу в Core клавишу
-    /// </summary>
-    /// <param name="wpfKey">WPF клавиша</param>
-    /// <returns>Core клавиша или null если конверсия невозможна</returns>
-    public static CoreKey? ConvertToCore(WpfKey wpfKey)
-    {
-        return KeyMap.TryGetValue(wpfKey, out var coreKey) ? coreKey : null;
-    }
-
+    
     /// <summary>
     /// Конвертирует Core клавишу в WPF клавишу
     /// </summary>
@@ -107,27 +95,6 @@ public static class WpfCoreConverter
     public static WpfKey? ConvertToWpf(CoreKey coreKey)
     {
         return ReverseKeyMap.TryGetValue(coreKey, out var wpfKey) ? wpfKey : null;
-    }
-
-    /// <summary>
-    /// Конвертирует WPF модификаторы в Core модификаторы
-    /// </summary>
-    /// <param name="wpfModifiers">WPF модификаторы</param>
-    /// <returns>Core модификаторы</returns>
-    public static CoreModifierKeys ConvertToCore(WpfModifierKeys wpfModifiers)
-    {
-        var coreModifiers = CoreModifierKeys.None;
-
-        if (wpfModifiers.HasFlag(WpfModifierKeys.Control))
-            coreModifiers |= CoreModifierKeys.Control;
-        if (wpfModifiers.HasFlag(WpfModifierKeys.Shift))
-            coreModifiers |= CoreModifierKeys.Shift;
-        if (wpfModifiers.HasFlag(WpfModifierKeys.Alt))
-            coreModifiers |= CoreModifierKeys.Alt;
-        if (wpfModifiers.HasFlag(WpfModifierKeys.Windows))
-            coreModifiers |= CoreModifierKeys.Windows;
-
-        return coreModifiers;
     }
 
     /// <summary>
@@ -150,34 +117,6 @@ public static class WpfCoreConverter
 
         return wpfModifiers;
     }
-
-    /// <summary>
-    /// Создает KeyboardShortcut из WPF клавиши и модификаторов
-    /// </summary>
-    /// <param name="wpfKey">WPF клавиша</param>
-    /// <param name="wpfModifiers">WPF модификаторы</param>
-    /// <returns>KeyboardShortcut или null если конверсия невозможна</returns>
-    public static KeyboardShortcut? CreateKeyboardShortcut(WpfKey wpfKey, WpfModifierKeys wpfModifiers)
-    {
-        var coreKey = ConvertToCore(wpfKey);
-        if (coreKey == null)
-        {
-            _logger.Debug("Неподдерживаемая клавиша: {WpfKey}", wpfKey);
-            return null;
-        }
-
-        var coreModifiers = ConvertToCore(wpfModifiers);
-        
-        var shortcut = new KeyboardShortcut
-        {
-            Key = coreKey.Value,
-            Modifiers = coreModifiers
-        };
-        
-        _logger.Debug("Создан shortcut: {WpfKey}+{WpfModifiers} → {DisplayText}", wpfKey, wpfModifiers, shortcut.DisplayText);
-        
-        return shortcut;
-    }
-
+    
     #endregion
 }

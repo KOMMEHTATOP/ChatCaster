@@ -94,13 +94,5 @@ namespace ChatCaster.Windows.Interfaces
 
         #endregion
 
-        #region Methods
-
-        /// <summary>
-        /// Обновляет статус устройства
-        /// </summary>
-        Task RefreshStatusAsync();
-
-        #endregion
     }
 }

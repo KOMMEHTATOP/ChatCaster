@@ -15,8 +15,6 @@ namespace ChatCaster.Windows.Services.OverlayService;
 /// </summary>
 public class WindowsOverlayService : IOverlayService, IOverlayDisplay, IDisposable
 {
-    private readonly static ILogger _logger = Log.ForContext<WindowsOverlayService>();
-
     public event EventHandler<OverlayPositionChangedEvent>? PositionChanged;
 
     // Core компоненты

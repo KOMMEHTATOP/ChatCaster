@@ -92,7 +92,7 @@ namespace ChatCaster.Windows
             // === КОНФИГУРАЦИЯ ===
             services.AddSingleton(configuration);
 
-            // ИСПРАВЛЕНО: Создаем единственный экземпляр AppConfig
+            // Создаем единственный экземпляр AppConfig
             services.AddSingleton<AppConfig>();
             services.AddSingleton<IConfigurationService, ConfigurationService>();
 
@@ -193,9 +193,7 @@ namespace ChatCaster.Windows
 
             Log.Information("DI контейнер настроен с правильным Single Source of Truth");
         }
-
-        // УДАЛЕН МЕТОД LoadAppConfig() - больше не нужен!
-
+        
         /// <summary>
         /// Получает размер модели из EngineSettings или возвращает дефолтный
         /// </summary>

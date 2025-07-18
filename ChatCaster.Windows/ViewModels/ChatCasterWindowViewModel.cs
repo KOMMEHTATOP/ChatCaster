@@ -429,24 +429,6 @@ namespace ChatCaster.Windows.ViewModels
             SelectedLanguage = CurrentConfig.System.SelectedLanguage;
         }
         
-        private static string FormatKeyboardShortcut(KeyboardShortcut shortcut)
-        {
-            var parts = new List<string>();
-
-            if (shortcut.Modifiers.HasFlag(ModifierKeys.Control))
-                parts.Add("Ctrl");
-            if (shortcut.Modifiers.HasFlag(ModifierKeys.Shift))
-                parts.Add("Shift");
-            if (shortcut.Modifiers.HasFlag(ModifierKeys.Alt))
-                parts.Add("Alt");
-            if (shortcut.Modifiers.HasFlag(ModifierKeys.Windows))
-                parts.Add("Win");
-
-            parts.Add(shortcut.Key.ToString());
-
-            return string.Join(" + ", parts);
-        }
-
         #endregion
 
         #region Private Fields

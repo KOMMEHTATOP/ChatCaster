@@ -55,48 +55,6 @@ namespace ChatCaster.Windows.Managers.MainPage
                 return new DeviceDisplayInfo("Ошибка", "Устройство: Ошибка получения");
             }
         }
-
-        /// <summary>
-        /// Проверяет доступность текущего устройства
-        /// </summary>
-        public async Task<bool> IsCurrentDeviceAvailableAsync()
-        {
-            try
-            {
-                var currentConfig = _configurationService.CurrentConfig;
-                var selectedDeviceId = currentConfig.Audio.SelectedDeviceId;
-
-                if (string.IsNullOrEmpty(selectedDeviceId))
-                    return false;
-
-                var devices = await _audioService.GetAvailableDevicesAsync();
-                var isAvailable = devices.Any(d => d.Id == selectedDeviceId);
-
-                return isAvailable;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "DeviceDisplayManager: ошибка проверки доступности устройства");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Форматирует короткое имя устройства для отображения
-        /// </summary>
-        public string FormatShortDeviceName(string deviceName)
-        {
-            if (string.IsNullOrEmpty(deviceName))
-                return "Неизвестно";
-
-            // Убираем лишние префиксы и скобки для краткого отображения
-            var shortName = deviceName
-                .Replace("Microphone ", "")
-                .Replace("(", " (")
-                .Trim();
-
-            return shortName.Length > 30 ? shortName.Substring(0, 27) + "..." : shortName;
-        }
     }
 
     #region Helper Classes

@@ -180,39 +180,7 @@ namespace ChatCaster.Windows.ViewModels.Components
                 Log.Error(ex, "RecognitionResultsComponent: ошибка обновления локализации");
             }
         }
-
-        /// <summary>
-        /// Очищает историю распознаваний
-        /// </summary>
-        public void ClearHistory()
-        {
-            try
-            {
-                var count = RecentRecognitions.Count;
-                RecentRecognitions.Clear();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "RecognitionResultsComponent: ошибка очистки истории");
-            }
-        }
-
-        /// <summary>
-        /// Получает последние N распознаваний
-        /// </summary>
-        public IEnumerable<string> GetRecentRecognitions(int count = 5)
-        {
-            try
-            {
-                return RecentRecognitions.Take(Math.Min(count, RecentRecognitions.Count));
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "RecognitionResultsComponent: ошибка получения недавних распознаваний");
-                return Enumerable.Empty<string>();
-            }
-        }
-
+        
         /// <summary>
         /// Очистка ресурсов
         /// </summary>

@@ -16,11 +16,11 @@ public class ShortcutDetector
     private GamepadShortcut? _currentShortcut;
     private GamepadState? _previousState;
     private int _controllerIndex = -1;
-    private bool _feedbackShown = false;
+    private bool _feedbackShown;
 
     // Состояние детекции
     private DateTime? _shortcutPressStartTime;
-    private bool _shortcutWasPressed = false;
+    private bool _shortcutWasPressed;
 
     public event EventHandler? LongHoldFeedbackTriggered;
 
@@ -187,11 +187,11 @@ public class ShortcutDetector
 
             ShortcutPressed?.Invoke(this, eventArgs);
             
-            Log.Information($"[ShortcutDetector] Комбинация сработала: {_currentShortcut.DisplayText}, удержание: {holdTimeMs}ms");
+            Log.Information("[ShortcutDetector] Комбинация сработала: {CurrentShortcutDisplayText}, удержание: {HoldTimeMs}ms", _currentShortcut.DisplayText, holdTimeMs);
         }
         catch (Exception ex)
         {
-            Log.Information($"[ShortcutDetector] Ошибка при отправке события: {ex.Message}");
+            Log.Information("[ShortcutDetector] Ошибка при отправке события: {ExMessage}", ex.Message);
         }
     }
 
@@ -226,30 +226,5 @@ public class ShortcutDetector
 
         return true;
     }
-
-    /// <summary>
-    /// Получает текущее время удержания комбинации (если нажата)
-    /// </summary>
-    public int? GetCurrentHoldTime()
-    {
-        lock (_lockObject)
-        {
-            if (!_shortcutWasPressed || !_shortcutPressStartTime.HasValue)
-                return null;
-
-            var holdTime = DateTime.Now - _shortcutPressStartTime.Value;
-            return (int)holdTime.TotalMilliseconds;
-        }
-    }
-
-    /// <summary>
-    /// Проверяет нажата ли сейчас комбинация
-    /// </summary>
-    public bool IsShortcutCurrentlyPressed()
-    {
-        lock (_lockObject)
-        {
-            return _shortcutWasPressed;
-        }
-    }
+    
 }
