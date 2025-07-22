@@ -38,7 +38,7 @@ public static class UpdateConstants
     /// <summary>
     /// Имя файла обновлений (временный)
     /// </summary>
-    public const string UpdateFileName = "ChatCaster-update.exe";
+    public const string UpdateFileName = "ChatCaster-update.zip";
     
     /// <summary>
     /// Имя внешнего обновляющего приложения

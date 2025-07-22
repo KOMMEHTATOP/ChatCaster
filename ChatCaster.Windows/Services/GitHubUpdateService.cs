@@ -7,6 +7,7 @@ using ChatCaster.Core.Updates;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Constants;
 using Serilog;
+using System.Text.Json.Serialization;
 
 namespace ChatCaster.Windows.Services;
 
@@ -329,8 +330,9 @@ public class GitHubUpdateService : IUpdateService, IDisposable
         var url = includePreReleases 
             ? UpdateConstants.GitHubReleasesApiUrl.Replace("/latest", "")
             : UpdateConstants.GitHubReleasesApiUrl;
-
+        _logger.Information("Запрашиваем URL: {Url}", url);
         var response = await _httpClient.GetStringAsync(url, cancellationToken);
+        _logger.Information("Ответ GitHub API: {Response}", response.Length > 1000 ? response.Substring(0, 1000) + "..." : response); // ← И эту
 
         if (includePreReleases)
         {
@@ -345,13 +347,21 @@ public class GitHubUpdateService : IUpdateService, IDisposable
 
     private UpdateInfo? MapGitHubReleaseToUpdateInfo(GitHubRelease release)
     {
-        // Ищем Windows исполняемый файл
+        // Ищем Windows файл - поддерживаем как .exe, так и .zip
         var windowsAsset = release.Assets?.FirstOrDefault(a => 
             a.Name.StartsWith(UpdateConstants.WindowsExecutablePrefix) && 
-            a.Name.EndsWith(UpdateConstants.WindowsExecutableSuffix));
-
+            (a.Name.EndsWith(UpdateConstants.WindowsExecutableSuffix) || a.Name.EndsWith("-windows.zip")));
+        
+        _logger.Information("Ищем файл с префиксом: {Prefix}", UpdateConstants.WindowsExecutablePrefix);
+        _logger.Information("Доступные файлы в релизе: {Assets}", 
+            string.Join(", ", release.Assets?.Select(a => a.Name) ?? Array.Empty<string>()));
+        
         if (windowsAsset == null)
+        {
+            _logger.Debug("Доступные файлы в релизе: {Assets}", 
+                string.Join(", ", release.Assets?.Select(a => a.Name) ?? Array.Empty<string>()));
             return null;
+        }
 
         return new UpdateInfo
         {
@@ -364,7 +374,6 @@ public class GitHubUpdateService : IUpdateService, IDisposable
             IsPreRelease = release.PreRelease
         };
     }
-
     private string CreateUpdaterScript(string currentExePath, string updateFilePath, bool restartApp)
     {
         var scriptPath = Path.Combine(Path.GetTempPath(), "ChatCaster-updater.bat");
@@ -394,23 +403,39 @@ del ""{scriptPath}""
 
     private class GitHubRelease
     {
+        [JsonPropertyName("tag_name")]
         public string TagName { get; set; } = string.Empty;
+    
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+    
+        [JsonPropertyName("body")]
         public string Body { get; set; } = string.Empty;
+    
+        [JsonPropertyName("published_at")]
         public DateTime PublishedAt { get; set; }
+    
+        [JsonPropertyName("prerelease")]
         public bool PreRelease { get; set; }
+    
+        [JsonPropertyName("assets")]
         public GitHubAsset[]? Assets { get; set; }
     }
 
     private class GitHubAsset
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+    
+        [JsonPropertyName("browser_download_url")]
         public string BrowserDownloadUrl { get; set; } = string.Empty;
+    
+        [JsonPropertyName("size")]
         public long Size { get; set; }
     }
 
     #endregion
-
+    
     #region Disposal
 
     public void Dispose()
