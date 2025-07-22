@@ -54,10 +54,16 @@ namespace ChatCaster.Windows.Services
                 var config = _configurationService.CurrentConfig;
                 Log.Information("🔍 [PATH] Current directory: {CurrentDir}", Directory.GetCurrentDirectory());
                 Log.Information("🔍 [PATH] Base directory: {BaseDir}", AppContext.BaseDirectory);
-                Log.Information("🔍 [PATH] Models path: {ModelsPath}", Path.GetFullPath("Models"));
+                Log.Information("🔍 [PATH] Models path: {ModelsPath}",
+                    Path.Combine(AppContext.BaseDirectory, "Models")); // ← ИСПРАВЛЕНО
 
                 // 2. Проверяем первый запуск и устанавливаем defaults
                 await EnsureDefaultConfigurationAsync(config);
+
+                var modelsDir = Path.Combine(AppContext.BaseDirectory, "Models");
+                var modelFile = Path.Combine(modelsDir, "ggml-tiny.bin");
+                Log.Information("🔍 [CHECK] Models directory exists: {Exists}", Directory.Exists(modelsDir));
+                Log.Information("🔍 [CHECK] Model file exists: {Exists}, Path: {Path}", File.Exists(modelFile), modelFile);
 
                 // 3. Инициализируем все сервисы
                 await InitializeSpeechRecognitionAsync(config);
@@ -101,6 +107,16 @@ namespace ChatCaster.Windows.Services
         {
             bool configChanged = false;
 
+            // Проверяем и устанавливаем ModelPath
+            if (!config.SpeechRecognition.EngineSettings.ContainsKey("ModelPath") ||
+                string.IsNullOrEmpty(config.SpeechRecognition.EngineSettings["ModelPath"]?.ToString()))
+            {
+                config.SpeechRecognition.EngineSettings["ModelPath"] = Path.Combine(AppContext.BaseDirectory, "Models");
+                configChanged = true;
+                Log.Information("Установлен дефолтный ModelPath: {ModelPath}",
+                    config.SpeechRecognition.EngineSettings["ModelPath"]);
+            }
+
             // Проверяем и устанавливаем Whisper модель по умолчанию
             if (!config.SpeechRecognition.EngineSettings.ContainsKey("ModelSize") ||
                 string.IsNullOrEmpty(config.SpeechRecognition.EngineSettings["ModelSize"]?.ToString()))
@@ -119,7 +135,6 @@ namespace ChatCaster.Windows.Services
             catch (Exception ex)
             {
                 Log.Error(ex, "Ошибка применения настройки автозапуска");
-                // Не прерываем инициализацию из-за этой ошибки
             }
 
             // Проверяем и устанавливаем аудио устройство по умолчанию
@@ -127,10 +142,8 @@ namespace ChatCaster.Windows.Services
             {
                 try
                 {
-                    // Получаем список доступных устройств
                     var devices = await _audioService.GetAvailableDevicesAsync();
-                    var defaultDevice = devices.FirstOrDefault(d => d.IsDefault)
-                                        ?? devices.FirstOrDefault();
+                    var defaultDevice = devices.FirstOrDefault(d => d.IsDefault) ?? devices.FirstOrDefault();
 
                     if (defaultDevice != null)
                     {
@@ -149,7 +162,6 @@ namespace ChatCaster.Windows.Services
                 }
             }
 
-            // Сохраняем конфигурацию только если были изменения
             if (configChanged)
             {
                 await _configurationService.SaveConfigAsync(config);
@@ -158,8 +170,35 @@ namespace ChatCaster.Windows.Services
 
         private async Task InitializeSpeechRecognitionAsync(AppConfig config)
         {
-            var speechInitialized = await _speechService.InitializeAsync(config.SpeechRecognition);
+            // Проверим наличие модели ПЕРЕД инициализацией
+            var modelsDir = Path.Combine(AppContext.BaseDirectory, "Models");
+            var modelFile = Path.Combine(modelsDir, "ggml-tiny.bin");
+
+            Log.Information("🔍 [INIT] Models directory exists: {Exists}", Directory.Exists(modelsDir));
+            Log.Information("🔍 [INIT] Model file exists BEFORE init: {Exists}, Path: {Path}", File.Exists(modelFile),
+                modelFile);
+
+            Log.Information("🔍 [INIT] Начинаем инициализацию Whisper с моделью: {ModelSize}",
+                config.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var model) ? model : "unknown");
+
+            bool speechInitialized = false;
+
+            try
+            {
+                speechInitialized = await _speechService.InitializeAsync(config.SpeechRecognition);
+                Log.Information("🔍 [INIT] Результат инициализации: {Success}", speechInitialized);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "🔍 [INIT] ИСКЛЮЧЕНИЕ при инициализации Whisper: {Type}, {Message}",
+                    ex.GetType().Name, ex.Message);
+            }
+
+            Log.Information("🔍 [INIT] Model file exists AFTER init: {Exists}", File.Exists(modelFile));
+            Log.Information("🔍 [INIT] Speech service initialized: {Success}, IsInitialized: {IsInitialized}",
+                speechInitialized, _speechService.IsInitialized);
         }
+
 
         private async Task InitializeAudioAsync(AppConfig config)
         {

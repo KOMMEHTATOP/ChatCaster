@@ -32,6 +32,9 @@ namespace ChatCaster.Windows
         [STAThread]
         public static void Main(string[] args)
         {
+            // СИМУЛЯЦИЯ автозапуска - меняем рабочую директорию
+            //Directory.SetCurrentDirectory(@"C:\Windows\system32");
+
             try
             {
                 InitializeLogging();
@@ -117,6 +120,7 @@ namespace ChatCaster.Windows
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
                 config.Language = speechConfig.Language;
                 config.ModelPath = Path.Combine(AppContext.BaseDirectory, "Models");
+                speechConfig.EngineSettings["ModelPath"] = config.ModelPath;
                 Log.Information("🔍 [WHISPER_CONFIG] AppContext.BaseDirectory: {BaseDir}", AppContext.BaseDirectory);
                 Log.Information("🔍 [WHISPER_CONFIG] ModelPath установлен: {ModelPath}", config.ModelPath);
 

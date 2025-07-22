@@ -71,7 +71,9 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
             else
             {
                 Log.Information($"Модель распознавания {modelSize} не найдена в конфиге");
-            };
+            }
+
+            ;
 
             var audioConfig = config.Audio;
             var maxSeconds = audioConfig.MaxRecordingSeconds;
@@ -143,6 +145,29 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
             }
 
             // Отправляем на распознавание
+            Log.Information("📤 Получено {AudioSize} байт для распознавания", audioData.Length);
+
+            // ДОБАВЛЕНА ПРОВЕРКА ИНИЦИАЛИЗАЦИИ:
+            if (!_speechRecognitionService.IsInitialized)
+            {
+                Log.Warning("❌ Речевой сервис не инициализирован, попытка переинициализации...");
+
+                var config = _configurationService.CurrentConfig;
+                bool reinitialized = await _speechRecognitionService.InitializeAsync(config.SpeechRecognition);
+
+                if (!reinitialized)
+                {
+                    Log.Error("❌ Не удалось переинициализировать речевой сервис");
+                    _stateManager.SetError("Сервис распознавания речи не доступен");
+                    return new VoiceProcessingResult
+                    {
+                        Success = false, RecognizedText = "", ErrorMessage = "Сервис распознавания речи не инициализирован"
+                    };
+                }
+
+                Log.Information("✅ Речевой сервис успешно переинициализирован");
+            }
+
             var result = await _speechRecognitionService.RecognizeAsync(audioData, cancellationToken);
 
             // Обновляем состояние с результатом
@@ -176,6 +201,7 @@ public class VoiceRecordingCoordinator : IVoiceRecordingService, IDisposable
             };
         }
     }
+
 
     public async Task CancelRecordingAsync()
     {

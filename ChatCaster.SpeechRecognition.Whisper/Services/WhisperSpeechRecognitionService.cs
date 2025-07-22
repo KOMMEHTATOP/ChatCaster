@@ -46,34 +46,49 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     {
         try
         {
+            _logger.LogInformation("🔍 [WHISPER_INIT] Начало инициализации Whisper");
+
             // Конвертируем конфигурацию
+            _logger.LogInformation("🔍 [WHISPER_INIT] Конвертация конфигурации...");
             _config = WhisperConfig.FromSpeechConfig(config);
+            _logger.LogInformation(
+                "🔍 [WHISPER_INIT] Конфигурация конвертирована: ModelSize={ModelSize}, ModelPath={ModelPath}",
+                _config.ModelSize, _config.ModelPath);
 
             // Валидируем конфигурацию
+            _logger.LogInformation("🔍 [WHISPER_INIT] Валидация конфигурации...");
             var validation = _config.Validate();
+            _logger.LogInformation("🔍 [WHISPER_INIT] Результат валидации: {IsValid}", validation.IsValid);
 
             if (!validation.IsValid)
             {
                 var errors = string.Join(", ", validation.Errors);
+                _logger.LogError("🔍 [WHISPER_INIT] Ошибки валидации: {Errors}", errors);
                 throw WhisperConfigurationException.InvalidConfiguration(errors);
             }
 
             // Подготавливаем модель
+            _logger.LogInformation("🔍 [WHISPER_INIT] Подготовка модели: {ModelSize} из {ModelPath}",
+                _config.ModelSize, _config.ModelPath);
             var modelPath = await _modelManager.PrepareModelAsync(_config.ModelSize, _config.ModelPath);
             _logger.LogInformation("🔍 [MODEL] Подготовлена модель: {ModelPath}, размер: {ModelSize}", modelPath,
                 _config.ModelSize);
 
-
             // Создаем Whisper factory
+            _logger.LogInformation("🔍 [WHISPER_INIT] Создание WhisperFactory из {ModelPath}", modelPath);
             _factory = WhisperFactory.FromPath(modelPath);
+            _logger.LogInformation("🔍 [WHISPER_INIT] WhisperFactory успешно создан");
 
             // Создаем процессор с настройками
+            _logger.LogInformation("🔍 [WHISPER_INIT] Создание процессора с потоками: {ThreadCount}", _config.ThreadCount);
             var processorBuilder = _factory.CreateBuilder()
                 .WithThreads(_config.ThreadCount);
+            _logger.LogInformation("🔍 [WHISPER_INIT] ProcessorBuilder создан");
 
             // Применяем язык только если он не Auto
             if (_config.Language != WhisperConstants.Languages.Auto)
             {
+                _logger.LogInformation("🔍 [WHISPER_INIT] Установка языка: {Language}", _config.Language);
                 processorBuilder = processorBuilder.WithLanguage(_config.Language);
             }
             else
@@ -81,33 +96,40 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 _logger.LogInformation("🔍 [LANG] Using auto-detection (no explicit language)");
             }
 
-
             // Применяем дополнительные настройки
             if (_config.EnableTranslation)
             {
+                _logger.LogInformation("🔍 [WHISPER_INIT] Включение перевода");
                 processorBuilder = processorBuilder.WithTranslate();
             }
 
             if (!string.IsNullOrEmpty(_config.InitialPrompt))
             {
+                _logger.LogInformation("🔍 [WHISPER_INIT] Установка промпта: {Prompt}", _config.InitialPrompt);
                 processorBuilder = processorBuilder.WithPrompt(_config.InitialPrompt);
             }
 
             // Создаем процессор
+            _logger.LogInformation("🔍 [WHISPER_INIT] Финальное создание процессора...");
             _processor = processorBuilder.Build();
+            _logger.LogInformation("🔍 [WHISPER_INIT] Процессор успешно создан");
 
             _isInitialized = true;
+            _logger.LogInformation("🔍 [WHISPER_INIT] ✅ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА УСПЕШНО");
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize Whisper engine");
+            _logger.LogError(ex,
+                "🔍 [WHISPER_INIT] ❌ ИСКЛЮЧЕНИЕ при инициализации: {ExceptionType}, Message: '{Message}', StackTrace: {StackTrace}",
+                ex.GetType().Name, ex.Message ?? "NULL", ex.StackTrace);
             _isInitialized = false;
 
             return false;
         }
     }
+
 
     public async Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default)
     {
@@ -137,12 +159,14 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             var avgSample = samples.Length > 0 ? samples.Average(Math.Abs) : 0;
             var rms = samples.Length > 0 ? Math.Sqrt(samples.Average(s => s * s)) : 0;
             _logger.LogInformation("🔍 [AUDIO] Max: {Max:F4}, Avg: {Avg:F4}, RMS: {RMS:F4}", maxSample, avgSample, rms);
+
             if (maxSample < 0.001f)
             {
                 _logger.LogWarning("🔍 [AUDIO] Audio signal is very quiet! Max amplitude: {Max:F6}", maxSample);
             }
+
             var nonZeroSamples = samples.Count(s => Math.Abs(s) > 0.0001f);
-            _logger.LogInformation("🔍 [AUDIO] Non-zero samples: {NonZero}/{Total} ({Percentage:F1}%)", 
+            _logger.LogInformation("🔍 [AUDIO] Non-zero samples: {NonZero}/{Total} ({Percentage:F1}%)",
                 nonZeroSamples, samples.Length, (float)nonZeroSamples / samples.Length * 100);
 
             // Выполняем распознавание
@@ -257,6 +281,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
     private async Task<WhisperResult> ProcessWithWhisperAsync(float[] samples, CancellationToken cancellationToken)
     {
         var invalidSamples = samples.Count(s => float.IsNaN(s) || float.IsInfinity(s));
+
         if (invalidSamples > 0)
         {
             _logger.LogError("🔍 [WHISPER] Found {Count} invalid samples (NaN/Infinity)!", invalidSamples);
@@ -281,14 +306,16 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             var segments = new List<WhisperSegment>();
 
             _logger.LogInformation("🔍 [PROCESS] About to call _processor.ProcessAsync");
-            _logger.LogInformation("🔍 [PROCESS] Starting Whisper processing, samples: {SampleCount}, processor: {ProcessorType}", 
+            _logger.LogInformation(
+                "🔍 [PROCESS] Starting Whisper processing, samples: {SampleCount}, processor: {ProcessorType}",
                 samples.Length, _processor.GetType().Name);
 // ДОБАВИТЬ ПРОВЕРКИ:
             var durationSeconds = (float)samples.Length / WhisperConstants.Audio.RequiredSampleRate;
-            _logger.LogInformation("🔍 [WHISPER] Audio duration: {Duration:F2}s, Expected sample rate: {SampleRate}Hz", 
+            _logger.LogInformation("🔍 [WHISPER] Audio duration: {Duration:F2}s, Expected sample rate: {SampleRate}Hz",
                 durationSeconds, WhisperConstants.Audio.RequiredSampleRate);
 
-            _logger.LogInformation("🔍 [WHISPER] Config - Language: '{Language}', VAD: {VAD}, GPU: {GPU}, Timeout: {Timeout}s", 
+            _logger.LogInformation(
+                "🔍 [WHISPER] Config - Language: '{Language}', VAD: {VAD}, GPU: {GPU}, Timeout: {Timeout}s",
                 _config.Language, _config.UseVAD, _config.EnableGpu, _config.RecognitionTimeoutSeconds);
 
 // Проверим минимальную длительность
@@ -298,7 +325,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             }
 
             _logger.LogInformation("🔍 [PROCESS] About to call _processor.ProcessAsync");
-            
+
             // Обрабатываем аудио
             await foreach (var segment in _processor.ProcessAsync(samples, timeoutCts.Token))
             {

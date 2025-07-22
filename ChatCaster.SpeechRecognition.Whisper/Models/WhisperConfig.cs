@@ -89,7 +89,7 @@ public class WhisperConfig
         {
             config.ApplySetting(setting.Key, setting.Value);
         }
-
+        config.ModelPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, config.ModelPath));
         return config;
     }
 
@@ -105,9 +105,10 @@ public class WhisperConfig
                 break;
 
             case WhisperConstants.SettingsKeys.ModelPath:
-                ModelPath = value?.ToString() ?? WhisperConstants.Paths.DefaultModelDirectory;
+                var path = value?.ToString() ?? WhisperConstants.Paths.DefaultModelDirectory;
+                ModelPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
                 break;
-
+            
             case WhisperConstants.SettingsKeys.Language:
                 Language = value?.ToString() ?? WhisperConstants.Languages.Default;
                 break;
@@ -143,6 +144,7 @@ public class WhisperConfig
             case WhisperConstants.SettingsKeys.InitialPrompt:
                 InitialPrompt = value?.ToString() ?? string.Empty;
                 break;
+            
         }
     }
 
