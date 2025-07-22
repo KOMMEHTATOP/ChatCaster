@@ -1,6 +1,5 @@
 using Serilog.Events;
 using ChatCaster.Core.Utilities;
-using Serilog;
 
 namespace ChatCaster.Core.Models;
 
