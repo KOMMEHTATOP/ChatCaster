@@ -50,10 +50,7 @@ namespace ChatCaster.Windows.ViewModels.Base
             {
                 IsLoadingUI = true;
                 StatusMessage = "Загрузка настроек...";
-
-                Log.Information("🔍 ДИАГНОСТИКА [{ViewModelName}]: SelectedLanguage при загрузке = {Lang}", 
-                    GetType().Name, _currentConfig?.System?.SelectedLanguage);
-
+                
                 // Загружаем базовые настройки
                 await LoadBaseSettingsAsync();
 

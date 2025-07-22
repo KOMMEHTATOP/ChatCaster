@@ -186,11 +186,6 @@ namespace ChatCaster.Windows.ViewModels
 
         protected override Task ApplySettingsToConfigAsync(AppConfig config)
         {
-            Log.Information("🔍 ДИАГНОСТИКА: _currentConfig.System.SelectedLanguage = {CurrentLang}", 
-                _currentConfig.System.SelectedLanguage);
-            Log.Information("🔍 ДИАГНОСТИКА: config.System.SelectedLanguage ДО изменения = {ConfigLang}", 
-                config.System.SelectedLanguage);
-
             try
             {
                 // Применяем аудио настройки
@@ -202,9 +197,6 @@ namespace ChatCaster.Windows.ViewModels
                 config.SpeechRecognition.Language = WhisperModelComponent.SelectedLanguage;
                 config.SpeechRecognition.EngineSettings["ModelSize"] = WhisperModelComponent.SelectedModel?.ModelSize ?? "tiny";
                 config.System.SelectedLanguage = _currentConfig.System.SelectedLanguage;
-                
-                Log.Information("🔍 ДИАГНОСТИКА: config.System.SelectedLanguage ПОСЛЕ изменения = {ConfigLang}", 
-                    config.System.SelectedLanguage);
 
                 return Task.CompletedTask;
             }
