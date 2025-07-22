@@ -24,6 +24,7 @@ namespace ChatCaster.Core.Services.System
         public void SetLanguage(string culture)
         {
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
+            LanguageChanged?.Invoke(this, EventArgs.Empty);
         } 
         public string GetString(string key)
         {

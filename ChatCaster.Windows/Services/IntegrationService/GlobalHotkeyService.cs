@@ -50,6 +50,7 @@ public class GlobalHotkeyService : IGlobalHotkeyService, IDisposable
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     try
+                    
                     {
                         // Очистка предыдущих хоткеев
                         try
