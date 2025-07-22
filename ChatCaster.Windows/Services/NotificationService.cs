@@ -14,6 +14,7 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class NotificationService : INotificationService, IDisposable
 {
+
     #region Fields
 
     private readonly ITrayService _trayService;
@@ -67,7 +68,6 @@ public class NotificationService : INotificationService, IDisposable
 
             // События конфигурации
             _configurationService.ConfigurationChanged += OnConfigurationChanged;
-
         }
         catch (Exception ex)
         {
@@ -84,7 +84,7 @@ public class NotificationService : INotificationService, IDisposable
                 case GamepadEventType.Connected:
                     NotifyGamepadConnected(e.GamepadInfo);
                     break;
-                
+
                 case GamepadEventType.Disconnected:
                     NotifyGamepadDisconnected(e.GamepadInfo);
                     break;
@@ -95,7 +95,7 @@ public class NotificationService : INotificationService, IDisposable
             Log.Error(ex, $"Ошибка обработки события геймпада: {e.EventType}");
         }
     }
-    
+
     private void UnsubscribeFromSystemEvents()
     {
         try
@@ -105,7 +105,6 @@ public class NotificationService : INotificationService, IDisposable
 
             // События конфигурации
             _configurationService.ConfigurationChanged -= OnConfigurationChanged;
-
         }
         catch (Exception ex)
         {
@@ -164,8 +163,8 @@ public class NotificationService : INotificationService, IDisposable
         {
             if (success)
             {
-                var message = !string.IsNullOrEmpty(deviceName) 
-                    ? $"Микрофон работает: {deviceName}" 
+                var message = !string.IsNullOrEmpty(deviceName)
+                    ? $"Микрофон работает: {deviceName}"
                     : "Микрофон работает нормально";
                 _trayService.ShowNotification("Тест микрофона", message, NotificationType.Success);
             }
@@ -173,7 +172,6 @@ public class NotificationService : INotificationService, IDisposable
             {
                 _trayService.ShowNotification("Тест микрофона", "Обнаружена проблема с микрофоном", NotificationType.Error);
             }
-            
         }
         catch (Exception ex)
         {
@@ -187,8 +185,9 @@ public class NotificationService : INotificationService, IDisposable
         {
             var message = $"{shortcutType} изменены: {displayText}";
             _trayService.ShowNotification("Управление", message);
-            
-            Log.Information("Уведомление об изменении настроек управления: {ShortcutType} - {DisplayText}", shortcutType, displayText);
+
+            Log.Information("Уведомление об изменении настроек управления: {ShortcutType} - {DisplayText}", shortcutType,
+                displayText);
         }
         catch (Exception ex)
         {
@@ -268,7 +267,6 @@ public class NotificationService : INotificationService, IDisposable
 
     #region Event Handlers
 
-
     private async void OnConfigurationChanged(object? sender, ConfigurationChangedEvent e)
     {
         try
@@ -280,6 +278,7 @@ public class NotificationService : INotificationService, IDisposable
                     {
                         NotifyControlSettingsChanged("Комбинация геймпада", gamepadShortcut.DisplayText);
                     }
+
                     break;
 
                 case "KeyboardShortcut":
@@ -287,6 +286,7 @@ public class NotificationService : INotificationService, IDisposable
                     {
                         NotifyControlSettingsChanged("Горячие клавиши", keyboardShortcut.DisplayText);
                     }
+
                     break;
 
                 case "SelectedDeviceId":
@@ -325,6 +325,98 @@ public class NotificationService : INotificationService, IDisposable
 
     #endregion
 
+    #region Update Notifications
+
+    /// <summary>
+    /// Уведомление о доступном обновлении
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    /// <param name="releaseNotes">Краткое описание изменений</param>
+    public void NotifyUpdateAvailable(string version, string? releaseNotes = null)
+    {
+        try
+        {
+            var message = $"Доступна версия {version}";
+
+            if (!string.IsNullOrEmpty(releaseNotes) && releaseNotes.Length <= 100)
+            {
+                message += $"\n{releaseNotes}";
+            }
+
+            _trayService.ShowNotification("Обновление", message, NotificationType.Info);
+
+            Log.Information("Уведомление об обновлении: {Version}", version);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка уведомления об обновлении");
+        }
+    }
+
+    /// <summary>
+    /// Уведомление о скачивании обновления
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    /// <param name="progress">Прогресс скачивания (0-100)</param>
+    public void NotifyUpdateDownloadProgress(string version, int progress)
+    {
+        try
+        {
+            if (progress >= 100)
+            {
+                var message = $"Обновление {version} скачано";
+                _trayService.ShowNotification("Обновление", message, NotificationType.Success);
+                _trayService.UpdateStatus($"ChatCaster - Обновление готово к установке");
+            }
+            else if (progress % 25 == 0) // Показываем только каждые 25%
+            {
+                _trayService.UpdateStatus($"ChatCaster - Скачивание обновления {progress}%");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка уведомления о прогрессе скачивания");
+        }
+    }
+
+    /// <summary>
+    /// Уведомление об ошибке обновления
+    /// </summary>
+    /// <param name="errorMessage">Сообщение об ошибке</param>
+    public void NotifyUpdateError(string errorMessage)
+    {
+        try
+        {
+            _trayService.ShowNotification("Ошибка обновления", errorMessage, NotificationType.Error);
+
+            Log.Warning("Ошибка обновления: {Error}", errorMessage);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка уведомления об ошибке обновления");
+        }
+    }
+
+    /// <summary>
+    /// Уведомление о готовности к установке обновления
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    public void NotifyUpdateReadyToInstall(string version)
+    {
+        try
+        {
+            var message = $"Обновление {version} будет установлено при закрытии приложения";
+            _trayService.ShowNotification("Обновление готово", message, NotificationType.Success);
+            _trayService.UpdateStatus($"ChatCaster - Обновление {version} готово");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка уведомления о готовности обновления");
+        }
+    }
+
+    #endregion
+
     #region Disposal
 
     public void Dispose()
@@ -348,4 +440,5 @@ public class NotificationService : INotificationService, IDisposable
     }
 
     #endregion
+
 }

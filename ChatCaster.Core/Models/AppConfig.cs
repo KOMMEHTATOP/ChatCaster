@@ -192,6 +192,11 @@ public class UpdateConfig
     public bool ShowUpdateNotifications { get; set; } = true;
     
     /// <summary>
+    /// Дополнительные данные (например, путь к скачанному обновлению)  
+    /// </summary>
+    public Dictionary<string, object> AdditionalData { get; set; } = new();
+    
+    /// <summary>
     /// Пропущенные версии (которые пользователь решил не устанавливать)
     /// </summary>
     public HashSet<string> SkippedVersions { get; set; } = new();

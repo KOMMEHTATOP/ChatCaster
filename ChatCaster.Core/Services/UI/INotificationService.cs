@@ -91,6 +91,36 @@ public interface INotificationService
 
     #endregion
 
+    #region Уведомления об обновлениях
+
+    /// <summary>
+    /// Уведомление о доступном обновлении
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    /// <param name="releaseNotes">Краткое описание изменений</param>
+    void NotifyUpdateAvailable(string version, string? releaseNotes = null);
+
+    /// <summary>
+    /// Уведомление о прогрессе скачивания обновления
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    /// <param name="progress">Прогресс скачивания (0-100)</param>
+    void NotifyUpdateDownloadProgress(string version, int progress);
+
+    /// <summary>
+    /// Уведомление об ошибке обновления
+    /// </summary>
+    /// <param name="errorMessage">Сообщение об ошибке</param>
+    void NotifyUpdateError(string errorMessage);
+
+    /// <summary>
+    /// Уведомление о готовности к установке обновления
+    /// </summary>
+    /// <param name="version">Версия обновления</param>
+    void NotifyUpdateReadyToInstall(string version);
+
+    #endregion
+    
     /// <summary>
     /// Освобождает ресурсы сервиса
     /// </summary>

@@ -13,6 +13,7 @@ using ChatCaster.Core.Services.Input;
 using ChatCaster.Core.Services.Overlay;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Core.Services.UI;
+using ChatCaster.Core.Updates;
 using ChatCaster.SpeechRecognition.Whisper.Extensions;
 using ChatCaster.SpeechRecognition.Whisper.Constants;
 using ChatCaster.Windows.Managers.MainPage;
@@ -204,6 +205,9 @@ namespace ChatCaster.Windows
 
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
+            
+            // === СИСТЕМА ОБНОВЛЕНИЙ ===
+            services.AddSingleton<IUpdateService, GitHubUpdateService>();
 
             Log.Information("DI контейнер настроен");
         }
