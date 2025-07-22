@@ -14,6 +14,8 @@ public class AppConfig
     public SpeechRecognitionConfig SpeechRecognition { get; set; } = new(); 
     public SystemConfig System { get; set; } = new();
     public LoggingConfig Logging { get; set; } = new();
+    public UpdateConfig Updates { get; set; } = new();
+
 }
 
 /// <summary>
@@ -152,4 +154,45 @@ public class LoggingConfig
     public long MaxFileSizeBytes { get; set; } = 10_000_000; // 10MB
     public string LogFileTemplate { get; set; } = "chatcaster-.log";
     public string? CustomLogDirectory { get; set; }
+}
+
+/// <summary>
+/// Настройки системы обновлений
+/// </summary>
+public class UpdateConfig
+{
+    /// <summary>
+    /// Включена ли автоматическая проверка обновлений
+    /// </summary>
+    public bool EnableAutoCheck { get; set; } = true;
+    
+    /// <summary>
+    /// Интервал проверки обновлений в часах
+    /// </summary>
+    public int CheckIntervalHours { get; set; } = 24;
+    
+    /// <summary>
+    /// Последняя проверка обновлений (UTC)
+    /// </summary>
+    public DateTime? LastCheckTime { get; set; }
+    
+    /// <summary>
+    /// Включены ли предварительные релизы (pre-release)
+    /// </summary>
+    public bool IncludePreReleases { get; set; } = false;
+    
+    /// <summary>
+    /// Автоматически скачивать обновления в фоне
+    /// </summary>
+    public bool AutoDownload { get; set; } = true;
+    
+    /// <summary>
+    /// Показывать уведомления об обновлениях
+    /// </summary>
+    public bool ShowUpdateNotifications { get; set; } = true;
+    
+    /// <summary>
+    /// Пропущенные версии (которые пользователь решил не устанавливать)
+    /// </summary>
+    public HashSet<string> SkippedVersions { get; set; } = new();
 }
