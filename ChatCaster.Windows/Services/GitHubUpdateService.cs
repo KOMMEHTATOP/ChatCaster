@@ -16,6 +16,7 @@ namespace ChatCaster.Windows.Services;
 /// </summary>
 public class GitHubUpdateService : IUpdateService, IDisposable
 {
+
     #region Fields
 
     private readonly HttpClient _httpClient;
@@ -38,9 +39,9 @@ public class GitHubUpdateService : IUpdateService, IDisposable
         _logger = Log.ForContext<GitHubUpdateService>();
         _httpClient = new HttpClient();
         _httpClient.Timeout = TimeSpan.FromSeconds(UpdateConstants.HttpTimeoutSeconds);
-        
+
         // GitHub требует User-Agent заголовок
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", 
+        _httpClient.DefaultRequestHeaders.Add("User-Agent",
             $"{AppConstants.AppName}/{AppConstants.AppVersion}");
     }
 
@@ -49,8 +50,8 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     #region Public Methods
 
     public async Task<UpdateResult> CheckForUpdatesAsync(
-        string currentVersion, 
-        bool includePreReleases = false, 
+        string currentVersion,
+        bool includePreReleases = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -58,6 +59,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
             _logger.Information("Проверка обновлений. Текущая версия: {CurrentVersion}", currentVersion);
 
             var latestRelease = await GetLatestReleaseAsync(includePreReleases, cancellationToken);
+
             if (latestRelease == null)
             {
                 _logger.Information("Релизы не найдены");
@@ -65,6 +67,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
             }
 
             var updateInfo = MapGitHubReleaseToUpdateInfo(latestRelease);
+
             if (updateInfo == null)
             {
                 _logger.Warning("Не удалось найти Windows исполняемый файл в релизе");
@@ -73,14 +76,14 @@ public class GitHubUpdateService : IUpdateService, IDisposable
 
             if (!updateInfo.IsNewerThan(currentVersion))
             {
-                _logger.Information("Доступная версия {AvailableVersion} не новее текущей {CurrentVersion}", 
+                _logger.Information("Доступная версия {AvailableVersion} не новее текущей {CurrentVersion}",
                     updateInfo.Version, currentVersion);
                 return UpdateResult.NoUpdatesAvailable();
             }
 
             _logger.Information("Найдено обновление: {Version}", updateInfo.Version);
             var result = UpdateResult.Success(UpdateResultType.UpdateAvailable, updateInfo);
-            
+
             OperationCompleted?.Invoke(this, result);
             return result;
         }
@@ -97,8 +100,8 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     }
 
     public async Task<UpdateResult> DownloadUpdateAsync(
-        UpdateInfo updateInfo, 
-        string? downloadPath = null, 
+        UpdateInfo updateInfo,
+        string? downloadPath = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -110,13 +113,14 @@ public class GitHubUpdateService : IUpdateService, IDisposable
 
             // Создаем директорию если не существует
             var directory = Path.GetDirectoryName(downloadPath);
+
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
             // Скачиваем с отчетом о прогрессе
-            using var response = await _httpClient.GetAsync(updateInfo.DownloadUrl, 
+            using var response = await _httpClient.GetAsync(updateInfo.DownloadUrl,
                 HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 
@@ -147,6 +151,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
 
             // Проверяем размер файла
             var fileInfo = new FileInfo(downloadPath);
+
             if (fileInfo.Length != totalBytes && totalBytes > 0)
             {
                 _logger.Warning("Размер скачанного файла не соответствует ожидаемому");
@@ -169,8 +174,8 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     }
 
     public async Task<UpdateResult> ApplyUpdateAsync(
-        string updateFilePath, 
-        bool restartApplication = true, 
+        string updateFilePath,
+        bool restartApplication = true,
         CancellationToken cancellationToken = default)
     {
         try
@@ -189,22 +194,43 @@ public class GitHubUpdateService : IUpdateService, IDisposable
             }
 
             var currentExecutablePath = Process.GetCurrentProcess().MainModule?.FileName;
+
             if (string.IsNullOrEmpty(currentExecutablePath))
             {
-                return UpdateResult.Failure(UpdateResultType.ApplyError, "Не удалось определить путь к текущему исполняемому файлу");
+                return UpdateResult.Failure(UpdateResultType.ApplyError,
+                    "Не удалось определить путь к текущему исполняемому файлу");
             }
 
-            // Создаем updater процесс
-            var updaterPath = CreateUpdaterScript(currentExecutablePath, updateFilePath, restartApplication);
-            
+            var currentDirectory = Path.GetDirectoryName(currentExecutablePath);
+
+            if (string.IsNullOrEmpty(currentDirectory))
+            {
+                return UpdateResult.Failure(UpdateResultType.ApplyError, "Не удалось определить директорию приложения");
+            }
+
+            // Проверяем тип файла обновления
+            var isZipFile = Path.GetExtension(updateFilePath).Equals(".zip", StringComparison.OrdinalIgnoreCase);
+
+            string updaterPath;
+
+            if (isZipFile)
+            {
+                // Создаем updater для ZIP архива
+                updaterPath = CreateZipUpdaterScript(currentExecutablePath, currentDirectory, updateFilePath,
+                    restartApplication);
+            }
+            else
+            {
+                // Создаем обычный updater для EXE файла
+                updaterPath = CreateUpdaterScript(currentExecutablePath, updateFilePath, restartApplication);
+            }
+
             _logger.Information("Запуск updater: {UpdaterPath}", updaterPath);
 
             // Запускаем updater
             var startInfo = new ProcessStartInfo
             {
-                FileName = updaterPath,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                FileName = updaterPath, UseShellExecute = false, CreateNoWindow = true
             };
 
             Process.Start(startInfo);
@@ -222,8 +248,69 @@ public class GitHubUpdateService : IUpdateService, IDisposable
         }
     }
 
+    private string CreateZipUpdaterScript(string currentExePath, string appDirectory, string zipFilePath, bool restartApp)
+    {
+        var scriptPath = Path.Combine(Path.GetTempPath(), "ChatCaster-zip-updater.bat");
+        var tempExtractPath = Path.Combine(Path.GetTempPath(), "ChatCaster-Update-Extract");
+
+        var script = $@"@echo off
+chcp 65001 > nul
+echo Начинаем обновление ChatCaster...
+
+REM Ждем закрытия основного приложения
+timeout /t 3 /nobreak > nul
+
+REM Создаем временную папку для распаковки
+if exist ""{tempExtractPath}"" rmdir /s /q ""{tempExtractPath}""
+mkdir ""{tempExtractPath}""
+
+REM Распаковываем архив с помощью PowerShell
+echo Распаковываем обновление...
+powershell -Command ""Expand-Archive -Path '{zipFilePath}' -DestinationPath '{tempExtractPath}' -Force""
+
+REM Проверяем успешность распаковки
+if not exist ""{tempExtractPath}"" (
+    echo Ошибка распаковки архива
+    pause
+    goto cleanup
+)
+
+REM Останавливаем все процессы ChatCaster (если остались)
+taskkill /f /im ChatCaster.Windows.exe 2>nul
+
+REM Ждем немного
+timeout /t 2 /nobreak > nul
+
+REM Копируем новые файлы
+echo Копируем новые файлы...
+xcopy ""{tempExtractPath}\*"" ""{appDirectory}\"" /E /H /C /I /Y
+
+REM Проверяем успешность копирования
+if exist ""{currentExePath}"" (
+    echo Обновление завершено успешно
+) else (
+    echo Ошибка копирования файлов
+    pause
+    goto cleanup
+)
+
+REM Запускаем приложение если нужно
+{(restartApp ? $"echo Запускаем обновленное приложение...\nstart \"\" \"{currentExePath}\"" : "")}
+
+:cleanup
+REM Очищаем временные файлы
+if exist ""{tempExtractPath}"" rmdir /s /q ""{tempExtractPath}""
+del ""{zipFilePath}"" 2>nul
+del ""{scriptPath}"" 2>nul
+";
+
+        File.WriteAllText(scriptPath, script, System.Text.Encoding.UTF8);
+        return scriptPath;
+    }
+    
+
     public async Task<UpdateInfo?> GetLatestVersionInfoAsync(
-        bool includePreReleases = false, 
+        bool includePreReleases = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -251,8 +338,8 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     }
 
     public async Task<bool> ValidateUpdateFileAsync(
-        string filePath, 
-        string? expectedHash = null, 
+        string filePath,
+        string? expectedHash = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -261,7 +348,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
                 return false;
 
             var fileInfo = new FileInfo(filePath);
-            
+
             // Проверяем размер файла
             if (fileInfo.Length > UpdateConstants.MaxUpdateFileSizeBytes)
             {
@@ -279,6 +366,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
             if (!string.IsNullOrEmpty(expectedHash))
             {
                 var actualHash = await CalculateFileHashAsync(filePath, cancellationToken);
+
                 if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.Warning("Хэш файла не соответствует ожидаемому");
@@ -327,12 +415,13 @@ public class GitHubUpdateService : IUpdateService, IDisposable
 
     private async Task<GitHubRelease?> GetLatestReleaseAsync(bool includePreReleases, CancellationToken cancellationToken)
     {
-        var url = includePreReleases 
+        var url = includePreReleases
             ? UpdateConstants.GitHubReleasesApiUrl.Replace("/latest", "")
             : UpdateConstants.GitHubReleasesApiUrl;
         _logger.Information("Запрашиваем URL: {Url}", url);
         var response = await _httpClient.GetStringAsync(url, cancellationToken);
-        _logger.Information("Ответ GitHub API: {Response}", response.Length > 1000 ? response.Substring(0, 1000) + "..." : response); // ← И эту
+        _logger.Information("Ответ GitHub API: {Response}",
+            response.Length > 1000 ? response.Substring(0, 1000) + "..." : response); // ← И эту
 
         if (includePreReleases)
         {
@@ -348,17 +437,17 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     private UpdateInfo? MapGitHubReleaseToUpdateInfo(GitHubRelease release)
     {
         // Ищем Windows файл - поддерживаем как .exe, так и .zip
-        var windowsAsset = release.Assets?.FirstOrDefault(a => 
-            a.Name.StartsWith(UpdateConstants.WindowsExecutablePrefix) && 
+        var windowsAsset = release.Assets?.FirstOrDefault(a =>
+            a.Name.StartsWith(UpdateConstants.WindowsExecutablePrefix) &&
             (a.Name.EndsWith(UpdateConstants.WindowsExecutableSuffix) || a.Name.EndsWith("-windows.zip")));
-        
+
         _logger.Information("Ищем файл с префиксом: {Prefix}", UpdateConstants.WindowsExecutablePrefix);
-        _logger.Information("Доступные файлы в релизе: {Assets}", 
+        _logger.Information("Доступные файлы в релизе: {Assets}",
             string.Join(", ", release.Assets?.Select(a => a.Name) ?? Array.Empty<string>()));
-        
+
         if (windowsAsset == null)
         {
-            _logger.Debug("Доступные файлы в релизе: {Assets}", 
+            _logger.Debug("Доступные файлы в релизе: {Assets}",
                 string.Join(", ", release.Assets?.Select(a => a.Name) ?? Array.Empty<string>()));
             return null;
         }
@@ -377,7 +466,7 @@ public class GitHubUpdateService : IUpdateService, IDisposable
     private string CreateUpdaterScript(string currentExePath, string updateFilePath, bool restartApp)
     {
         var scriptPath = Path.Combine(Path.GetTempPath(), "ChatCaster-updater.bat");
-        
+
         var script = $@"@echo off
 timeout /t 3 /nobreak > nul
 move ""{updateFilePath}"" ""{currentExePath}""
@@ -403,39 +492,31 @@ del ""{scriptPath}""
 
     private class GitHubRelease
     {
-        [JsonPropertyName("tag_name")]
-        public string TagName { get; set; } = string.Empty;
-    
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-    
-        [JsonPropertyName("body")]
-        public string Body { get; set; } = string.Empty;
-    
-        [JsonPropertyName("published_at")]
-        public DateTime PublishedAt { get; set; }
-    
-        [JsonPropertyName("prerelease")]
-        public bool PreRelease { get; set; }
-    
-        [JsonPropertyName("assets")]
-        public GitHubAsset[]? Assets { get; set; }
+        [JsonPropertyName("tag_name")] public string TagName { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("body")] public string Body { get; set; } = string.Empty;
+
+        [JsonPropertyName("published_at")] public DateTime PublishedAt { get; set; }
+
+        [JsonPropertyName("prerelease")] public bool PreRelease { get; set; }
+
+        [JsonPropertyName("assets")] public GitHubAsset[]? Assets { get; set; }
     }
 
     private class GitHubAsset
     {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-    
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+
         [JsonPropertyName("browser_download_url")]
         public string BrowserDownloadUrl { get; set; } = string.Empty;
-    
-        [JsonPropertyName("size")]
-        public long Size { get; set; }
+
+        [JsonPropertyName("size")] public long Size { get; set; }
     }
 
     #endregion
-    
+
     #region Disposal
 
     public void Dispose()
@@ -449,4 +530,5 @@ del ""{scriptPath}""
     }
 
     #endregion
+
 }
