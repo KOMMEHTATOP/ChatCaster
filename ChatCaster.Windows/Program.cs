@@ -21,6 +21,7 @@ using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
 using ChatCaster.Windows.Services.Navigation;
 using Serilog;
+using System.IO;
 
 namespace ChatCaster.Windows
 {
@@ -115,7 +116,10 @@ namespace ChatCaster.Windows
                 config.ThreadCount = Environment.ProcessorCount / 2;
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
                 config.Language = speechConfig.Language;
-                config.ModelPath = "Models";
+                config.ModelPath = Path.Combine(AppContext.BaseDirectory, "Models");
+                Log.Information("🔍 [WHISPER_CONFIG] AppContext.BaseDirectory: {BaseDir}", AppContext.BaseDirectory);
+                Log.Information("🔍 [WHISPER_CONFIG] ModelPath установлен: {ModelPath}", config.ModelPath);
+
                 config.UseVAD = true;
                 config.InitializationTimeoutSeconds = 30;
                 config.RecognitionTimeoutSeconds = 60;
@@ -142,6 +146,7 @@ namespace ChatCaster.Windows
             services.AddSingleton<ITextInputService, TextInputService>();
             services.AddSingleton<IGlobalHotkeyService, GlobalHotkeyService>();
             services.AddSingleton<ISystemNotificationService, SystemNotificationService>();
+            services.AddSingleton<IStartupManagerService, WindowsStartupManagerService>();
 
             // === TRAY СЕРВИСЫ ===
             services.AddSingleton<ITrayService, TrayService>();

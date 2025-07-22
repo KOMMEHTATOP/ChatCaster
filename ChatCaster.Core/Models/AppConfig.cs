@@ -28,7 +28,7 @@ public class AudioConfig
     public int BitsPerSample { get; set; } = 16;
     public int MaxRecordingSeconds { get; set; } = 30;
     public int MinRecordingSeconds { get; set; } = 2;
-    public float VolumeThreshold { get; set; } = 0.01f; //отвечает за порог громкости захвата. Сделал для отсечения лишних тихих звуков
+    public float VolumeThreshold { get; set; } = 0.005f; //отвечает за порог громкости захвата. Сделал для отсечения лишних тихих звуков
 }
 
 /// <summary>

@@ -20,6 +20,7 @@ namespace ChatCaster.Windows.ViewModels
 
         #endregion
         private readonly ILocalizationService _localizationService;
+        private readonly IStartupManagerService _startupManagerService;
 
         #region Observable Properties
 
@@ -168,9 +169,11 @@ namespace ChatCaster.Windows.ViewModels
             IConfigurationService configurationService,
             AppConfig currentConfig,
             IOverlayService overlayService,
-            ILocalizationService localizationService) : base(configurationService, currentConfig)
+            ILocalizationService localizationService,
+            IStartupManagerService startupManagerService) : base(configurationService, currentConfig)
         {
             _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
+            _startupManagerService = startupManagerService ?? throw new ArgumentNullException(nameof(startupManagerService));
             _localizationService = localizationService;
             _localizationService.LanguageChanged += OnLanguageChanged;
             UpdateLocalizedStrings();
@@ -232,6 +235,17 @@ namespace ChatCaster.Windows.ViewModels
         {
             // Применяем к overlay сервису
             await _overlayService.ApplyConfigAsync(_currentConfig.Overlay);
+            try
+            {
+                await _startupManagerService.SetStartupAsync(_currentConfig.System.StartWithSystem);
+                Log.Information("Настройка автозапуска обновлена: {StartWithSystem}", _currentConfig.System.StartWithSystem);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка применения настройки автозапуска");
+                StatusMessage = "Ошибка применения настройки автозапуска";
+            }
+
         }
 
         protected override Task InitializePageSpecificDataAsync()

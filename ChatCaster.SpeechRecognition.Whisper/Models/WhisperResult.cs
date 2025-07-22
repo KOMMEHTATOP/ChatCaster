@@ -77,16 +77,18 @@ public class WhisperResult
     /// </summary>
     public VoiceProcessingResult ToVoiceProcessingResult(bool success = true, string? errorMessage = null)
     {
+        // Тишина - это не ошибка, это нормальный результат
+        var isSuccess = success && (errorMessage == null);
+    
         return new VoiceProcessingResult
         {
-            Success = success && !string.IsNullOrWhiteSpace(Text),
+            Success = isSuccess,
             RecognizedText = Text,
             ProcessingTime = ProcessingTime,
             Confidence = Confidence,
             ErrorMessage = errorMessage
         };
     }
-
     /// <summary>
     /// Создает WhisperResult из стандартного VoiceProcessingResult
     /// </summary>

@@ -60,6 +60,9 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
             // Подготавливаем модель
             var modelPath = await _modelManager.PrepareModelAsync(_config.ModelSize, _config.ModelPath);
+            _logger.LogInformation("🔍 [MODEL] Подготовлена модель: {ModelPath}, размер: {ModelSize}", modelPath,
+                _config.ModelSize);
+
 
             // Создаем Whisper factory
             _factory = WhisperFactory.FromPath(modelPath);
@@ -108,6 +111,8 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
     public async Task<VoiceProcessingResult> RecognizeAsync(byte[] audioData, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("🔍 [RECOGNIZE] Начинаем распознавание с моделью: {ModelSize}", _config.ModelSize);
+
         if (!IsInitialized)
         {
             throw new WhisperInitializationException("Whisper engine is not initialized");
@@ -123,7 +128,22 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         try
         {
             // Конвертируем аудио в формат Whisper
+            _logger.LogInformation("🔍 [RECOGNIZE] Converting audio: {AudioSize} bytes", audioData.Length);
             var samples = await _audioConverter.ConvertToSamplesAsync(audioData, cancellationToken);
+            _logger.LogInformation("🔍 [RECOGNIZE] Audio converted to {SampleCount} samples", samples.Length);
+
+            // ДОБАВИТЬ АНАЛИЗ АУДИО:
+            var maxSample = samples.Length > 0 ? samples.Max(Math.Abs) : 0;
+            var avgSample = samples.Length > 0 ? samples.Average(Math.Abs) : 0;
+            var rms = samples.Length > 0 ? Math.Sqrt(samples.Average(s => s * s)) : 0;
+            _logger.LogInformation("🔍 [AUDIO] Max: {Max:F4}, Avg: {Avg:F4}, RMS: {RMS:F4}", maxSample, avgSample, rms);
+            if (maxSample < 0.001f)
+            {
+                _logger.LogWarning("🔍 [AUDIO] Audio signal is very quiet! Max amplitude: {Max:F6}", maxSample);
+            }
+            var nonZeroSamples = samples.Count(s => Math.Abs(s) > 0.0001f);
+            _logger.LogInformation("🔍 [AUDIO] Non-zero samples: {NonZero}/{Total} ({Percentage:F1}%)", 
+                nonZeroSamples, samples.Length, (float)nonZeroSamples / samples.Length * 100);
 
             // Выполняем распознавание
             var whisperResult = await ProcessWithWhisperAsync(samples, cancellationToken);
@@ -135,11 +155,12 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             whisperResult.ProcessingTime = stopwatch.Elapsed;
 
             var result = whisperResult.ToVoiceProcessingResult();
-            
+
             return result;
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("🔍 [RECOGNIZE] Recognition was cancelled");
             return new VoiceProcessingResult
             {
                 Success = false, ErrorMessage = "Recognition was cancelled", ProcessingTime = stopwatch.Elapsed
@@ -147,13 +168,18 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Speech recognition failed");
+            _logger.LogError(ex,
+                "🔍 [RECOGNIZE] FAILED - Type: {ExceptionType}, Message: '{Message}', StackTrace: {StackTrace}",
+                ex.GetType().Name, ex.Message ?? "NULL", ex.StackTrace);
 
             return new VoiceProcessingResult
             {
-                Success = false, ErrorMessage = ex.Message, ProcessingTime = stopwatch.Elapsed
+                Success = false,
+                ErrorMessage = ex.Message ?? $"Unknown error: {ex.GetType().Name}",
+                ProcessingTime = stopwatch.Elapsed
             };
         }
+
         finally
         {
             stopwatch.Stop();
@@ -176,7 +202,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 oldConfig.ModelPath != newConfig.ModelPath ||
                 oldConfig.EnableGpu != newConfig.EnableGpu ||
                 oldConfig.Language != newConfig.Language;
-            
+
             if (needsReinitialization)
             {
                 // Принудительно освобождаем ресурсы
@@ -186,7 +212,7 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
-                
+
                 return await InitializeAsync(config);
             }
 
@@ -230,10 +256,20 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
 
     private async Task<WhisperResult> ProcessWithWhisperAsync(float[] samples, CancellationToken cancellationToken)
     {
+        var invalidSamples = samples.Count(s => float.IsNaN(s) || float.IsInfinity(s));
+        if (invalidSamples > 0)
+        {
+            _logger.LogError("🔍 [WHISPER] Found {Count} invalid samples (NaN/Infinity)!", invalidSamples);
+        }
+
         if (_processor == null)
         {
             throw new WhisperInitializationException("Whisper processor is not initialized");
         }
+
+        _logger.LogInformation(
+            "🔍 [PROCESS] Starting Whisper processing, samples: {SampleCount}, processor: {ProcessorType}",
+            samples.Length, _processor.GetType().Name);
 
         try
         {
@@ -244,9 +280,31 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
             var whisperResult = new WhisperResult();
             var segments = new List<WhisperSegment>();
 
+            _logger.LogInformation("🔍 [PROCESS] About to call _processor.ProcessAsync");
+            _logger.LogInformation("🔍 [PROCESS] Starting Whisper processing, samples: {SampleCount}, processor: {ProcessorType}", 
+                samples.Length, _processor.GetType().Name);
+// ДОБАВИТЬ ПРОВЕРКИ:
+            var durationSeconds = (float)samples.Length / WhisperConstants.Audio.RequiredSampleRate;
+            _logger.LogInformation("🔍 [WHISPER] Audio duration: {Duration:F2}s, Expected sample rate: {SampleRate}Hz", 
+                durationSeconds, WhisperConstants.Audio.RequiredSampleRate);
+
+            _logger.LogInformation("🔍 [WHISPER] Config - Language: '{Language}', VAD: {VAD}, GPU: {GPU}, Timeout: {Timeout}s", 
+                _config.Language, _config.UseVAD, _config.EnableGpu, _config.RecognitionTimeoutSeconds);
+
+// Проверим минимальную длительность
+            if (durationSeconds < 0.1f)
+            {
+                _logger.LogWarning("🔍 [WHISPER] Audio too short for Whisper: {Duration:F2}s", durationSeconds);
+            }
+
+            _logger.LogInformation("🔍 [PROCESS] About to call _processor.ProcessAsync");
+            
             // Обрабатываем аудио
             await foreach (var segment in _processor.ProcessAsync(samples, timeoutCts.Token))
             {
+                _logger.LogInformation("🔍 [PROCESS] Received segment: '{Text}', Start: {Start}, End: {End}",
+                    segment.Text, segment.Start, segment.End);
+
                 var whisperSegment = new WhisperSegment
                 {
                     Text = segment.Text,
@@ -259,6 +317,9 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
                 whisperResult.Text += segment.Text;
             }
 
+            _logger.LogInformation("🔍 [PROCESS] Processing completed, segments: {SegmentCount}, text: '{Text}'",
+                segments.Count, whisperResult.Text);
+
             whisperResult.Segments = segments;
             whisperResult.Confidence = CalculateOverallConfidence(segments);
             whisperResult.VadUsed = _config.UseVAD;
@@ -268,15 +329,20 @@ public class WhisperSpeechRecognitionService : ISpeechRecognitionService, IDispo
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _logger.LogWarning("🔍 [PROCESS] Cancelled by user");
             throw; // Пробрасываем отмену от пользователя
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("🔍 [PROCESS] Timeout after {Timeout} seconds", _config.RecognitionTimeoutSeconds);
             throw WhisperRecognitionException.Timeout(TimeSpan.FromSeconds(_config.RecognitionTimeoutSeconds));
         }
         catch (Exception ex)
         {
-            throw WhisperRecognitionException.ProcessingFailed(ex, TimeSpan.Zero);
+            _logger.LogError(ex,
+                "🔍 [PROCESS] ProcessWithWhisperAsync FAILED - Type: {ExceptionType}, Message: '{Message}', InnerException: {InnerException}",
+                ex.GetType().Name, ex.Message ?? "NULL", ex.InnerException?.Message ?? "NULL");
+            throw;
         }
     }
 

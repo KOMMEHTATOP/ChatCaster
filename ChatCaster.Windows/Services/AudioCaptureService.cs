@@ -16,7 +16,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
     public event EventHandler<byte[]>? AudioDataReceived;
 
     private WaveInEvent? _waveIn;
-    private AudioConfig? _currentConfig;
     private readonly Lock _lockObject = new();
     private bool _isDisposed;
 
@@ -133,9 +132,7 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     {
                         throw new InvalidOperationException("Захват уже запущен");
                     }
-
-                    _currentConfig = config;
-
+                    
                     // Определяем устройство
                     int deviceNumber = 0;
 
@@ -208,21 +205,18 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
             float volume = CalculateVolume(e.Buffer, e.BytesRecorded);
             CurrentVolume = volume;
             VolumeChanged?.Invoke(this, volume);
-            
-            if (_currentConfig == null || !(volume >= _currentConfig.VolumeThreshold))
-                return;
-            
-            // Отправляем аудио данные
+        
+            // Фильтрация должна происходить на уровне распознавания или после записи
             var audioData = new byte[e.BytesRecorded];
             Array.Copy(e.Buffer, audioData, e.BytesRecorded);
             AudioDataReceived?.Invoke(this, audioData);
+   
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Ошибка обработки аудио данных");
         }
     }
-
     private void OnRecordingStopped(object? sender, StoppedEventArgs e)
     {
         if (e.Exception != null)
@@ -337,7 +331,6 @@ public class AudioCaptureService : IAudioCaptureService, IDisposable
                     IsCapturing = false;
                     CurrentVolume = 0;
                     ActiveDevice = null;
-                    _currentConfig = null;
                 }
             }
             catch (Exception ex)

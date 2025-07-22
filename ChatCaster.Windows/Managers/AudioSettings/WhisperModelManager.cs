@@ -59,8 +59,16 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             try
             {
-                var modelPath = Path.Combine("models", $"ggml-{modelSize}.bin");
-                return await Task.Run(() => File.Exists(modelPath));
+                // ИСПРАВЛЕНИЕ: Используем абсолютный путь относительно приложения
+                var modelsDirectory = Path.Combine(AppContext.BaseDirectory, "Models");
+                var modelPath = Path.Combine(modelsDirectory, $"ggml-{modelSize}.bin");
+        
+                Log.Debug("🔍 [MODEL_CHECK] Проверяем модель по пути: {ModelPath}", modelPath);
+        
+                var exists = await Task.Run(() => File.Exists(modelPath));
+                Log.Debug("🔍 [MODEL_CHECK] Модель {ModelSize} существует: {Exists}", modelSize, exists);
+        
+                return exists;
             }
             catch (Exception ex)
             {
@@ -68,6 +76,7 @@ namespace ChatCaster.Windows.Managers.AudioSettings
                 return false;
             }
         }
+        
         
         /// <summary>
         /// Применяет текущую конфигурацию к речевому сервису без скачивания

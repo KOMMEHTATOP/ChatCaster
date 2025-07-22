@@ -5,6 +5,7 @@ using ChatCaster.Core.Services.Overlay;
 using ChatCaster.Core.Services.System;
 using ChatCaster.Windows.Services.GamepadService;
 using Serilog;
+using System.IO;
 
 namespace ChatCaster.Windows.Services
 {
@@ -20,6 +21,8 @@ namespace ChatCaster.Windows.Services
         private readonly IOverlayService _overlayService;
         private readonly ISystemIntegrationService _systemService;
         private readonly GamepadVoiceCoordinator _gamepadVoiceCoordinator;
+        private readonly IStartupManagerService _startupManagerService;
+
 
         public ApplicationInitializationService(
             IConfigurationService configurationService,
@@ -27,7 +30,8 @@ namespace ChatCaster.Windows.Services
             IAudioCaptureService audioService,
             IOverlayService overlayService,
             ISystemIntegrationService systemService,
-            GamepadVoiceCoordinator gamepadVoiceCoordinator)
+            GamepadVoiceCoordinator gamepadVoiceCoordinator,
+            IStartupManagerService startupManagerService)
         {
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
             _speechService = speechService ?? throw new ArgumentNullException(nameof(speechService));
@@ -36,6 +40,7 @@ namespace ChatCaster.Windows.Services
             _systemService = systemService ?? throw new ArgumentNullException(nameof(systemService));
             _gamepadVoiceCoordinator =
                 gamepadVoiceCoordinator ?? throw new ArgumentNullException(nameof(gamepadVoiceCoordinator));
+            _startupManagerService = startupManagerService ?? throw new ArgumentNullException(nameof(startupManagerService));
         }
 
         /// <summary>
@@ -47,6 +52,9 @@ namespace ChatCaster.Windows.Services
             {
                 // 1. Загружаем конфигурацию
                 var config = _configurationService.CurrentConfig;
+                Log.Information("🔍 [PATH] Current directory: {CurrentDir}", Directory.GetCurrentDirectory());
+                Log.Information("🔍 [PATH] Base directory: {BaseDir}", AppContext.BaseDirectory);
+                Log.Information("🔍 [PATH] Models path: {ModelsPath}", Path.GetFullPath("Models"));
 
                 // 2. Проверяем первый запуск и устанавливаем defaults
                 await EnsureDefaultConfigurationAsync(config);
@@ -94,12 +102,24 @@ namespace ChatCaster.Windows.Services
             bool configChanged = false;
 
             // Проверяем и устанавливаем Whisper модель по умолчанию
-            if (string.IsNullOrEmpty(config.Audio.SelectedDeviceId))
+            if (!config.SpeechRecognition.EngineSettings.ContainsKey("ModelSize") ||
+                string.IsNullOrEmpty(config.SpeechRecognition.EngineSettings["ModelSize"]?.ToString()))
             {
-                // Устанавливаем дефолтную модель Whisper
                 config.SpeechRecognition.EngineSettings["ModelSize"] = "tiny";
                 configChanged = true;
+                Log.Information("Установлена дефолтная модель Whisper: tiny");
+            }
 
+            // Применяем настройку автозапуска согласно конфигурации
+            try
+            {
+                await _startupManagerService.SetStartupAsync(config.System.StartWithSystem);
+                Log.Information("Настройка автозапуска применена: {StartWithSystem}", config.System.StartWithSystem);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка применения настройки автозапуска");
+                // Не прерываем инициализацию из-за этой ошибки
             }
 
             // Проверяем и устанавливаем аудио устройство по умолчанию
@@ -116,6 +136,7 @@ namespace ChatCaster.Windows.Services
                     {
                         config.Audio.SelectedDeviceId = defaultDevice.Id;
                         configChanged = true;
+                        Log.Information("Установлено дефолтное аудио устройство: {DeviceName}", defaultDevice.Name);
                     }
                     else
                     {
@@ -135,7 +156,6 @@ namespace ChatCaster.Windows.Services
             }
         }
 
-
         private async Task InitializeSpeechRecognitionAsync(AppConfig config)
         {
             var speechInitialized = await _speechService.InitializeAsync(config.SpeechRecognition);
@@ -151,7 +171,7 @@ namespace ChatCaster.Windows.Services
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "ApplicationInitializationService: ошибка установки аудио устройства: {DeviceId}", 
+                    Log.Error(ex, "ApplicationInitializationService: ошибка установки аудио устройства: {DeviceId}",
                         config.Audio.SelectedDeviceId);
                 }
             }
@@ -160,7 +180,7 @@ namespace ChatCaster.Windows.Services
                 Log.Warning("ApplicationInitializationService: в конфигурации не указано аудио устройство");
             }
         }
-        
+
         private async Task InitializeOverlayAsync(AppConfig config)
         {
             await _overlayService.ApplyConfigAsync(config.Overlay);
