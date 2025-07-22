@@ -86,6 +86,9 @@ public class OverlayWindow : Window
         ResizeMode = ResizeMode.NoResize;
         SizeToContent = SizeToContent.WidthAndHeight;
         Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 30));
+        ShowActivated = false;      // Не активировать окно при показе
+        Focusable = false;         // Запретить фокус
+        IsHitTestVisible = false;  // Сделать окно некликабельным
     }
 
     /// <summary>

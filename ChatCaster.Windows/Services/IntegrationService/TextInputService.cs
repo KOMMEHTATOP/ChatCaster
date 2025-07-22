@@ -91,12 +91,13 @@ public class TextInputService : ITextInputService
             {
                 if (string.IsNullOrWhiteSpace(text))
                 {
+                    _logger.LogWarning("Пустой текст для отправки");
                     return false;
                 }
-                
+            
                 var activeWindow = _windowService.GetActiveWindowTitle();
+                _logger.LogInformation("Активное окно перед отправкой текста: {WindowTitle}", activeWindow);
 
-                // Единственная проверка - не отправляем в собственное окно
                 if (_windowService.IsOwnWindow(activeWindow))
                 {
                     _logger.LogWarning("Отказ: попытка ввода в собственное окно ChatCaster");
@@ -114,6 +115,7 @@ public class TextInputService : ITextInputService
                 // Универсальный ввод для всех приложений
                 SendTextSendInput(text);
 
+                _logger.LogInformation("Текст успешно отправлен: '{Text}'", text);
                 return true;
             }
             catch (Exception ex)
@@ -123,7 +125,8 @@ public class TextInputService : ITextInputService
             }
         });
     }
-
+    
+    
     public async Task<bool> ClearActiveFieldAsync()
     {
         return await Task.Run(() =>
