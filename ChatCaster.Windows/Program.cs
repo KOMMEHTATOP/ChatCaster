@@ -61,7 +61,7 @@ namespace ChatCaster.Windows
                 notificationService.InitializeAsync().GetAwaiter().GetResult();
 
                 app.MainWindow = mainWindow;
-
+                
                 // Запуск приложения
                 app.Run(mainWindow);
             }
@@ -191,7 +191,7 @@ namespace ChatCaster.Windows
                     provider.GetRequiredService<IConfigurationService>(),
                     provider.GetRequiredService<ILocalizationService>()
                 ));
-            
+
             // === КОМПОНЕНТЫ VIEWMODELS ===
             services.AddSingleton<ViewModels.Components.RecordingStatusComponentViewModel>();
             services.AddSingleton<ViewModels.Components.RecognitionResultsComponentViewModel>();
@@ -205,13 +205,13 @@ namespace ChatCaster.Windows
 
             // === VIEWS ===
             services.AddSingleton<ChatCasterWindow>();
-            
+
             // === СИСТЕМА ОБНОВЛЕНИЙ ===
             services.AddSingleton<IUpdateService, GitHubUpdateService>();
 
             Log.Information("DI контейнер настроен");
         }
-        
+
         /// <summary>
         /// Получает размер модели из EngineSettings или возвращает дефолтный
         /// </summary>

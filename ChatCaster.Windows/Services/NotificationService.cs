@@ -336,15 +336,10 @@ public class NotificationService : INotificationService, IDisposable
     {
         try
         {
-            var message = $"Доступна версия {version}";
-
-            if (!string.IsNullOrEmpty(releaseNotes) && releaseNotes.Length <= 100)
-            {
-                message += $"\n{releaseNotes}";
-            }
-
+            var message = $"Доступна версия {version}\nСкачайте на GitHub: github.com/KOMMEHTATOP/ChatCaster/releases";
+        
             _trayService.ShowNotification("Обновление", message, NotificationType.Info);
-
+        
             Log.Information("Уведомление об обновлении: {Version}", version);
         }
         catch (Exception ex)
@@ -352,7 +347,7 @@ public class NotificationService : INotificationService, IDisposable
             Log.Error(ex, "Ошибка уведомления об обновлении");
         }
     }
-
+    
     /// <summary>
     /// Уведомление о скачивании обновления
     /// </summary>

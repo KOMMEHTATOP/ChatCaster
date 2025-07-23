@@ -8,16 +8,6 @@ namespace ChatCaster.Core.Updates;
 public interface IUpdateService
 {
     /// <summary>
-    /// Событие изменения прогресса операции обновления
-    /// </summary>
-    event EventHandler<UpdateResult>? ProgressChanged;
-    
-    /// <summary>
-    /// Событие завершения операции обновления
-    /// </summary>
-    event EventHandler<UpdateResult>? OperationCompleted;
-    
-    /// <summary>
     /// Проверяет наличие доступных обновлений
     /// </summary>
     /// <param name="currentVersion">Текущая версия приложения</param>
@@ -27,30 +17,6 @@ public interface IUpdateService
     Task<UpdateResult> CheckForUpdatesAsync(
         string currentVersion, 
         bool includePreReleases = false, 
-        CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Скачивает указанное обновление
-    /// </summary>
-    /// <param name="updateInfo">Информация об обновлении для скачивания</param>
-    /// <param name="downloadPath">Путь для сохранения файла (если null, используется временная папка)</param>
-    /// <param name="cancellationToken">Токен отмены операции</param>
-    /// <returns>Результат скачивания с путем к файлу</returns>
-    Task<UpdateResult> DownloadUpdateAsync(
-        UpdateInfo updateInfo, 
-        string? downloadPath = null, 
-        CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Применяет скачанное обновление (запускает процесс обновления)
-    /// </summary>
-    /// <param name="updateFilePath">Путь к скачанному файлу обновления</param>
-    /// <param name="restartApplication">Перезапустить ли приложение после обновления</param>
-    /// <param name="cancellationToken">Токен отмены операции</param>
-    /// <returns>Результат применения обновления</returns>
-    Task<UpdateResult> ApplyUpdateAsync(
-        string updateFilePath, 
-        bool restartApplication = true, 
         CancellationToken cancellationToken = default);
     
     /// <summary>

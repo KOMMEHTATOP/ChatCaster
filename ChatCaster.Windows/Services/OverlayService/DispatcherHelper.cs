@@ -9,7 +9,7 @@ namespace ChatCaster.Windows.Services.OverlayService;
 /// </summary>
 public static class DispatcherHelper
 {
-    private readonly static ILogger _logger = Log.ForContext(typeof(DispatcherHelper));
+    private static readonly ILogger _logger = Log.ForContext(typeof(DispatcherHelper));
 
     /// <summary>
     /// Выполняет действие в UI потоке синхронно
@@ -18,7 +18,11 @@ public static class DispatcherHelper
     public static void InvokeOnUI(Action action)
     {
         if (!TryGetDispatcher(out var dispatcher))
+        {
+            _logger.Warning("Dispatcher недоступен, действие выполнено в текущем потоке");
+            action?.Invoke();
             return;
+        }
 
         try
         {
@@ -40,7 +44,11 @@ public static class DispatcherHelper
     public static async Task InvokeOnUIAsync(Action action)
     {
         if (!TryGetDispatcher(out var dispatcher))
+        {
+            _logger.Warning("Dispatcher недоступен, действие выполнено в текущем потоке");
+            action?.Invoke();
             return;
+        }
 
         try
         {
@@ -58,10 +66,14 @@ public static class DispatcherHelper
     /// <summary>
     /// Проверяет доступность dispatcher и возвращает его
     /// </summary>
-    private static bool TryGetDispatcher(out System.Windows.Threading.Dispatcher dispatcher)
+    private static bool TryGetDispatcher(out System.Windows.Threading.Dispatcher? dispatcher)
     {
-        dispatcher = Application.Current?.Dispatcher!;
-
+        dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher == null)
+        {
+            _logger.Warning("Application.Current или Dispatcher недоступен");
+            return false;
+        }
         return true;
     }
 }

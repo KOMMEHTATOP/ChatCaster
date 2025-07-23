@@ -245,173 +245,66 @@ namespace ChatCaster.Windows.Services
             var gamepadInitialized = await _gamepadVoiceCoordinator.InitializeAsync();
         }
 
-        /// <summary>
-        /// Проверяет обновления в фоне при запуске приложения
-        /// </summary>
-        private async Task CheckForUpdatesAsync(AppConfig config)
+/// <summary>
+/// Проверяет обновления в фоне при запуске приложения
+/// </summary>
+private async Task CheckForUpdatesAsync(AppConfig config)
+{
+    try
+    {
+        // Проверяем нужно ли проверять обновления
+        if (!_updateService.ShouldCheckForUpdates(config.Updates))
         {
-            try
-            {
-                // Проверяем нужно ли проверять обновления
-                if (!_updateService.ShouldCheckForUpdates(config.Updates))
-                {
-                    Log.Debug("Проверка обновлений пропущена согласно настройкам");
-                    return;
-                }
-
-                Log.Information("Начинаем проверку обновлений в фоне");
-
-                // Подписываемся на события обновлений
-                _updateService.ProgressChanged += OnUpdateProgressChanged;
-                _updateService.OperationCompleted += OnUpdateOperationCompleted;
-
-                // Проверяем обновления
-                var result = await _updateService.CheckForUpdatesAsync(
-                    AppConstants.AppVersion, 
-                    config.Updates.IncludePreReleases);
-
-                // Обновляем время последней проверки
-                config.Updates.LastCheckTime = DateTime.UtcNow;
-                await _configurationService.SaveConfigAsync(config);
-
-                if (result.IsSuccess && result.ResultType == UpdateResultType.UpdateAvailable && result.UpdateInfo != null)
-                {
-                    // Проверяем не пропущена ли эта версия
-                    if (config.Updates.SkippedVersions.Contains(result.UpdateInfo.Version))
-                    {
-                        Log.Information("Версия {Version} была пропущена пользователем", result.UpdateInfo.Version);
-                        return;
-                    }
-
-                    Log.Information("Найдено обновление: {Version}", result.UpdateInfo.Version);
-                    
-                    // Уведомляем пользователя
-                    _notificationService.NotifyUpdateAvailable(result.UpdateInfo.Version, 
-                        GetShortReleaseNotes(result.UpdateInfo.ReleaseNotes));
-
-                    // Автоматически скачиваем если включено
-                    if (config.Updates.AutoDownload)
-                    {
-                        _ = Task.Run(async () => await DownloadUpdateAsync(result.UpdateInfo, config));
-                    }
-                }
-                else if (!result.IsSuccess)
-                {
-                    Log.Warning("Ошибка проверки обновлений: {Error}", result.ErrorMessage);
-                    
-                    // Показываем ошибку только если это не сетевая проблема
-                    if (!IsNetworkError(result.ErrorMessage))
-                    {
-                        _notificationService.NotifyUpdateError(result.ErrorMessage ?? "Неизвестная ошибка");
-                    }
-                }
-                else
-                {
-                    Log.Information("Обновления не найдены");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка при проверке обновлений в фоне");
-            }
-            finally
-            {
-                // Отписываемся от событий
-                _updateService.ProgressChanged -= OnUpdateProgressChanged;
-                _updateService.OperationCompleted -= OnUpdateOperationCompleted;
-            }
+            Log.Debug("Проверка обновлений пропущена согласно настройкам");
+            return;
         }
 
-        /// <summary>
-        /// Скачивает обновление в фоне
-        /// </summary>
-        private async Task DownloadUpdateAsync(UpdateInfo updateInfo, AppConfig config)
+        Log.Information("Начинаем проверку обновлений в фоне");
+
+        // Проверяем обновления (только проверка, без скачивания)
+        var result = await _updateService.CheckForUpdatesAsync(
+            AppConstants.AppVersion, 
+            config.Updates.IncludePreReleases);
+
+        // Обновляем время последней проверки
+        config.Updates.LastCheckTime = DateTime.UtcNow;
+        await _configurationService.SaveConfigAsync(config);
+
+        if (result.IsSuccess && result.ResultType == UpdateResultType.UpdateAvailable && result.UpdateInfo != null)
         {
-            try
+            // Проверяем не пропущена ли эта версия
+            if (config.Updates.SkippedVersions.Contains(result.UpdateInfo.Version))
             {
-                Log.Information("Начинаем автоматическое скачивание обновления {Version}", updateInfo.Version);
-
-                // Подписываемся на события
-                _updateService.ProgressChanged += OnUpdateProgressChanged;
-                _updateService.OperationCompleted += OnUpdateOperationCompleted;
-
-                var result = await _updateService.DownloadUpdateAsync(updateInfo);
-
-                if (result.IsSuccess && !string.IsNullOrEmpty(result.DownloadedFilePath))
-                {
-                    Log.Information("Обновление скачано: {FilePath}", result.DownloadedFilePath);
-                    
-                    // Проверяем целостность файла
-                    var isValid = await _updateService.ValidateUpdateFileAsync(result.DownloadedFilePath, updateInfo.FileHash);
-                    
-                    if (isValid)
-                    {
-                        _notificationService.NotifyUpdateReadyToInstall(updateInfo.Version);
-                        
-                        // Сохраняем путь к скачанному обновлению в конфигурации
-                        config.Updates.AdditionalData["DownloadedUpdatePath"] = result.DownloadedFilePath;
-                        config.Updates.AdditionalData["DownloadedUpdateVersion"] = updateInfo.Version;
-                        await _configurationService.SaveConfigAsync(config);
-                    }
-                    else
-                    {
-                        Log.Warning("Скачанный файл поврежден, удаляем");
-                        File.Delete(result.DownloadedFilePath);
-                        _notificationService.NotifyUpdateError("Скачанный файл поврежден");
-                    }
-                }
-                else
-                {
-                    Log.Warning("Ошибка скачивания обновления: {Error}", result.ErrorMessage);
-                    _notificationService.NotifyUpdateError(result.ErrorMessage ?? "Ошибка скачивания");
-                }
+                Log.Information("Версия {Version} была пропущена пользователем", result.UpdateInfo.Version);
+                return;
             }
-            catch (Exception ex)
+
+            Log.Information("Найдено обновление: {Version}", result.UpdateInfo.Version);
+            
+            // Только уведомляем пользователя - НЕ скачиваем автоматически
+            _notificationService.NotifyUpdateAvailable(result.UpdateInfo.Version, 
+                GetShortReleaseNotes(result.UpdateInfo.ReleaseNotes));
+        }
+        else if (!result.IsSuccess)
+        {
+            Log.Warning("Ошибка проверки обновлений: {Error}", result.ErrorMessage);
+            
+            // Показываем ошибку только если это не сетевая проблема
+            if (!IsNetworkError(result.ErrorMessage))
             {
-                Log.Error(ex, "Ошибка при скачивании обновления");
-                _notificationService.NotifyUpdateError("Ошибка при скачивании обновления");
-            }
-            finally
-            {
-                _updateService.ProgressChanged -= OnUpdateProgressChanged;
-                _updateService.OperationCompleted -= OnUpdateOperationCompleted;
+                _notificationService.NotifyUpdateError(result.ErrorMessage ?? "Неизвестная ошибка");
             }
         }
-
-        /// <summary>
-        /// Обработчик события прогресса обновления
-        /// </summary>
-        private void OnUpdateProgressChanged(object? sender, UpdateResult result)
+        else
         {
-            try
-            {
-                if (result.ResultType == UpdateResultType.DownloadInProgress && result.UpdateInfo != null)
-                {
-                    _notificationService.NotifyUpdateDownloadProgress(result.UpdateInfo.Version, result.ProgressPercentage);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка обработки прогресса обновления");
-            }
+            Log.Information("Обновления не найдены");
         }
-
-        /// <summary>
-        /// Обработчик события завершения операции обновления
-        /// </summary>
-        private void OnUpdateOperationCompleted(object? sender, UpdateResult result)
-        {
-            try
-            {
-                Log.Information("Операция обновления завершена: {ResultType}, Success: {Success}", 
-                    result.ResultType, result.IsSuccess);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка обработки завершения операции обновления");
-            }
-        }
-
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Ошибка при проверке обновлений в фоне");
+    }
+}
         /// <summary>
         /// Получает краткие release notes для уведомления
         /// </summary>

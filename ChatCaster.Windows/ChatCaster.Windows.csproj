@@ -6,8 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
-
-    <!-- Информация о приложении -->
     <AssemblyTitle>ChatCaster for Windows</AssemblyTitle>
     <AssemblyDescription>Voice input application for Steam Input with gamepad control</AssemblyDescription>
     <AssemblyVersion>0.0.1</AssemblyVersion>
@@ -16,8 +14,6 @@
     <Company>ChatCaster</Company>
     <Product>ChatCaster</Product>
     <Copyright>Copyright © 2025</Copyright>
-
-    <!-- Иконка приложения -->
     <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -42,14 +38,20 @@
     <ProjectReference Include="..\ChatCaster.SpeechRecognition.Whisper\ChatCaster.SpeechRecognition.Whisper.csproj" />
   </ItemGroup>
 
-  <!-- Ресурсы -->
   <ItemGroup>
     <Resource Include="Resources\Logo.ico" />
     <Resource Include="Resources\free-icon-mic-7663253.png" />
     <Resource Include="Styles\DarkTheme.xaml" />
-    <None Remove="Resources\usa-flag.png" />
     <Resource Include="Resources\usa-flag.png" />
-    <None Remove="Resources\russia-flag.png" />
     <Resource Include="Resources\russia-flag.png" />
   </ItemGroup>
+
+  <!-- Копирование ChatCaster.Updater.exe в выходную папку -->
+  <Target Name="CopyUpdater" AfterTargets="Build">
+    <Copy
+      SourceFiles="$(SolutionDir)ChatCaster.Updater\bin\$(ConfigurationName)\net9.0-windows\ChatCaster.Updater.exe"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true"
+      Condition="Exists('$(SolutionDir)ChatCaster.Updater\bin\$(ConfigurationName)\net9.0-windows\ChatCaster.Updater.exe')" />
+  </Target>
 </Project>

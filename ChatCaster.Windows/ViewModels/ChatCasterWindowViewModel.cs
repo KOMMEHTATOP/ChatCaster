@@ -13,6 +13,8 @@ using ChatCaster.Windows.ViewModels.Base;
 using ChatCaster.Windows.ViewModels.Navigation;
 using Serilog;
 using System.Windows.Media.Imaging;
+using ChatCaster.Core.Constants;
+
 
 namespace ChatCaster.Windows.ViewModels
 {
@@ -77,6 +79,8 @@ namespace ChatCaster.Windows.ViewModels
         [ObservableProperty]
         private string _controlPageText = "Управление";
 
+        [ObservableProperty]
+        private string _applicationVersion = $"v{AppConstants.AppVersion}";
 
         #endregion
 
