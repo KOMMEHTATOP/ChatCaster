@@ -12,6 +12,7 @@
 
     <Page.Resources>
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Page.Resources>
 
     <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
@@ -99,18 +100,44 @@
                             Padding="20"
                             MinHeight="120"
                             Margin="0,0,0,15">
-                        <!-- Правильные привязки к результатам -->
-                        <TextBlock Text="{Binding RecognitionResultsComponent.ResultText}"
-                                   FontFamily="Consolas"
-                                   FontSize="14"
-                                   Foreground="{Binding RecognitionResultsComponent.ResultTextBrush}"
-                                   FontStyle="{Binding RecognitionResultsComponent.ResultFontStyle}"
-                                   TextWrapping="Wrap"/>
+                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Текст результата -->
+                            <TextBlock Grid.Row="0"
+                                       Text="{Binding RecognitionResultsComponent.ResultText}"
+                                       FontFamily="Consolas"
+                                       FontSize="14"
+                                       Foreground="{Binding RecognitionResultsComponent.ResultTextBrush}"
+                                       FontStyle="{Binding RecognitionResultsComponent.ResultFontStyle}"
+                                       TextWrapping="Wrap"/>
+                            
+                            <!-- Кнопка копирования -->
+                            <Button Grid.Row="1"
+                                    Command="{Binding RecognitionResultsComponent.CopyTextCommand}"
+                                    Background="Transparent"
+                                    BorderBrush="Transparent"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Padding="8"
+                                    Margin="0,10,0,0"
+                                    ToolTip="Копировать текст"
+                                    Cursor="Hand"
+                                    Visibility="{Binding RecognitionResultsComponent.CanCopyText, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ui:SymbolIcon Symbol="Copy24" 
+                                               FontSize="16" 
+                                               Foreground="#999999"/>
+                            </Button>
+                        </Grid>
                     </Border>
                     
                     <StackPanel Grid.Row="2" 
                                 Orientation="Horizontal">
-                        <!-- Правильные привязки к метрикам -->
+                      
                         <TextBlock Text="{Binding RecognitionResultsComponent.ConfidenceText}"
                                    FontSize="12"
                                    Foreground="#999999"

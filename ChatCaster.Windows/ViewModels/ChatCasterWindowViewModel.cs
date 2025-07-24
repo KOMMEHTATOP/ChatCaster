@@ -344,7 +344,18 @@ namespace ChatCaster.Windows.ViewModels
                 if (_voiceRecordingService.IsRecording)
                 {
                     StatusText = _localizationService.GetString("StatusProcessing");
-                    await _voiceRecordingService.StopRecordingAsync();
+                    var result = await _voiceRecordingService.StopRecordingAsync();
+            
+                    // ✅ ДОБАВИТЬ: Отправляем результат в систему если успешно
+                    if (result.Success && !string.IsNullOrEmpty(result.RecognizedText))
+                    {
+                        await _systemService.SendTextAsync(result.RecognizedText);
+                        _trayService.ShowNotification("Распознано", result.RecognizedText, NotificationType.Success);
+                    }
+                    else
+                    {
+                        _trayService.ShowNotification("Ошибка", result.ErrorMessage ?? "Не удалось распознать речь", NotificationType.Error);
+                    }
                 }
                 else
                 {
@@ -359,7 +370,6 @@ namespace ChatCaster.Windows.ViewModels
                 _trayService.ShowNotification(_localizationService.GetString("Error") ?? "Ошибка", _localizationService.GetString("RecordingError"));
             }
         }
-
         #endregion
 
         #region Helper Methods

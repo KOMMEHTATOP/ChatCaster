@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using ChatCaster.Core.Events;
 using ChatCaster.Core.Services.System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Serilog;
 
 namespace ChatCaster.Windows.ViewModels.Components
@@ -35,6 +37,9 @@ namespace ChatCaster.Windows.ViewModels.Components
         [ObservableProperty]
         private ObservableCollection<string> _recentRecognitions = new();
 
+        [ObservableProperty]
+        private bool _canCopyText = false;
+
         // События для связи с родительской ViewModel
         public event Action<string>? TextRecognized;
 
@@ -47,6 +52,36 @@ namespace ChatCaster.Windows.ViewModels.Components
             
             SetInitialState();
         }
+
+        #region Commands
+
+        /// <summary>
+        /// Команда копирования текста в буфер обмена
+        /// </summary>
+        [RelayCommand]
+        public void CopyText()
+        {
+            try
+            {
+                Log.Information("RecognitionResultsComponent: попытка копирования текста");
+                
+                if (!string.IsNullOrEmpty(LastRecognizedText))
+                {
+                    Clipboard.SetText(LastRecognizedText);
+                    Log.Information($"RecognitionResultsComponent: текст скопирован в буфер обмена: {LastRecognizedText}");
+                }
+                else
+                {
+                    Log.Warning("RecognitionResultsComponent: нет текста для копирования");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "RecognitionResultsComponent: ошибка копирования текста в буфер обмена");
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Обрабатывает завершение распознавания голоса
@@ -83,6 +118,9 @@ namespace ChatCaster.Windows.ViewModels.Components
             ResultTextBrush = System.Windows.Media.Brushes.White;
             ResultFontStyle = System.Windows.FontStyles.Normal;
 
+            // Включаем возможность копирования
+            CanCopyText = true;
+
             // Добавляем в историю
             AddToRecentRecognitions(recognizedText);
 
@@ -102,6 +140,9 @@ namespace ChatCaster.Windows.ViewModels.Components
             ResultText = _localizationService.GetString("Main_RecognitionFailed");
             ResultTextBrush = System.Windows.Media.Brushes.Red;
             ResultFontStyle = System.Windows.FontStyles.Italic;
+
+            // Отключаем возможность копирования при ошибке
+            CanCopyText = false;
 
             // Очищаем метрики при ошибке
             ConfidenceText = "";
@@ -143,6 +184,9 @@ namespace ChatCaster.Windows.ViewModels.Components
                 LastRecognizedText = string.Empty;
                 ConfidenceText = "";
                 ProcessingTimeText = "";
+                
+                // Отключаем копирование в начальном состоянии
+                CanCopyText = false;
             }
             catch (Exception ex)
             {
