@@ -6,7 +6,7 @@ namespace ChatCaster.Core.Constants;
 public static class AppConstants
 {
     public const string AppName = "ChatCaster";
-    public const string AppVersion = "0.0.1";
+    public const string AppVersion = "0.0.2";
     public const string ConfigFileName = "chatcaster.json";
 
     // Константы для захвата комбинаций

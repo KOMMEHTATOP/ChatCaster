@@ -8,9 +8,9 @@
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <AssemblyTitle>ChatCaster for Windows</AssemblyTitle>
     <AssemblyDescription>Voice input application for Steam Input with gamepad control</AssemblyDescription>
-    <AssemblyVersion>0.0.1</AssemblyVersion>
-    <FileVersion>0.0.1</FileVersion>
-    <ProductVersion>0.0.1</ProductVersion>
+    <AssemblyVersion>0.0.2</AssemblyVersion>
+    <FileVersion>0.0.2</FileVersion>
+    <ProductVersion>0.0.2</ProductVersion>
     <Company>ChatCaster</Company>
     <Product>ChatCaster</Product>
     <Copyright>Copyright © 2025</Copyright>
