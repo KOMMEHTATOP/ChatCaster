@@ -8,8 +8,8 @@
         <!-- Информация о приложении -->
         <AssemblyTitle>ChatCaster Updater</AssemblyTitle>
         <AssemblyDescription>Update utility for ChatCaster application</AssemblyDescription>
-        <AssemblyVersion>0.0.2</AssemblyVersion>
-        <FileVersion>0.0.2</FileVersion>
+        <AssemblyVersion>0.0.3</AssemblyVersion>
+        <FileVersion>0.0.3</FileVersion>
         <Company>ChatCaster</Company>
         <Product>ChatCaster Updater</Product>
         <Copyright>Copyright © 2025</Copyright>
