@@ -137,6 +137,17 @@ namespace ChatCaster.Windows.Services
                 Log.Information("Установлена дефолтная модель Whisper: tiny");
             }
 
+            if (config.Input.KeyboardShortcut == null)
+            {
+                config.Input.KeyboardShortcut = new KeyboardShortcut 
+                { 
+                    Modifiers = ModifierKeys.Control | ModifierKeys.Shift,
+                    Key = Key.R  // или Key.V - как вам нужно
+                };
+                configChanged = true;
+                Log.Information("Установлен дефолтный хоткей клавиатуры: {DisplayText}", config.Input.KeyboardShortcut.DisplayText);
+            }
+            
             // Применяем настройку автозапуска согласно конфигурации
             try
             {

@@ -23,19 +23,37 @@ using ChatCaster.Windows.Services.IntegrationService;
 using ChatCaster.Windows.Services.OverlayService;
 using ChatCaster.Windows.Services.Navigation;
 using Serilog;
-using System.IO;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace ChatCaster.Windows
 {
     public class Program
     {
         private static IServiceProvider? _serviceProvider;
+        private static Mutex? _singleInstanceMutex;
+
+        // P/Invoke для работы с окнами
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        private const int SW_RESTORE = 9;
+        private const int SW_SHOW = 5;
 
         [STAThread]
         public static void Main(string[] args)
         {
-            // СИМУЛЯЦИЯ автозапуска - меняем рабочую директорию
-            //Directory.SetCurrentDirectory(@"C:\Windows\system32");
+            // Проверяем single instance
+            if (!CheckSingleInstance())
+            {
+                return; // Приложение уже запущено, выходим
+            }
 
             try
             {
@@ -79,6 +97,80 @@ namespace ChatCaster.Windows
             {
                 Log.CloseAndFlush();
                 _serviceProvider?.GetService<IHost>()?.Dispose();
+                
+                // Освобождаем mutex
+                _singleInstanceMutex?.ReleaseMutex();
+                _singleInstanceMutex?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Проверяет запущен ли уже экземпляр приложения
+        /// </summary>
+        private static bool CheckSingleInstance()
+        {
+            const string mutexName = "ChatCaster_SingleInstance_Mutex";
+            
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, mutexName, out bool createdNew);
+                
+                if (!createdNew)
+                {
+                    // Приложение уже запущено, пытаемся найти и активировать окно
+                    Log.Information("ChatCaster уже запущен, активируем существующее окно");
+                    ActivateExistingInstance();
+                    return false;
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка проверки single instance");
+                // В случае ошибки разрешаем запуск
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Пытается найти и активировать окно уже запущенного экземпляра
+        /// </summary>
+        private static void ActivateExistingInstance()
+        {
+            try
+            {
+                var currentProcessName = Process.GetCurrentProcess().ProcessName;
+                var processes = Process.GetProcessesByName(currentProcessName);
+
+                foreach (var process in processes.Where(p => p.Id != Environment.ProcessId))
+                {
+                    var mainWindowHandle = process.MainWindowHandle;
+                    if (mainWindowHandle != IntPtr.Zero)
+                    {
+                        // Если окно свернуто, восстанавливаем его
+                        if (IsIconic(mainWindowHandle))
+                        {
+                            ShowWindow(mainWindowHandle, SW_RESTORE);
+                        }
+                        else
+                        {
+                            ShowWindow(mainWindowHandle, SW_SHOW);
+                        }
+                        
+                        // Выводим на передний план
+                        SetForegroundWindow(mainWindowHandle);
+                        
+                        Log.Information("Активировано существующее окно ChatCaster");
+                        return;
+                    }
+                }
+
+                Log.Warning("Не удалось найти окно запущенного экземпляра ChatCaster");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ошибка активации существующего экземпляра");
             }
         }
 

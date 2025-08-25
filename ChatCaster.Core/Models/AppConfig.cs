@@ -86,7 +86,7 @@ public class GamepadShortcut
 public class KeyboardShortcut
 {
     public ModifierKeys Modifiers { get; set; } = ModifierKeys.Control | ModifierKeys.Shift;
-    public Key Key { get; set; } = Key.V;
+    public Key Key { get; set; } = Key.R;
 
     /// <summary>
     /// Текстовое представление комбинации для UI
