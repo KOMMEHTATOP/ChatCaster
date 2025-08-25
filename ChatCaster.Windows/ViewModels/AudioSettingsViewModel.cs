@@ -13,10 +13,11 @@ namespace ChatCaster.Windows.ViewModels
 {
     public partial class AudioSettingsViewModel : BaseSettingsViewModel
     {
+
         #region Services
-        
+
         private readonly ILocalizationService _localizationService;
-        
+
         #endregion
 
         #region Components
@@ -70,7 +71,11 @@ namespace ChatCaster.Windows.ViewModels
         /// </summary>
         public List<int> AvailableSampleRates { get; } = new()
         {
-            8000, 16000, 22050, 44100, 48000
+            8000,
+            16000,
+            22050,
+            44100,
+            48000
         };
 
         #endregion
@@ -83,12 +88,13 @@ namespace ChatCaster.Windows.ViewModels
             ISpeechRecognitionService speechRecognitionService,
             IAudioCaptureService audioService,
             INotificationService notificationService,
-            ILocalizationService localizationService) 
+            ILocalizationService localizationService)
             : base(configurationService, currentConfig)
         {
             _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-            
-            Log.Information("🔍 AudioSettingsViewModel создан с AppConfig HashCode: {HashCode}, SelectedLanguage: {Language}", 
+
+            Log.Information(
+                "🔍 AudioSettingsViewModel создан с AppConfig HashCode: {HashCode}, SelectedLanguage: {Language}",
                 currentConfig.GetHashCode(), currentConfig.System.SelectedLanguage);
 
             // Создаем менеджеры (теперь передаем localizationService в WhisperModelManager)
@@ -127,7 +133,6 @@ namespace ChatCaster.Windows.ViewModels
             LanguageLabel = _localizationService.GetString("Audio_Language");
             AutoSaveText = _localizationService.GetString("Audio_AutoSave");
             MicrophoneStatusText = _localizationService.GetString("Audio_MicrophoneReady");
-
         }
 
         #endregion
@@ -137,12 +142,14 @@ namespace ChatCaster.Windows.ViewModels
         partial void OnMaxRecordingSecondsChanged(int value)
         {
             if (IsLoadingUI) return;
+
             _ = OnUISettingChangedAsync();
         }
 
         partial void OnSelectedSampleRateChanged(int value)
         {
             if (IsLoadingUI) return;
+
             _ = OnUISettingChangedAsync();
         }
 
@@ -160,18 +167,34 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Загружаем устройства и устанавливаем выбранное
                 await AudioDeviceComponent.LoadDevicesAsync();
-                AudioDeviceComponent.SetSelectedDeviceFromConfig(_currentConfig.Audio.SelectedDeviceId);
+                var originalDeviceId = _currentConfig.Audio.SelectedDeviceId;
+                AudioDeviceComponent.SetSelectedDeviceFromConfig(originalDeviceId);
+
+                // Проверяем был ли автовыбор устройства
+                if (AudioDeviceComponent.SelectedDevice != null &&
+                    AudioDeviceComponent.SelectedDevice.Id != originalDeviceId)
+                {
+                    Log.Information("🔧 Автовыбор устройства: {OldId} -> {NewId} ({NewName})",
+                        originalDeviceId, AudioDeviceComponent.SelectedDevice.Id, AudioDeviceComponent.SelectedDevice.Name);
+
+                    // Сохраняем автовыбранное устройство в конфигурацию
+                    _currentConfig.Audio.SelectedDeviceId = AudioDeviceComponent.SelectedDevice.Id;
+                    await _configurationService.SaveConfigAsync(_currentConfig);
+
+                    // Применяем к сервису
+                    await AudioDeviceComponent.ApplySelectedDeviceAsync();
+                }
 
                 // Сначала загружаем модели со статусами
                 await WhisperModelComponent.LoadModelsWithStatusAsync();
-        
+
                 // устанавливаем выбранную модель (после загрузки коллекции)
-                var modelSize = _currentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var modelObj) 
-                    ? modelObj?.ToString() 
+                var modelSize = _currentConfig.SpeechRecognition.EngineSettings.TryGetValue("ModelSize", out var modelObj)
+                    ? modelObj?.ToString()
                     : "tiny"; // Fallback на tiny если не найдено
-        
+
                 WhisperModelComponent.SetSelectedModelFromConfig(modelSize);
-        
+
                 // Устанавливаем язык
                 WhisperModelComponent.SelectedLanguage = _currentConfig.SpeechRecognition.Language;
 
@@ -183,7 +206,7 @@ namespace ChatCaster.Windows.ViewModels
                 Log.Error(ex, "Ошибка в LoadPageSpecificSettingsAsync");
             }
         }
-
+        
         protected override Task ApplySettingsToConfigAsync(AppConfig config)
         {
             try
@@ -195,7 +218,8 @@ namespace ChatCaster.Windows.ViewModels
 
                 // Применяем Whisper настройки
                 config.SpeechRecognition.Language = WhisperModelComponent.SelectedLanguage;
-                config.SpeechRecognition.EngineSettings["ModelSize"] = WhisperModelComponent.SelectedModel?.ModelSize ?? "tiny";
+                config.SpeechRecognition.EngineSettings["ModelSize"] =
+                    WhisperModelComponent.SelectedModel?.ModelSize ?? "tiny";
                 config.System.SelectedLanguage = _currentConfig.System.SelectedLanguage;
 
                 return Task.CompletedTask;
@@ -223,7 +247,7 @@ namespace ChatCaster.Windows.ViewModels
                 throw;
             }
         }
-        
+
         public override void SubscribeToUIEvents()
         {
         }
@@ -233,9 +257,9 @@ namespace ChatCaster.Windows.ViewModels
             try
             {
                 _localizationService.LanguageChanged -= OnLanguageChanged;
-                
+
                 UnsubscribeFromComponentEvents();
-                
+
                 // Очищаем компоненты
                 WhisperModelComponent.Dispose();
             }
@@ -286,18 +310,21 @@ namespace ChatCaster.Windows.ViewModels
         private async Task OnDeviceChangedAsync()
         {
             if (IsLoadingUI) return;
+
             await OnUISettingChangedAsync();
         }
 
         private async Task OnModelChangedAsync()
         {
             if (IsLoadingUI) return;
+
             await OnUISettingChangedAsync();
         }
 
         private async Task OnLanguageChangedAsync()
         {
             if (IsLoadingUI) return;
+
             await OnUISettingChangedAsync();
         }
 
@@ -314,17 +341,19 @@ namespace ChatCaster.Windows.ViewModels
         private string DetermineStatusColor(string status)
         {
             var testingText = _localizationService.GetString("Audio_MicrophoneTesting");
-            var workingText = _localizationService.GetString("Audio_MicrophoneWorking"); 
+            var workingText = _localizationService.GetString("Audio_MicrophoneWorking");
             var errorText = _localizationService.GetString("Audio_MicrophoneError");
-    
+
             return status.ToLower() switch
             {
                 var s when s.Contains(testingText.ToLower()) => "#ff9800", // Оранжевый
                 var s when s.Contains(workingText.ToLower()) => "#4caf50", // Зеленый  
-                var s when s.Contains(errorText.ToLower()) => "#f44336",   // Красный
+                var s when s.Contains(errorText.ToLower()) => "#f44336", // Красный
                 _ => "#4caf50" // По умолчанию зеленый
             };
         }
+
         #endregion
+
     }
 }

@@ -1,3 +1,4 @@
+using ChatCaster.Core.Constants;
 using ChatCaster.Core.Models;
 using ChatCaster.Core.Services.Audio;
 using ChatCaster.Core.Services.System;
@@ -59,15 +60,15 @@ namespace ChatCaster.Windows.Managers.AudioSettings
         {
             try
             {
-                // ИСПРАВЛЕНИЕ: Используем абсолютный путь относительно приложения
-                var modelsDirectory = Path.Combine(AppContext.BaseDirectory, "Models");
+                // Используем путь из AppConstants
+                var modelsDirectory = AppConstants.Paths.GetModelsDirectory();
                 var modelPath = Path.Combine(modelsDirectory, $"ggml-{modelSize}.bin");
-        
+
                 Log.Debug("🔍 [MODEL_CHECK] Проверяем модель по пути: {ModelPath}", modelPath);
-        
+
                 var exists = await Task.Run(() => File.Exists(modelPath));
                 Log.Debug("🔍 [MODEL_CHECK] Модель {ModelSize} существует: {Exists}", modelSize, exists);
-        
+
                 return exists;
             }
             catch (Exception ex)
@@ -75,8 +76,7 @@ namespace ChatCaster.Windows.Managers.AudioSettings
                 Log.Warning(ex, "Ошибка проверки модели {ModelSize}", modelSize);
                 return false;
             }
-        }
-        
+        }        
         
         /// <summary>
         /// Применяет текущую конфигурацию к речевому сервису без скачивания

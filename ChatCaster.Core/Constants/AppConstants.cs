@@ -60,10 +60,19 @@ public static class AppConstants
         /// <summary>
         /// Создает все необходимые директории если они не существуют
         /// </summary>
+        ///
+        public static string GetModelsDirectory()
+        {
+            return Path.Combine(GetAppDataDirectory(), "Models");
+        }
+
         public static void EnsureDirectoriesExist()
         {
             Directory.CreateDirectory(GetAppDataDirectory());
             Directory.CreateDirectory(GetDefaultLogDirectory());
+            Directory.CreateDirectory(GetModelsDirectory());
         }
+        
+        
     }
 }

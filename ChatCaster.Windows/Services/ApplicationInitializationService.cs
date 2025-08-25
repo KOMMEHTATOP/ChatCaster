@@ -122,7 +122,7 @@ namespace ChatCaster.Windows.Services
             if (!config.SpeechRecognition.EngineSettings.ContainsKey("ModelPath") ||
                 string.IsNullOrEmpty(config.SpeechRecognition.EngineSettings["ModelPath"]?.ToString()))
             {
-                config.SpeechRecognition.EngineSettings["ModelPath"] = Path.Combine(AppContext.BaseDirectory, "Models");
+                config.SpeechRecognition.EngineSettings["ModelPath"] = AppConstants.Paths.GetModelsDirectory();
                 configChanged = true;
                 Log.Information("Установлен дефолтный ModelPath: {ModelPath}",
                     config.SpeechRecognition.EngineSettings["ModelPath"]);

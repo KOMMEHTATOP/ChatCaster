@@ -1,3 +1,4 @@
+using ChatCaster.Core.Constants;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -120,7 +121,7 @@ namespace ChatCaster.Windows
                 config.ThreadCount = Environment.ProcessorCount / 2;
                 config.EnableGpu = speechConfig.UseGpuAcceleration;
                 config.Language = speechConfig.Language;
-                config.ModelPath = Path.Combine(AppContext.BaseDirectory, "Models");
+                config.ModelPath = AppConstants.Paths.GetModelsDirectory();
                 speechConfig.EngineSettings["ModelPath"] = config.ModelPath;
                 Log.Information("🔍 [WHISPER_CONFIG] AppContext.BaseDirectory: {BaseDir}", AppContext.BaseDirectory);
                 Log.Information("🔍 [WHISPER_CONFIG] ModelPath установлен: {ModelPath}", config.ModelPath);
@@ -132,10 +133,16 @@ namespace ChatCaster.Windows
             });
 
             // === ОСНОВНЫЕ СЕРВИСЫ ===
-            services.AddSingleton<IAudioCaptureService, AudioCaptureService>();
             services.AddSingleton<ISystemIntegrationService, SystemIntegrationService>();
             services.AddSingleton<IOverlayService, WindowsOverlayService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
+
+            // === АУДИО СЕРВИСЫ ===
+            services.AddSingleton<WindowsAudioCompatibility>();
+            services.AddSingleton<IAudioCaptureService>(provider =>
+            {
+                return new AudioCaptureService(provider.GetRequiredService<WindowsAudioCompatibility>());
+            });
 
             // === ГЕЙМПАД СЕРВИСЫ ===
             services.AddSingleton<Services.GamepadService.MainGamepadService>(provider =>
